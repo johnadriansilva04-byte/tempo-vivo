@@ -1,2 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router"; import { ResumePage } from "@/components/pages";
-export const Route=createFileRoute("/curriculo")({head:()=>({meta:[{title:"Currículo — Perfil Vivo"},{name:"description",content:"Formação, experiências e produções de Ana Costa."},{property:"og:title",content:"Currículo — Perfil Vivo"},{property:"og:description",content:"Uma trajetória profissional humana e compartilhável."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:ResumePage});
+import { createFileRoute } from "@tanstack/react-router";
+import { ResumePage } from "@/components/pages";
+export const Route = createFileRoute("/curriculo")({
+  head: () => ({
+    meta: [
+      { title: "Currículo — Perfil Vivo" },
+      { name: "description", content: "Formação, experiências e produções de Ana Costa." },
+      { property: "og:title", content: "Currículo — Perfil Vivo" },
+      {
+        property: "og:description",
+        content: "Uma trajetória profissional humana e compartilhável.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: ResumePage,
+});

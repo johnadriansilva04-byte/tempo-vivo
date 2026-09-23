@@ -1,5 +1,64 @@
 export type AgendaState = "Aberto" | "Em validação" | "Travado";
-export type AgendaEntry = { date: string; weekday: string; state: AgendaState; planned: string[]; executed: string[]; summary: string };
-export type Project = { name: string; description: string; status: string; progress: number; objective: string };
+
+/** Status espelha a regra de Integridade Temporal do banco (daily_logs.status). */
+export type DailyLogStatus = "OPEN" | "VALIDATING" | "LOCKED";
+
+export type DailyLog = {
+  id: string;
+  log_date: string; // ISO date (yyyy-mm-dd)
+  planned_text: string;
+  executed_text: string;
+  summary_text: string;
+  status: DailyLogStatus;
+  locked_at: string | null;
+  created_at: string;
+};
+
+export type WeeklyFocus = {
+  id: string;
+  title: string;
+  description: string;
+  week_number: number;
+  year: number;
+  progress_pct: number;
+};
+
+export type CareerChapter = {
+  id: string;
+  title: string;
+  period: string;
+  document_type: string; // "PROLOGUE" | "RESUME" | "CERTIFICATE" | ...
+  content: string;
+};
+
+export type Project = {
+  name: string;
+  description: string;
+  status: string;
+  progress: number;
+  objective: string;
+};
 export type Milestone = { year: string; title: string; description: string; category: string };
-export type Profile = { name: string; role: string; location: string; age: number; bio: string; initials: string };
+
+export type Profile = {
+  id?: string;
+  name: string;
+  role: string;
+  location: string;
+  bio: string;
+  initials: string;
+  birth_date: string; // ISO date
+  target_lifespan: number; // default 100
+  avatar_url: string | null;
+  cover_url: string | null;
+};
+
+/** Compat: entradas antigas da agenda derivam de DailyLog quando necessário. */
+export type AgendaEntry = {
+  date: string;
+  weekday: string;
+  state: AgendaState;
+  planned: string[];
+  executed: string[];
+  summary: string;
+};
