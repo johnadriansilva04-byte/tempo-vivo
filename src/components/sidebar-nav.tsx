@@ -9,6 +9,7 @@ import {
   Gamepad2,
   LayoutDashboard,
   Menu,
+  Settings,
   Trophy,
   X,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const links = [
   ["/projetos", "Projetos", FolderKanban],
   ["/sobre", "Sobre", CircleUserRound],
   ["/jogos", "Jogos", Gamepad2],
+  ["/configuracoes", "Configurações", Settings],
 ] as const;
 
 export function SidebarNav({ children }: { children: ReactNode }) {

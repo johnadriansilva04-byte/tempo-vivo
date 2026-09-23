@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useProfile } from "@/hooks/use-profile";
 
 export type LifetimeStats = {
+  hasBirthDate: boolean;
   age: number;
   ageDecimal: number;
   target: number;
@@ -29,17 +30,35 @@ export function computeLifetime(
   now: Date = new Date(),
 ): LifetimeStats {
   const birth = new Date(`${birthDate}T00:00:00`);
-  const valid = !Number.isNaN(birth.getTime()) && birth.getTime() <= now.getTime();
+  const valid =
+    birthDate !== "" && !Number.isNaN(birth.getTime()) && birth.getTime() <= now.getTime();
+  if (!valid) {
+    return {
+      hasBirthDate: false,
+      age: 0,
+      ageDecimal: 0,
+      target,
+      cycleIndex: 0,
+      cycleLabel: "—",
+      cycleName: "Defina sua data",
+      pctConsumed: 0,
+      daysLived: 0,
+      yearsRemaining: target,
+      daysRemaining: Math.round(target * 365.2425),
+      isRecordBreaker: false,
+      isFinalCycle: false,
+    };
+  }
   const msPerDay = 24 * 60 * 60 * 1000;
-  const daysLived = valid ? Math.floor((now.getTime() - birth.getTime()) / msPerDay) : 0;
-  const ageDecimal = valid ? daysLived / 365.2425 : 0;
+  const daysLived = Math.floor((now.getTime() - birth.getTime()) / msPerDay);
+  const ageDecimal = daysLived / 365.2425;
   const age = Math.floor(ageDecimal);
   const targetDays = Math.round(target * 365.2425);
-  const pct = valid ? Math.min(100, (daysLived / targetDays) * 100) : 0;
-  const cycleIndex = valid ? Math.min(Math.floor(age / 25), 3) : 0;
-  const daysRemaining = Math.max(0, targetDays - daysLived);
+  const pct = Math.min(100, (daysLived / targetDays) * 100);
+  const cycleIndex = Math.min(Math.floor(age / 25), 3);
 
   return {
+    hasBirthDate: true,
     age,
     ageDecimal,
     target,
@@ -49,7 +68,7 @@ export function computeLifetime(
     pctConsumed: pct,
     daysLived,
     yearsRemaining: Math.max(0, target - ageDecimal),
-    daysRemaining,
+    daysRemaining: Math.max(0, targetDays - daysLived),
     isRecordBreaker: age >= target,
     isFinalCycle: cycleIndex === 3,
   };
@@ -64,8 +83,5 @@ export function useLifetime() {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(id);
   }, []);
-
-  const birthDate = profile?.birth_date ?? "1992-03-14";
-  const target = profile?.target_lifespan ?? 100;
-  return computeLifetime(birthDate, target, now);
+  return computeLifetime(profile?.birth_date ?? "", profile?.target_lifespan ?? 100, now);
 }

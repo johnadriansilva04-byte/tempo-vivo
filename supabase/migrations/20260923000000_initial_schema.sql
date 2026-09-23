@@ -143,15 +143,24 @@ alter table public.daily_logs enable row level security;
 alter table public.weekly_focus enable row level security;
 alter table public.career_chapters enable row level security;
 
+drop policy if exists "profiles read" on public.profiles;
 create policy "profiles read" on public.profiles for select using (true);
+drop policy if exists "profiles write" on public.profiles;
 create policy "profiles write" on public.profiles for update using (true) with check (true);
 
+drop policy if exists "daily_logs read" on public.daily_logs;
 create policy "daily_logs read" on public.daily_logs for select using (true);
+drop policy if exists "daily_logs insert" on public.daily_logs;
 create policy "daily_logs insert" on public.daily_logs for insert with check (true);
+drop policy if exists "daily_logs update" on public.daily_logs;
 create policy "daily_logs update" on public.daily_logs for update using (true) with check (true);
 
+drop policy if exists "weekly_focus read" on public.weekly_focus;
 create policy "weekly_focus read" on public.weekly_focus for select using (true);
+drop policy if exists "weekly_focus write" on public.weekly_focus;
 create policy "weekly_focus write" on public.weekly_focus for all using (true) with check (true);
 
+drop policy if exists "career_chapters read" on public.career_chapters;
 create policy "career_chapters read" on public.career_chapters for select using (true);
+drop policy if exists "career_chapters write" on public.career_chapters;
 create policy "career_chapters write" on public.career_chapters for all using (true) with check (true);

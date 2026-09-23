@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getWeeklyFocus, updateWeeklyFocusProgress } from "@/services/profile-service";
+import {
+  createWeeklyFocus,
+  deleteWeeklyFocus,
+  getWeeklyFocus,
+  updateWeeklyFocusProgress,
+} from "@/services/profile-service";
 import type { WeeklyFocus } from "@/types/profile";
 
 export function useWeeklyFocus() {
@@ -11,11 +16,28 @@ export function useWeeklyFocus() {
   return { focus: query.data ?? [], isLoading: query.isLoading, error: query.error };
 }
 
+export function useCreateFocus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Pick<WeeklyFocus, "title" | "description" | "week_number" | "year">) =>
+      createWeeklyFocus(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["weekly-focus"] }),
+  });
+}
+
 export function useUpdateFocusProgress() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, progress_pct }: { id: string; progress_pct: number }) =>
       updateWeeklyFocusProgress(id, progress_pct),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["weekly-focus"] }),
+  });
+}
+
+export function useDeleteFocus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteWeeklyFocus,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["weekly-focus"] }),
   });
 }

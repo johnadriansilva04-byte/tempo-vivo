@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, Download, FileText } from "lucide-react";
 import { useState } from "react";
 import { PageHeader } from "@/components/page-kit";
-import { getLifePrologue } from "@/services/profile-service";
 import { useDailyLogs } from "@/hooks/use-daily-logs";
+import { usePrologue } from "@/hooks/use-prologue";
 import { defaultAgendaView, type AgendaView } from "@/store/ui-store";
 
 export const Route = createFileRoute("/agenda")({
@@ -27,9 +27,9 @@ export const Route = createFileRoute("/agenda")({
 
 function AgendaRoute() {
   const { logs, isLoading } = useDailyLogs();
+  const { prologue, isLoading: prologueLoading } = usePrologue();
   const [view, setView] = useState<AgendaView>(defaultAgendaView);
   const [expanded, setExpanded] = useState(false);
-  const prologue = getLifePrologue();
 
   return (
     <>
@@ -59,9 +59,15 @@ function AgendaRoute() {
           </div>
           <h2 className="mt-3 font-display text-xl font-semibold">Relatório dos anos anteriores</h2>
           <div className={`prologue-text ${expanded ? "expanded" : ""}`}>
-            {prologue.split("\n").map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
+            {prologueLoading ? (
+              <p className="text-muted-foreground">Carregando…</p>
+            ) : prologue.trim() === "" ? (
+              <p className="text-muted-foreground">
+                Seu prólogo aparecerá aqui quando você o escrever.
+              </p>
+            ) : (
+              prologue.split("\n").map((p: string, i: number) => <p key={i}>{p}</p>)
+            )}
           </div>
           <Button
             variant="ghost"

@@ -6,7 +6,7 @@ export const Route = createFileRoute("/realizacoes")({
       { title: "Realizações — Perfil Vivo" },
       {
         name: "description",
-        content: "Linha do tempo de marcos importantes da vida de Ana Costa.",
+        content: "Linha do tempo de marcos importantes da sua vida.",
       },
       { property: "og:title", content: "Realizações — Perfil Vivo" },
       {

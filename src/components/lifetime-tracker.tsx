@@ -1,9 +1,9 @@
-import { LockKeyhole, Sparkles } from "lucide-react";
+import { LockKeyhole, Settings, Sparkles } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useLifetime } from "@/hooks/use-lifetime";
+import { Button } from "@/components/ui/button";
 
 const R = 54;
-const CIRCUMFERENCE = 2 * Math.PI * R;
-const GAP_DEG = 2.2; // respiro entre as 4 fatias
 
 function arcPath(startDeg: number, endDeg: number): string {
   const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
@@ -18,7 +18,6 @@ type Slice = {
   range: string;
   name: string;
   state: "past" | "active" | "future";
-  /** fração do ciclo já consumida (0..1) — desenha a fatia em andamento */
   fillFrac: number;
 };
 
@@ -40,9 +39,49 @@ function buildSlices(age: number): Slice[] {
   }));
 }
 
+const GAP_DEG = 2.2;
+
 export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
   const life = useLifetime();
   const slices = buildSlices(life.age);
+
+  // Sem data de nascimento → estado vazio com convite para preencher.
+  if (!life.hasBirthDate) {
+    return (
+      <div className="life-panel gap-5">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
+            Memento Mori
+          </p>
+          <p className="mt-0.5 text-sm font-medium text-foreground">
+            Defina o início da sua linha do tempo
+          </p>
+        </div>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Informe sua data de nascimento em{" "}
+          <Link
+            to="/configuracoes"
+            className="font-semibold text-primary underline underline-offset-2"
+          >
+            Configurações
+          </Link>{" "}
+          para ver o horizonte de {life.target} anos e o ciclo em que você está.
+        </p>
+        <Button asChild variant="outline" size="sm" className="w-fit">
+          <Link to="/configuracoes">
+            <Settings className="size-3.5" /> Preencher agora
+          </Link>
+        </Button>
+        <div className="grid grid-cols-4 gap-1.5 opacity-40">
+          {["0–25", "25–50", "50–75", "75–100"].map((r) => (
+            <div key={r} className="cycle-segment cycle-future">
+              <span>{r}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="life-panel">
@@ -84,7 +123,6 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
                   : s.state === "active"
                     ? (end - start) * s.fillFrac
                     : 0;
-              const dashFrac = consumed / 90;
               return (
                 <path
                   key={s.index}
@@ -100,8 +138,7 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
                         : "transparent"
                   }
                   className={s.state === "active" ? "life-donut-glow" : undefined}
-                  strokeDasharray={`${dashFrac * CIRCUMFERENCE * 0.25} ${CIRCUMFERENCE}`}
-                  transform={`rotate(${s.index * 90 + 90} 60 60)`}
+                  strokeDasharray={`${consumed} 360`}
                 />
               );
             })}

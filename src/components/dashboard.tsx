@@ -1,34 +1,39 @@
 import {
   ArrowRight,
-  CalendarDays,
   CheckCircle2,
   ChevronDown,
   Clock3,
+  FolderKanban,
+  Inbox,
   Sparkles,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { DailyLogCard } from "@/components/daily-log-card";
+import { EmptyState } from "@/components/empty-state";
 import { FocusCard } from "@/components/focus-card";
 import { ProfileHeader } from "@/components/profile-header";
-import { Metric, ProgressBar, Section } from "@/components/page-kit";
+import { Metric, Section } from "@/components/page-kit";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDailyLogs } from "@/hooks/use-daily-logs";
-import { useProfile } from "@/hooks/use-profile";
-import { getMilestones, getProjects } from "@/services/profile-service";
+import { useMilestones } from "@/hooks/use-milestones";
+import { useProjects } from "@/hooks/use-projects";
 
 export function DashboardPage() {
-  const { profile } = useProfile();
   const { logs } = useDailyLogs();
-  const projects = getProjects();
-  const milestones = getMilestones();
+  const { projects } = useProjects();
+  const { milestones } = useMilestones();
   const latest = milestones[0];
   const [showAllLogs, setShowAllLogs] = useState(false);
 
   const openLogs = logs.filter((l) => l.status !== "LOCKED");
   const visibleLogs = (showAllLogs ? logs : openLogs.slice(0, 2)).slice(0, 4);
+
+  // Métricas derivadas — zero quando o app começa vazio.
+  const daysWithSummary = logs.filter((l) => l.summary_text.trim() !== "").length;
+  const summaryPct = logs.length === 0 ? 0 : Math.round((daysWithSummary / logs.length) * 100);
 
   return (
     <>
@@ -45,24 +50,37 @@ export function DashboardPage() {
 
             <TabsContent value="agora" className="mt-5">
               <Section title="Agora" detail="O que está recebendo sua energia">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {projects.slice(0, 2).map((p) => (
-                    <Link to="/projetos" key={p.name} className="card-interactive">
-                      <div className="flex items-start justify-between">
-                        <span className="status status-neutral">{p.status}</span>
-                        <ArrowRight className="size-4 text-faint" />
-                      </div>
-                      <h3 className="mt-5 font-display text-base font-semibold">{p.name}</h3>
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                        {p.description}
-                      </p>
-                      <div className="mt-5">
-                        <ProgressBar value={p.progress} />
+                {projects.length === 0 ? (
+                  <EmptyState
+                    icon={<FolderKanban className="size-5" />}
+                    title="Nenhum projeto ainda"
+                    description="Crie seu primeiro projeto em Projetos e acompanhe o avanço aqui."
+                    actionLabel="Ir para Projetos"
+                    onAction={() => (window.location.href = "/projetos")}
+                  />
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {projects.slice(0, 2).map((p) => (
+                      <Link to="/projetos" key={p.name} className="card-interactive">
+                        <div className="flex items-start justify-between">
+                          <span className="status status-neutral">{p.status}</span>
+                          <ArrowRight className="size-4 text-faint" />
+                        </div>
+                        <h3 className="mt-5 font-display text-base font-semibold">{p.name}</h3>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          {p.description}
+                        </p>
+                        <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${p.progress}%` }}
+                          />
+                        </div>
                         <p className="mt-2 text-xs text-faint">{p.progress}% concluído</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </Section>
             </TabsContent>
 
@@ -70,9 +88,13 @@ export function DashboardPage() {
               <Section title="Próximos registros" detail="Livro de bordo — dias vivos">
                 <div className="space-y-4">
                   {visibleLogs.length === 0 && (
-                    <p className="text-sm text-faint">
-                      Nenhum registro vivo. Comece o dia de hoje.
-                    </p>
+                    <EmptyState
+                      icon={<Inbox className="size-5" />}
+                      title="Nenhum registro vivo"
+                      description="O dia de hoje é o próximo. Abra o registro e descreva sua intenção."
+                      actionLabel="Abrir Agenda"
+                      onAction={() => (window.location.href = "/agenda")}
+                    />
                   )}
                   {visibleLogs.map((log) => (
                     <DailyLogCard key={log.id} log={log} />
@@ -102,10 +124,17 @@ export function DashboardPage() {
         <div className="space-y-9">
           <Section title="Em números">
             <div className="grid grid-cols-2 gap-x-4 gap-y-7 border-y border-border py-5">
-              <Metric value={String(1248)} label="Dias registrados" />
-              <Metric value="18" label="Marcos preservados" />
-              <Metric value="7" label="Projetos concluídos" />
-              <Metric value="86%" label="Dias com resumo" />
+              <Metric value={String(logs.length)} label="Dias registrados" />
+              <Metric value={String(milestones.length)} label="Marcos preservados" />
+              <Metric
+                value={String(projects.filter((p) => p.status === "Concluído").length)}
+                label="Projetos concluídos"
+              />{" "}
+              <Metric
+                {...(logs.length === 0
+                  ? { detail: "sem dados", value: `${summaryPct}%`, label: "Dias com resumo" }
+                  : { value: `${summaryPct}%`, label: "Dias com resumo" })}
+              />
             </div>
           </Section>
 
@@ -123,7 +152,7 @@ export function DashboardPage() {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {latest && (
+                {latest ? (
                   <div className="quiet-panel">
                     <div className="flex items-center gap-2 text-xs font-medium text-accent-foreground">
                       <Sparkles className="size-3.5" />
@@ -138,6 +167,12 @@ export function DashboardPage() {
                       Preservado em {latest.year}
                     </div>
                   </div>
+                ) : (
+                  <EmptyState
+                    icon={<Sparkles className="size-5" />}
+                    title="Nenhum marco ainda"
+                    description="Seu primeiro marco vai brilhar aqui. Registre uma realização em Realizações."
+                  />
                 )}
               </CollapsibleContent>
             </Section>

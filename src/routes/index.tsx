@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — Perfil Vivo" },
-      { name: "description", content: "Visão geral da trajetória viva de Ana Costa." },
+      { name: "description", content: "Visão geral da sua trajetória viva." },
       { property: "og:title", content: "Dashboard — Perfil Vivo" },
       {
         property: "og:description",

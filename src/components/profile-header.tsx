@@ -14,6 +14,8 @@ export function ProfileHeader() {
   const [draft, setDraft] = useState({ name: "", role: "", location: "" });
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const isBlank = profile?.name.trim() === "" || (profile?.name ?? "") === "";
+
   if (!profile) {
     return <div className="h-44 animate-pulse rounded-lg border border-border bg-card" />;
   }
@@ -172,13 +174,26 @@ export function ProfileHeader() {
                   </button>
                 </p>
                 <h1 className="font-display text-3xl font-semibold text-foreground">
-                  {profile.name}
+                  {isBlank ? "Seu nome" : profile.name}
                 </h1>
-                <p className="mt-1 text-sm text-muted-foreground">{profile.role}</p>
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-faint">
-                  <MapPin className="size-3" />
-                  {profile.location}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {isBlank ? (
+                    <a
+                      href="/configuracoes"
+                      className="underline decoration-dotted underline-offset-4"
+                    >
+                      Preencha seu perfil em Configurações →
+                    </a>
+                  ) : (
+                    profile.role
+                  )}
                 </p>
+                {!isBlank && (
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-faint">
+                    <MapPin className="size-3" />
+                    {profile.location}
+                  </p>
+                )}
               </div>
             )}
           </div>
