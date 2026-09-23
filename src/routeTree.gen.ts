@@ -10,33 +10,128 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as CurriculoRouteImport } from './routes/curriculo'
+import { Route as JogosRouteImport } from './routes/jogos'
+import { Route as PlanejamentoRouteImport } from './routes/planejamento'
+import { Route as ProjetosRouteImport } from './routes/projetos'
+import { Route as RealizacoesRouteImport } from './routes/realizacoes'
+import { Route as SobreRouteImport } from './routes/sobre'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgendaRoute = AgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CurriculoRoute = CurriculoRouteImport.update({
+  id: '/curriculo',
+  path: '/curriculo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JogosRoute = JogosRouteImport.update({
+  id: '/jogos',
+  path: '/jogos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanejamentoRoute = PlanejamentoRouteImport.update({
+  id: '/planejamento',
+  path: '/planejamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjetosRoute = ProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RealizacoesRoute = RealizacoesRouteImport.update({
+  id: '/realizacoes',
+  path: '/realizacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SobreRoute = SobreRouteImport.update({
+  id: '/sobre',
+  path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/curriculo': typeof CurriculoRoute
+  '/jogos': typeof JogosRoute
+  '/planejamento': typeof PlanejamentoRoute
+  '/projetos': typeof ProjetosRoute
+  '/realizacoes': typeof RealizacoesRoute
+  '/sobre': typeof SobreRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/curriculo': typeof CurriculoRoute
+  '/jogos': typeof JogosRoute
+  '/planejamento': typeof PlanejamentoRoute
+  '/projetos': typeof ProjetosRoute
+  '/realizacoes': typeof RealizacoesRoute
+  '/sobre': typeof SobreRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agenda': typeof AgendaRoute
+  '/curriculo': typeof CurriculoRoute
+  '/jogos': typeof JogosRoute
+  '/planejamento': typeof PlanejamentoRoute
+  '/projetos': typeof ProjetosRoute
+  '/realizacoes': typeof RealizacoesRoute
+  '/sobre': typeof SobreRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/agenda'
+    | '/curriculo'
+    | '/jogos'
+    | '/planejamento'
+    | '/projetos'
+    | '/realizacoes'
+    | '/sobre'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/agenda'
+    | '/curriculo'
+    | '/jogos'
+    | '/planejamento'
+    | '/projetos'
+    | '/realizacoes'
+    | '/sobre'
+  id:
+    | '__root__'
+    | '/'
+    | '/agenda'
+    | '/curriculo'
+    | '/jogos'
+    | '/planejamento'
+    | '/projetos'
+    | '/realizacoes'
+    | '/sobre'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgendaRoute: typeof AgendaRoute
+  CurriculoRoute: typeof CurriculoRoute
+  JogosRoute: typeof JogosRoute
+  PlanejamentoRoute: typeof PlanejamentoRoute
+  ProjetosRoute: typeof ProjetosRoute
+  RealizacoesRoute: typeof RealizacoesRoute
+  SobreRoute: typeof SobreRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +143,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agenda': {
+      id: '/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/curriculo': {
+      id: '/curriculo'
+      path: '/curriculo'
+      fullPath: '/curriculo'
+      preLoaderRoute: typeof CurriculoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jogos': {
+      id: '/jogos'
+      path: '/jogos'
+      fullPath: '/jogos'
+      preLoaderRoute: typeof JogosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/planejamento': {
+      id: '/planejamento'
+      path: '/planejamento'
+      fullPath: '/planejamento'
+      preLoaderRoute: typeof PlanejamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projetos': {
+      id: '/projetos'
+      path: '/projetos'
+      fullPath: '/projetos'
+      preLoaderRoute: typeof ProjetosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/realizacoes': {
+      id: '/realizacoes'
+      path: '/realizacoes'
+      fullPath: '/realizacoes'
+      preLoaderRoute: typeof RealizacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sobre': {
+      id: '/sobre'
+      path: '/sobre'
+      fullPath: '/sobre'
+      preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgendaRoute: AgendaRoute,
+  CurriculoRoute: CurriculoRoute,
+  JogosRoute: JogosRoute,
+  PlanejamentoRoute: PlanejamentoRoute,
+  ProjetosRoute: ProjetosRoute,
+  RealizacoesRoute: RealizacoesRoute,
+  SobreRoute: SobreRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
