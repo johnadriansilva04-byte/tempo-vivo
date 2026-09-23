@@ -1,8 +1,8 @@
 # Perfil Vivo MVP
 
-- [ ] Criar sistema visual e estrutura reutilizável
-- [ ] Criar dados mockados, tipos e repositório
-- [ ] Criar navegação e oito páginas funcionais
-- [ ] Implementar Agenda com relatório inicial e estados históricos
-- [ ] Implementar indicador de ciclos de vida no perfil
-- [ ] Validar navegação, visual desktop/mobile e erros
+- [x] Criar sistema visual e estrutura reutilizável
+- [x] Criar dados mockados, tipos e repositório
+- [x] Criar navegação e oito páginas funcionais
+- [x] Implementar Agenda com relatório inicial e estados históricos
+- [x] Implementar indicador de ciclos de vida no perfil
+- [x] Validar navegação, visual desktop/mobile e erros
