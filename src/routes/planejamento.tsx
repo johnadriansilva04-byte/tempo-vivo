@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { PlanningPage } from "@/components/pages";
+export const Route=createFileRoute("/planejamento")({head:()=>({meta:[{title:"Planejamento — Perfil Vivo"},{name:"description",content:"Objetivos, metas e progresso da trajetória de Ana Costa."},{property:"og:title",content:"Planejamento — Perfil Vivo"},{property:"og:description",content:"Planos conectados às ações e ao futuro."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:PlanningPage});

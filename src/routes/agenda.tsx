@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { AgendaPage } from "@/components/pages";
+export const Route=createFileRoute("/agenda")({head:()=>({meta:[{title:"Agenda — Perfil Vivo"},{name:"description",content:"Livro de bordo cronológico com registros planejados, executados e resumos."},{property:"og:title",content:"Agenda — Perfil Vivo"},{property:"og:description",content:"Uma memória cronológica confiável da vida real."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}]}),component:AgendaPage});
