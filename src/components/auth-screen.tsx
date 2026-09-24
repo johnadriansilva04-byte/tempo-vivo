@@ -1,14 +1,35 @@
 import { useState } from "react";
-import { Activity, ArrowRight, Eye, EyeOff, Loader2, LogIn, UserPlus } from "lucide-react";
+import {
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  LogIn,
+  ShieldQuestion,
+  UserPlus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signIn, signUp } from "@/hooks/use-auth";
+import {
+  recoveryQuestionFor,
+  resetPasswordWithToken,
+  signIn,
+  signUp,
+  verifyRecoveryAnswer,
+} from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPhone, normalizePhone } from "@/lib/identity";
+import { RECOVERY_QUESTIONS } from "@/lib/recovery";
 
-type Mode = "entrar" | "criar";
+type Mode = "entrar" | "criar" | "recuperar";
+/** Etapas da recuperação: identificar o telefone, responder, definir a senha. */
+type RecoveryStep = "telefone" | "resposta" | "nova-senha";
 
 const pitch = [
   "Uma conta por telefone e senha — simples como deve ser.",
@@ -16,7 +37,7 @@ const pitch = [
   "Na primeira entrada, o app cria a base da sua história para você editar.",
 ];
 
-/** Porta de entrada do app: entrar com telefone/senha ou criar conta nova. */
+/** Porta de entrada do app: entrar, criar conta ou recuperar a senha. */
 export function AuthScreen() {
   const [mode, setMode] = useState<Mode>("criar");
   const [pending, setPending] = useState(false);
@@ -28,6 +49,22 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [question, setQuestion] = useState<string>(RECOVERY_QUESTIONS[0]);
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+
+  // Recuperação
+  const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("telefone");
+  const [recoveryPhone, setRecoveryPhone] = useState("");
+  const [recoveryQuestion, setRecoveryQuestion] = useState<string | null>(null);
+  const [recoveryAnswer, setRecoveryAnswer] = useState("");
+  const [recoveryToken, setRecoveryToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError(null);
+  };
 
   const submit = async () => {
     setPending(true);
@@ -38,20 +75,90 @@ export function AuthScreen() {
           setError("As senhas não conferem.");
           return;
         }
+        const chosen = customQuestion.trim() || question;
         const result = await signUp({
           name,
           age: Number(age),
           phone,
           password,
+          recovery_question: chosen,
+          recovery_answer: answer,
         });
         if (!result.ok) setError(result.error);
-      } else {
+      } else if (mode === "entrar") {
         const result = await signIn({ phone, password });
         if (!result.ok) setError(result.error);
       }
     } finally {
       setPending(false);
     }
+  };
+
+  // ------------------------------------------------ recuperação, passo 1 de 3
+  const findQuestion = async () => {
+    setPending(true);
+    setError(null);
+    try {
+      const found = await recoveryQuestionFor(recoveryPhone);
+      if (!found) {
+        setError(
+          "Não encontramos uma pergunta secreta para este telefone. Confira o número ou crie sua conta.",
+        );
+        return;
+      }
+      setRecoveryQuestion(found);
+      setRecoveryStep("resposta");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  // ------------------------------------------------ recuperação, passo 2 de 3
+  const checkAnswer = async () => {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await verifyRecoveryAnswer(recoveryPhone, recoveryAnswer);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setRecoveryToken(result.token);
+      setRecoveryStep("nova-senha");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  // ------------------------------------------------ recuperação, passo 3 de 3
+  const applyNewPassword = async () => {
+    setPending(true);
+    setError(null);
+    try {
+      const result = await resetPasswordWithToken(recoveryToken, newPassword);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      // Entra direto com a senha nova: a pessoa acabou de provar quem é.
+      const signInResult = await signIn({ phone: recoveryPhone, password: newPassword });
+      if (!signInResult.ok) {
+        switchMode("entrar");
+        setPhone(recoveryPhone);
+        setError("Senha trocada. Entre com a senha nova.");
+      }
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const restartRecovery = () => {
+    setRecoveryStep("telefone");
+    setRecoveryQuestion(null);
+    setRecoveryAnswer("");
+    setRecoveryToken("");
+    setNewPassword("");
+    setError(null);
   };
 
   return (
@@ -100,148 +207,383 @@ export function AuthScreen() {
             <span className="font-display text-sm font-semibold text-foreground">Perfil Vivo</span>
           </div>
 
-          <h2 className="font-display text-2xl font-semibold text-foreground">
-            {mode === "criar" ? "Criar sua conta" : "Entrar na sua conta"}
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "criar"
-              ? "Telefone, senha, nome e idade. Depois criamos a base da sua história."
-              : "Use o telefone e a senha cadastrados."}
-          </p>
+          {mode === "recuperar" ? (
+            <RecoveryPanel
+              step={recoveryStep}
+              pending={pending}
+              error={error}
+              phone={recoveryPhone}
+              question={recoveryQuestion}
+              answer={recoveryAnswer}
+              newPassword={newPassword}
+              showPassword={showPassword}
+              onToggleShow={() => setShowPassword((v) => !v)}
+              onPhone={(v) => setRecoveryPhone(normalizePhone(v))}
+              onAnswer={setRecoveryAnswer}
+              onNewPassword={setNewPassword}
+              onFindQuestion={() => void findQuestion()}
+              onCheckAnswer={() => void checkAnswer()}
+              onApplyPassword={() => void applyNewPassword()}
+              onRestart={restartRecovery}
+              onBackToLogin={() => switchMode("entrar")}
+            />
+          ) : (
+            <>
+              <h2 className="font-display text-2xl font-semibold text-foreground">
+                {mode === "criar" ? "Criar sua conta" : "Entrar na sua conta"}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {mode === "criar"
+                  ? "Telefone, senha, nome e idade. Depois criamos a base da sua história."
+                  : "Use o telefone e a senha cadastrados."}
+              </p>
 
-          <Tabs
-            value={mode}
-            onValueChange={(v) => {
-              setMode(v as Mode);
-              setError(null);
-            }}
-            className="mt-6"
-          >
-            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-              <TabsTrigger value="criar">Criar conta</TabsTrigger>
-              <TabsTrigger value="entrar">Entrar</TabsTrigger>
-            </TabsList>
+              <Tabs value={mode} onValueChange={(v) => switchMode(v as Mode)} className="mt-6">
+                <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                  <TabsTrigger value="criar">Criar conta</TabsTrigger>
+                  <TabsTrigger value="entrar">Entrar</TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="criar" className="mt-6">
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void submit();
-                }}
-              >
-                <AuthField label="Nome completo">
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Como você quer ser chamado"
-                    autoComplete="name"
-                  />
-                </AuthField>
-                <AuthField label="Idade">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={120}
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    placeholder="Ex.: 34"
-                    autoComplete="off"
-                  />
-                </AuthField>
-                <AuthField label="Telefone">
-                  <Input
-                    value={formatPhone(phone)}
-                    onChange={(e) => setPhone(normalizePhone(e.target.value))}
-                    placeholder="(11) 98765-4321"
-                    inputMode="tel"
-                    autoComplete="tel"
-                  />
-                </AuthField>
-                <AuthField label="Senha">
-                  <PasswordInput
-                    value={password}
-                    onChange={setPassword}
-                    show={showPassword}
-                    onToggle={() => setShowPassword((v) => !v)}
-                    placeholder="Mínimo de 4 caracteres"
-                    autoComplete="new-password"
-                  />
-                </AuthField>
-                <AuthField label="Confirmar senha">
-                  <PasswordInput
-                    value={confirm}
-                    onChange={setConfirm}
-                    show={showPassword}
-                    onToggle={() => setShowPassword((v) => !v)}
-                    placeholder="Repita a senha"
-                    autoComplete="new-password"
-                  />
-                </AuthField>
-                <Button type="submit" className="w-full" disabled={pending}>
-                  {pending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <UserPlus className="size-4" />
-                  )}
-                  Criar conta e começar
-                </Button>
-              </form>
-            </TabsContent>
+                <TabsContent value="criar" className="mt-6">
+                  <form
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void submit();
+                    }}
+                  >
+                    <AuthField label="Nome completo">
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Como você quer ser chamado"
+                        autoComplete="name"
+                      />
+                    </AuthField>
+                    <AuthField label="Idade">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        placeholder="Ex.: 34"
+                        autoComplete="off"
+                      />
+                    </AuthField>
+                    <AuthField label="Telefone">
+                      <Input
+                        value={formatPhone(phone)}
+                        onChange={(e) => setPhone(normalizePhone(e.target.value))}
+                        placeholder="(11) 98765-4321"
+                        inputMode="tel"
+                        autoComplete="tel"
+                      />
+                    </AuthField>
+                    <AuthField label="Senha">
+                      <PasswordInput
+                        value={password}
+                        onChange={setPassword}
+                        show={showPassword}
+                        onToggle={() => setShowPassword((v) => !v)}
+                        placeholder="Mínimo de 4 caracteres"
+                        autoComplete="new-password"
+                      />
+                    </AuthField>
+                    <AuthField label="Confirmar senha">
+                      <PasswordInput
+                        value={confirm}
+                        onChange={setConfirm}
+                        show={showPassword}
+                        onToggle={() => setShowPassword((v) => !v)}
+                        placeholder="Repita a senha"
+                        autoComplete="new-password"
+                      />
+                    </AuthField>
 
-            <TabsContent value="entrar" className="mt-6">
-              <form
-                className="space-y-4"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void submit();
-                }}
-              >
-                <AuthField label="Telefone">
-                  <Input
-                    value={formatPhone(phone)}
-                    onChange={(e) => setPhone(normalizePhone(e.target.value))}
-                    placeholder="(11) 98765-4321"
-                    inputMode="tel"
-                    autoComplete="tel"
-                  />
-                </AuthField>
-                <AuthField label="Senha">
-                  <PasswordInput
-                    value={password}
-                    onChange={setPassword}
-                    show={showPassword}
-                    onToggle={() => setShowPassword((v) => !v)}
-                    placeholder="Sua senha"
-                    autoComplete="current-password"
-                  />
-                </AuthField>
-                <Button type="submit" className="w-full" disabled={pending}>
-                  {pending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <LogIn className="size-4" />
-                  )}
-                  Entrar
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                    {/* A pergunta secreta é o que permite recuperar a senha
+                        depois, já que não há e-mail no cadastro. */}
+                    <div className="rounded-lg border border-border/70 bg-muted/30 p-3.5">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-faint">
+                        <ShieldQuestion className="size-3.5" /> Senha de segurança
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        Se um dia você esquecer a senha, é esta pergunta que devolve o acesso — sem
+                        depender de e-mail.
+                      </p>
+                      <div className="mt-3 space-y-3">
+                        <AuthField label="Pergunta secreta">
+                          <select
+                            value={question}
+                            onChange={(e) => setQuestion(e.target.value)}
+                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          >
+                            {RECOVERY_QUESTIONS.map((q) => (
+                              <option key={q} value={q}>
+                                {q}
+                              </option>
+                            ))}
+                            <option value="">Escrever a minha própria…</option>
+                          </select>
+                        </AuthField>
+                        {question === "" && (
+                          <Input
+                            value={customQuestion}
+                            onChange={(e) => setCustomQuestion(e.target.value)}
+                            placeholder="Ex.: Qual o nome da minha primeira rua?"
+                          />
+                        )}
+                        <AuthField label="Resposta secreta">
+                          <Input
+                            value={answer}
+                            onChange={(e) => setAnswer(e.target.value)}
+                            placeholder="Algo que você não esquece"
+                            autoComplete="off"
+                          />
+                        </AuthField>
+                      </div>
+                    </div>
 
-          {error && (
-            <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {error}
-            </p>
+                    <Button type="submit" className="w-full" disabled={pending}>
+                      {pending ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <UserPlus className="size-4" />
+                      )}
+                      Criar conta e começar
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="entrar" className="mt-6">
+                  <form
+                    className="space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void submit();
+                    }}
+                  >
+                    <AuthField label="Telefone">
+                      <Input
+                        value={formatPhone(phone)}
+                        onChange={(e) => setPhone(normalizePhone(e.target.value))}
+                        placeholder="(11) 98765-4321"
+                        inputMode="tel"
+                        autoComplete="tel"
+                      />
+                    </AuthField>
+                    <AuthField label="Senha">
+                      <PasswordInput
+                        value={password}
+                        onChange={setPassword}
+                        show={showPassword}
+                        onToggle={() => setShowPassword((v) => !v)}
+                        placeholder="Sua senha"
+                        autoComplete="current-password"
+                      />
+                    </AuthField>
+                    <Button type="submit" className="w-full" disabled={pending}>
+                      {pending ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <LogIn className="size-4" />
+                      )}
+                      Entrar
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecoveryPhone(phone);
+                        switchMode("recuperar");
+                      }}
+                      className="w-full text-center text-xs font-medium text-primary transition-colors hover:text-foreground"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+
+              {error && <AuthError message={error} />}
+
+              <p className="mt-6 text-xs leading-5 text-faint">
+                {isSupabaseConfigured
+                  ? "Sua conta é criada no Supabase: a senha é gerenciada pelo serviço de autenticação e seus dados ficam isolados por usuário."
+                  : "A conta é local a este navegador: senha guardada como hash, nunca em texto puro."}
+              </p>
+            </>
           )}
-
-          <p className="mt-6 text-xs leading-5 text-faint">
-            {isSupabaseConfigured
-              ? "Sua conta é criada no Supabase: a senha é gerenciada pelo serviço de autenticação e seus dados ficam isolados por usuário."
-              : "A conta é local a este navegador: senha guardada como hash, nunca em texto puro."}
-          </p>
         </div>
       </section>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Recuperação de senha em três passos, guiada por telefone + pergunta secreta.
+// ---------------------------------------------------------------------------
+function RecoveryPanel({
+  step,
+  pending,
+  error,
+  phone,
+  question,
+  answer,
+  newPassword,
+  showPassword,
+  onToggleShow,
+  onPhone,
+  onAnswer,
+  onNewPassword,
+  onFindQuestion,
+  onCheckAnswer,
+  onApplyPassword,
+  onRestart,
+  onBackToLogin,
+}: {
+  step: RecoveryStep;
+  pending: boolean;
+  error: string | null;
+  phone: string;
+  question: string | null;
+  answer: string;
+  newPassword: string;
+  showPassword: boolean;
+  onToggleShow: () => void;
+  onPhone: (v: string) => void;
+  onAnswer: (v: string) => void;
+  onNewPassword: (v: string) => void;
+  onFindQuestion: () => void;
+  onCheckAnswer: () => void;
+  onApplyPassword: () => void;
+  onRestart: () => void;
+  onBackToLogin: () => void;
+}) {
+  const stepIndex = step === "telefone" ? 0 : step === "resposta" ? 1 : 2;
+
+  return (
+    <>
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">
+        <KeyRound className="size-3.5" /> Recuperar acesso
+      </div>
+      <h2 className="mt-4 font-display text-2xl font-semibold text-foreground">
+        {step === "telefone" && "Vamos achar sua conta"}
+        {step === "resposta" && "Responda sua pergunta"}
+        {step === "nova-senha" && "Escolha a nova senha"}
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        {step === "telefone" &&
+          "Informe o telefone cadastrado. A pergunta secreta que você escolheu vai aparecer em seguida."}
+        {step === "resposta" &&
+          "Não precisa acertar maiúsculas, acentos ou espaços — só o conteúdo."}
+        {step === "nova-senha" &&
+          "Sua identidade foi confirmada. Defina uma senha nova para voltar à sua história."}
+      </p>
+
+      <div className="mt-5 flex items-center gap-1.5">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className={`h-1 flex-1 rounded-full transition-colors ${
+              i <= stepIndex ? "bg-primary" : "bg-muted"
+            }`}
+          />
+        ))}
+      </div>
+
+      <form
+        className="mt-6 space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (step === "telefone") onFindQuestion();
+          else if (step === "resposta") onCheckAnswer();
+          else onApplyPassword();
+        }}
+      >
+        {step === "telefone" && (
+          <AuthField label="Telefone">
+            <Input
+              value={formatPhone(phone)}
+              onChange={(e) => onPhone(e.target.value)}
+              placeholder="(11) 98765-4321"
+              inputMode="tel"
+              autoComplete="tel"
+            />
+          </AuthField>
+        )}
+
+        {step === "resposta" && (
+          <>
+            <div className="rounded-md border border-border/70 bg-muted/30 px-3 py-2.5 text-sm text-foreground">
+              {question}
+            </div>
+            <AuthField label="Sua resposta">
+              <Input
+                value={answer}
+                onChange={(e) => onAnswer(e.target.value)}
+                placeholder="Escreva a resposta que você cadastrou"
+                autoComplete="off"
+              />
+            </AuthField>
+          </>
+        )}
+
+        {step === "nova-senha" && (
+          <AuthField label="Nova senha">
+            <PasswordInput
+              value={newPassword}
+              onChange={onNewPassword}
+              show={showPassword}
+              onToggle={onToggleShow}
+              placeholder="Mínimo de 4 caracteres"
+              autoComplete="new-password"
+            />
+          </AuthField>
+        )}
+
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : step === "nova-senha" ? (
+            <CheckCircle2 className="size-4" />
+          ) : (
+            <ArrowRight className="size-4" />
+          )}
+          {step === "telefone" && "Continuar"}
+          {step === "resposta" && "Confirmar resposta"}
+          {step === "nova-senha" && "Salvar senha e entrar"}
+        </Button>
+      </form>
+
+      {error && <AuthError message={error} />}
+
+      <div className="mt-5 flex items-center justify-between gap-3 text-xs">
+        <button
+          type="button"
+          onClick={step === "telefone" ? onBackToLogin : onRestart}
+          className="flex items-center gap-1.5 font-medium text-faint transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" />
+          {step === "telefone" ? "Voltar para o login" : "Começar de novo"}
+        </button>
+        <button
+          type="button"
+          onClick={onBackToLogin}
+          className="font-medium text-primary transition-colors hover:text-foreground"
+        >
+          Entrar
+        </button>
+      </div>
+    </>
+  );
+}
+
+function AuthError({ message }: { message: string }) {
+  return (
+    <p className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+      {message}
+    </p>
   );
 }
 

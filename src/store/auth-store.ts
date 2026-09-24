@@ -1,6 +1,14 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { birthDateFromAge, isValidPhone, normalizePhone, phoneToEmail } from "@/lib/identity";
-import type { Account, AuthResult, SignInInput, SignUpInput } from "@/types/auth";
+import { isValidAnswer, isValidQuestion, normalizeAnswer } from "@/lib/recovery";
+import type {
+  Account,
+  ActionOutcome,
+  AuthResult,
+  RecoveryChallenge,
+  SignInInput,
+  SignUpInput,
+} from "@/types/auth";
 
 // ---------------------------------------------------------------------------
 // Autenticação do Perfil Vivo.
@@ -16,7 +24,13 @@ import type { Account, AuthResult, SignInInput, SignUpInput } from "@/types/auth
 const STORAGE_KEY = "perfil-vivo:auth:v1";
 
 type LocalAuthDB = { accounts: LocalAccount[]; session: { user_id: string } | null };
-type LocalAccount = Account & { password_hash: string; password_salt: string };
+type LocalAccount = Account & {
+  password_hash: string;
+  password_salt: string;
+  recovery_question?: string;
+  recovery_answer_hash?: string;
+  recovery_answer_salt?: string;
+};
 
 export type AuthState = { account: Account | null; isLoading: boolean; ready: boolean };
 
@@ -245,6 +259,10 @@ function invalidSignUp(input: SignUpInput): string | null {
     return "Informe uma idade entre 1 e 120 anos.";
   if (!isValidPhone(input.phone)) return "Informe um telefone com DDD válido.";
   if (input.password.length < 4) return "A senha precisa de ao menos 4 caracteres.";
+  if (input.recovery_question !== undefined && !isValidQuestion(input.recovery_question))
+    return "Escolha uma pergunta secreta (ou escreva a sua).";
+  if (input.recovery_answer !== undefined && !isValidAnswer(input.recovery_answer))
+    return "A resposta secreta precisa de ao menos 2 caracteres.";
   return null;
 }
 
@@ -284,6 +302,9 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
       writeLocal({ accounts: [], session: { user_id: data.user.id } });
       const account = accountFromProfile(row);
       emit({ account, isLoading: false, ready: true });
+      // Pergunta secreta é o que sustenta o "esqueci a senha". Falhar aqui não
+      // pode derrubar o cadastro — a pessoa define depois em Configurações.
+      await saveRecoverySecret(input.recovery_question, input.recovery_answer);
       return { ok: true, account };
     } catch (e) {
       emit({ ...state, isLoading: false });
@@ -309,6 +330,13 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
     password_salt: salt,
     onboarding_completed: false,
     created_at: new Date().toISOString(),
+    ...(input.recovery_question && input.recovery_answer
+      ? {
+          recovery_question: input.recovery_question.trim(),
+          recovery_answer_hash: await hashPassword(normalizeAnswer(input.recovery_answer), salt),
+          recovery_answer_salt: salt,
+        }
+      : {}),
   };
   writeLocal({
     accounts: [...db.accounts, account],
@@ -440,4 +468,173 @@ export async function updateAccount(
     ),
   });
   publishLocal();
+}
+
+// ------------------------------------------------------- recuperar senha
+
+/**
+ * Defere a confirmação da resposta ao banco quando há Supabase: é lá que o
+ * hash vive e onde a comparação acontece. O cliente manda a resposta em claro
+ * (é o que a pessoa digitou), nunca recebe o hash de volta.
+ */
+async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T | null> {
+  const db = supabase;
+  if (!db) return null;
+  const { data, error } = await db.rpc(name, args);
+  if (error) throw error;
+  return (data as T) ?? null;
+}
+
+/** Grava (ou troca) a pergunta secreta da conta logada. */
+export async function saveRecoverySecret(
+  question?: string,
+  answer?: string,
+): Promise<ActionOutcome> {
+  if (question === undefined || answer === undefined) return { ok: true };
+  if (!isValidQuestion(question)) return { ok: false, error: "Escolha uma pergunta secreta." };
+  if (!isValidAnswer(answer)) return { ok: false, error: "A resposta secreta é muito curta." };
+
+  const account = state.account;
+  if (!account) return { ok: false, error: "Entre na sua conta para salvar isso." };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await rpc("recovery_set_secret", {
+        p_question: question.trim(),
+        p_answer: answer,
+      });
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Não foi possível salvar a pergunta secreta.",
+      };
+    }
+  }
+
+  const db = readLocal();
+  const salt = randomSalt();
+  const answerHash = await hashPassword(normalizeAnswer(answer), salt);
+  writeLocal({
+    ...db,
+    accounts: db.accounts.map((a) =>
+      a.id === account.id
+        ? {
+            ...a,
+            recovery_question: question.trim(),
+            recovery_answer_hash: answerHash,
+            recovery_answer_salt: salt,
+          }
+        : a,
+    ),
+  });
+  return { ok: true };
+}
+
+/** Pergunta ativa da conta logada (só a pergunta — nunca a resposta). */
+export async function myRecoverySecret(): Promise<{ set: boolean; question: string | null }> {
+  const account = state.account;
+  if (!account) return { set: false, question: null };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const data = await rpc<{ set: boolean; question: string | null }>("recovery_my_secret", {});
+      return data ?? { set: false, question: null };
+    } catch {
+      return { set: false, question: null };
+    }
+  }
+
+  const local = readLocal().accounts.find((a) => a.id === account.id);
+  return local?.recovery_question
+    ? { set: true, question: local.recovery_question }
+    : { set: false, question: null };
+}
+
+/** Passo 1: mostra a pergunta cadastrada para aquele telefone. */
+export async function recoveryQuestionFor(phone: string): Promise<string | null> {
+  const normalized = normalizePhone(phone);
+  if (!isValidPhone(normalized)) return null;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      return await rpc<string | null>("recovery_hint", { p_phone: normalized });
+    } catch {
+      return null;
+    }
+  }
+
+  const account = readLocal().accounts.find((a) => a.phone === normalized);
+  return account?.recovery_question ?? null;
+}
+
+/** Passo 2: confere a resposta e, se certa, devolve o comprovante. */
+export async function verifyRecoveryAnswer(
+  phone: string,
+  answer: string,
+): Promise<RecoveryChallenge> {
+  const normalized = normalizePhone(phone);
+  if (!isValidPhone(normalized)) return { ok: false, error: "Telefone inválido." };
+  if (!isValidAnswer(answer))
+    return { ok: false, error: "A resposta precisa de ao menos 2 caracteres." };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const token = await rpc<string | null>("recovery_verify", {
+        p_phone: normalized,
+        p_answer: answer,
+      });
+      if (!token) return { ok: false, error: "Resposta secreta incorreta." };
+      return { ok: true, token };
+    } catch {
+      return { ok: false, error: "Não foi possível conferir a resposta agora." };
+    }
+  }
+
+  const db = readLocal();
+  const account = db.accounts.find((a) => a.phone === normalized);
+  if (!account?.recovery_answer_hash || !account.recovery_answer_salt)
+    return { ok: false, error: "Esta conta não tem pergunta secreta cadastrada." };
+  const candidate = await hashPassword(normalizeAnswer(answer), account.recovery_answer_salt);
+  if (candidate !== account.recovery_answer_hash)
+    return { ok: false, error: "Resposta secreta incorreta." };
+  return { ok: true, token: account.id };
+}
+
+/** Passo 3: define a nova senha usando o comprovante obtido no passo 2. */
+export async function resetPasswordWithToken(
+  token: string,
+  newPassword: string,
+): Promise<ActionOutcome> {
+  if (newPassword.length < 4)
+    return { ok: false, error: "A senha precisa de ao menos 4 caracteres." };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const done = await rpc<boolean>("recovery_reset", {
+        p_token: token,
+        p_new_password: newPassword,
+      });
+      if (!done) return { ok: false, error: "O prazo da recuperação expirou. Comece de novo." };
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Não foi possível trocar a senha.",
+      };
+    }
+  }
+
+  const db = readLocal();
+  const account = db.accounts.find((a) => a.id === token);
+  if (!account) return { ok: false, error: "Recuperação inválida." };
+  const salt = randomSalt();
+  const hash = await hashPassword(newPassword, salt);
+  writeLocal({
+    ...db,
+    accounts: db.accounts.map((a) =>
+      a.id === account.id ? { ...a, password_hash: hash, password_salt: salt } : a,
+    ),
+  });
+  return { ok: true };
 }

@@ -4,11 +4,16 @@ import {
   getServerSnapshot,
   getSnapshot,
   initAuth,
+  myRecoverySecret,
+  recoveryQuestionFor,
+  resetPasswordWithToken,
+  saveRecoverySecret,
   signIn,
   signOut,
   signUp,
   subscribe,
   updateAccount,
+  verifyRecoveryAnswer,
 } from "@/store/auth-store";
 import type { Account } from "@/types/auth";
 
@@ -36,4 +41,15 @@ export function useAuth(): AuthState {
   };
 }
 
-export { completeOnboarding, signIn, signOut, signUp, updateAccount };
+export {
+  completeOnboarding,
+  myRecoverySecret,
+  recoveryQuestionFor,
+  resetPasswordWithToken,
+  saveRecoverySecret,
+  signIn,
+  signOut,
+  signUp,
+  updateAccount,
+  verifyRecoveryAnswer,
+};
