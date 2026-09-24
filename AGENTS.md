@@ -29,3 +29,11 @@
 - Para testar a UI sem Supabase, remova temporariamente `.env.local`: o app cai no
   repositório local (localStorage por conta). Com `.env.local` presente ele exige
   Supabase em `127.0.0.1:54321`, que não existe neste ambiente.
+- Acessibilidade é requisito, não enfeite: cor de texto precisa passar no WCAG AA
+  sobre `background` **e** `card` (meça em oklch antes de escolher). Todo overlay
+  (menu mobile, gaveta) usa `hooks/use-overlay-behavior.ts` para ESC, trava de
+  rolagem e retorno de foco, e fica `inert` quando fora da tela.
+- A suíte roda em ambiente `node` (`vitest.config.ts`) e só cobre lógica pura em
+  `src/**/*.test.ts` — não há jsdom/testing-library. Comportamento de componente
+  (React) é validado no navegador, não em teste unitário; se for adicionar testes
+  de UI, é preciso trazer a infra de DOM primeiro.
