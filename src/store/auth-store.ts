@@ -181,6 +181,24 @@ async function ensureProfileRow(user: {
   return data as ProfileRow;
 }
 
+// Sem prazo, uma chamada pendente (rede caída, mixed content, RLS travado)
+// deixaria a tela presa em "Retomando sua sessão…" para sempre.
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label}: tempo esgotado`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function loadRemoteAccount(user?: {
   id: string;
   email?: string | null;
@@ -191,7 +209,7 @@ async function loadRemoteAccount(user?: {
 
   let target = user;
   if (!target) {
-    const { data } = await db.auth.getSession();
+    const { data } = await withTimeout(db.auth.getSession(), 8000, "getSession");
     target = data.session?.user;
   }
   if (!target) {
@@ -200,7 +218,7 @@ async function loadRemoteAccount(user?: {
     return;
   }
   try {
-    const row = await ensureProfileRow(target);
+    const row = await withTimeout(ensureProfileRow(target), 12000, "perfil");
     // Escopo local alinhado ao usuário remoto (fallback offline por conta).
     writeLocal({ accounts: [], session: { user_id: target.id } });
     emit({ account: accountFromProfile(row), isLoading: false, ready: true });
