@@ -52,10 +52,16 @@ A idade informada define `birth_date` e o ciclo de 25 anos (Aprendizado, Constru
 Consolidação, Plenitude). Cada conta tem seu próprio banco local: a história de um
 usuário nunca aparece no outro.
 
-> **Sobre a senha**: as contas são locais a este navegador e a senha é guardada como
-> hash SHA-256 com salt — nunca em texto puro. Isso habilita o fluxo completo de
-> entrada, mas não substitui um provedor de identidade real (Supabase Auth). Enquanto
-> o Supabase estiver configurado, todas as contas compartilham o registro singleton.
+> **Sobre a senha**: com o Supabase configurado, a autenticação é feita pelo Supabase Auth
+> (contas identificadas pelo telefone, sem e-mail visível) e a senha nunca é tocada pelo
+> app. Sem Supabase, o app cai no modo local: a senha é guardada como hash SHA-256 com
+> salt. Em ambos os casos cada conta tem sua própria história.
+>
+> **Esqueceu a senha**: a recuperação não depende de e-mail. No cadastro o usuário escolhe
+> uma pergunta secreta e uma resposta; `recovery_hint` revela só a pergunta, `recovery_verify`
+> confere a resposta normalizada (caixa, acentos e espaços não importam) e devolve um ticket
+> de uso único, e `recovery_reset` troca a senha. A resposta fica guardada apenas como hash
+> HMAC, em tabela que o cliente não lê nem escreve.
 
 ## Regra de Integridade Temporal (24h)
 
@@ -74,7 +80,8 @@ npm run dev
 ## Banco de dados (Supabase)
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. No **SQL Editor**, rode `supabase/migrations/20260923000000_initial_schema.sql`.
+2. No **SQL Editor**, rode as migrações em `supabase/migrations/` na ordem dos nomes
+   (`initial_schema` → `projects_milestones` → `auth_and_rls` → `password_recovery`).
 3. Copie **Project URL** e **anon key** (Settings → API) para as variáveis de ambiente:
 
 ```sh
@@ -83,10 +90,15 @@ VITE_SUPABASE_ANON_KEY=...
 ```
 
 Sem essas variáveis o app roda com o repositório local persistente (mesma forma de
-dados). Com elas, toda leitura/escrita vai direto às tabelas SQL reais.
+dados). Com elas, auth e leitura/escrita vão direto ao Supabase.
+
+### Deploy na Vercel
+
+As duas variáveis acima precisam existir no projeto da Vercel (Settings →
+Environment Variables) para os ambientes de produção e preview. Sem elas o build
+publicado sobe em modo local, sem banco na nuvem.
 
 ## Próximos passos sugeridos
 
-- Migrar o fluxo de entrada local para Supabase Auth (hoje: contas por telefone/senha no navegador)
 - Upload de banner/avatar no Supabase Storage (hoje: URL ou arquivo local)
 - Exportação do Currículo Vivo em PDF a partir de `career_chapters`
