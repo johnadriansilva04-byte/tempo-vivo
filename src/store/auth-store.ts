@@ -1,5 +1,6 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { birthDateFromAge, isValidPhone, normalizePhone, phoneToEmail } from "@/lib/identity";
+import { friendlyAuthError, isTransientAuthError } from "@/lib/auth-errors";
 import { isValidAnswer, isValidQuestion, normalizeAnswer } from "@/lib/recovery";
 import type {
   Account,
@@ -304,7 +305,9 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
       const duplicate = /already|registered|exists/i.test(error.message);
       return {
         ok: false,
-        error: duplicate ? "Já existe uma conta com este telefone." : error.message,
+        error: duplicate
+          ? "Já existe uma conta com este telefone."
+          : friendlyAuthError(error.message),
       };
     }
     if (!data.session || !data.user) {
@@ -326,7 +329,7 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
       return { ok: true, account };
     } catch (e) {
       emit({ ...state, isLoading: false });
-      return { ok: false, error: e instanceof Error ? e.message : "Falha ao criar o perfil." };
+      return { ok: false, error: friendlyAuthError(e instanceof Error ? e.message : null) };
     }
   }
 
@@ -377,7 +380,14 @@ export async function signIn(input: SignInInput): Promise<AuthResult> {
     });
     if (error) {
       emit({ ...state, isLoading: false });
-      return { ok: false, error: "Telefone ou senha incorretos." };
+      // Credencial errada continua genérica de propósito; falha de rede vira
+      // aviso de conexão em vez de acusar a senha.
+      return {
+        ok: false,
+        error: isTransientAuthError(error.message)
+          ? friendlyAuthError(error.message)
+          : "Telefone ou senha incorretos.",
+      };
     }
     try {
       const row = await ensureProfileRow(data.user);
@@ -387,7 +397,7 @@ export async function signIn(input: SignInInput): Promise<AuthResult> {
       return { ok: true, account };
     } catch (e) {
       emit({ ...state, isLoading: false });
-      return { ok: false, error: e instanceof Error ? e.message : "Falha ao carregar o perfil." };
+      return { ok: false, error: friendlyAuthError(e instanceof Error ? e.message : null) };
     }
   }
 

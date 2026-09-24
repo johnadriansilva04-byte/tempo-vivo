@@ -16,6 +16,7 @@ import { ProfileHeader } from "@/components/profile-header";
 import { StoryPanel } from "@/components/story-panel";
 import { StoryText } from "@/components/story-text";
 import { isPlaceholderText } from "@/lib/placeholder";
+import { plural } from "@/lib/utils";
 import { RitualInvite } from "@/components/daily-ritual";
 import { Metric, Section } from "@/components/page-kit";
 import { Button } from "@/components/ui/button";
@@ -157,11 +158,21 @@ export function DashboardPage() {
 
           <Section title="Em números">
             <div className="grid grid-cols-2 gap-x-4 gap-y-7 border-y border-border py-5">
-              <Metric value={String(logs.length)} label="Dias registrados" />
-              <Metric value={String(milestones.length)} label="Marcos preservados" />
+              <Metric
+                value={String(logs.length)}
+                label={plural(logs.length, "Dia registrado", "Dias registrados")}
+              />
+              <Metric
+                value={String(milestones.length)}
+                label={plural(milestones.length, "Marco preservado", "Marcos preservados")}
+              />
               <Metric
                 value={String(projects.filter((p) => p.status === "Concluído").length)}
-                label="Projetos concluídos"
+                label={plural(
+                  projects.filter((p) => p.status === "Concluído").length,
+                  "Projeto concluído",
+                  "Projetos concluídos",
+                )}
               />{" "}
               <Metric
                 {...(logs.length === 0

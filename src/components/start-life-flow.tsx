@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { completeFirstRun } from "@/services/onboarding-service";
 import { buildStarterLife, cycleForAge, EMPTY_ANSWERS } from "@/lib/life-story";
+import { plural } from "@/lib/utils";
 import type { StoryAnswers } from "@/lib/life-story";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -283,13 +284,35 @@ export function StartLifeFlow() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <SealCount value={preview.focus.length} label="metas da semana" />
-                <SealCount value={preview.chapters.length} label="capítulos de currículo" />
-                <SealCount value={preview.milestones.length} label="marcos na linha do tempo" />
+                <SealCount
+                  value={preview.focus.length}
+                  label={plural(preview.focus.length, "meta da semana", "metas da semana")}
+                />
+                <SealCount
+                  value={preview.chapters.length}
+                  label={plural(
+                    preview.chapters.length,
+                    "capítulo de currículo",
+                    "capítulos de currículo",
+                  )}
+                />
+                <SealCount
+                  value={preview.milestones.length}
+                  label={plural(
+                    preview.milestones.length,
+                    "marco na linha do tempo",
+                    "marcos na linha do tempo",
+                  )}
+                />
               </div>
               <p className="text-xs text-faint">
-                Mais a agenda de hoje, {preview.projects.length} projetos e o seu perfil — tudo
-                editável a qualquer momento.
+                Mais a agenda de hoje,{" "}
+                {plural(
+                  preview.projects.length,
+                  "1 projeto",
+                  `${preview.projects.length} projetos`,
+                )}{" "}
+                e o seu perfil — tudo editável a qualquer momento.
               </p>
             </div>
           )}
