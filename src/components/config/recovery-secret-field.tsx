@@ -127,7 +127,7 @@ export function RecoverySecretField() {
               autoComplete="off"
             />
           </Field>
-          <p className="text-[11px] leading-5 text-faint">
+          <p className="text-xs leading-5 text-faint">
             Maiúsculas, acentos e espaços não importam na hora de responder.
           </p>
           <div className="flex flex-wrap gap-2">

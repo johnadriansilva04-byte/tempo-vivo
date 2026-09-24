@@ -71,9 +71,7 @@ export function ProfileHeader() {
       {bannerUrlOpen && (
         <div className="absolute right-3 top-12 z-30 w-72 rounded-lg border border-border bg-popover p-3 shadow-xl">
           <p className="text-xs font-semibold text-foreground">Paisagem de fundo</p>
-          <p className="mt-1 text-[11px] text-faint">
-            Cole a URL de uma imagem ou envie um arquivo.
-          </p>
+          <p className="mt-1 text-xs text-faint">Cole a URL de uma imagem ou envie um arquivo.</p>
           <Input
             autoFocus
             placeholder="https://…"
@@ -90,7 +88,7 @@ export function ProfileHeader() {
             <Button
               size="sm"
               variant="secondary"
-              className="h-7 flex-1 text-xs"
+              className="h-9 flex-1 text-xs sm:h-7"
               onClick={() => fileRef.current?.click()}
             >
               Enviar
@@ -99,7 +97,7 @@ export function ProfileHeader() {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 flex-1 text-xs"
+                className="h-9 flex-1 text-xs sm:h-7"
                 onClick={() => {
                   setBanner(null);
                   setBannerUrlOpen(false);
@@ -150,7 +148,7 @@ export function ProfileHeader() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    className="h-7 text-xs"
+                    className="h-9 text-xs sm:h-7"
                     onClick={saveEdit}
                     disabled={updateProfile.isPending}
                   >
@@ -159,7 +157,7 @@ export function ProfileHeader() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-xs"
+                    className="h-9 text-xs sm:h-7"
                     onClick={() => setEditing(false)}
                   >
                     Cancelar
@@ -173,7 +171,7 @@ export function ProfileHeader() {
                   <button
                     type="button"
                     aria-label="Editar perfil"
-                    className="opacity-0 transition-opacity group-hover/header:opacity-60 hover:!opacity-100"
+                    className="-m-2 grid size-9 place-items-center opacity-60 transition-opacity hover:opacity-100 sm:m-0 sm:size-auto sm:opacity-0 sm:group-hover/header:opacity-60 sm:hover:!opacity-100"
                     onClick={startEdit}
                   >
                     <Pencil className="size-3" />

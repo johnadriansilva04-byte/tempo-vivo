@@ -162,6 +162,23 @@
     background: color-mix(in oklab, var(--primary) 30%, transparent);
   }
 
+  /*
+   * Foco de teclado visível e único: quem navega por Tab sempre enxerga onde
+   * está. Botões e inputs sobrescrevem com o próprio anel quando faz sentido.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   /* Scrollbar discreta, no tom do tema */
   ::-webkit-scrollbar {
     width: 10px;
@@ -347,13 +364,19 @@
   flex-direction: column;
   border-right: 1px solid var(--sidebar-border);
   background: var(--sidebar);
-  transition: transform 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    visibility 0.2s;
+  /* Fechado no mobile: fora da ordem de foco e invisível para leitores de tela. */
+  visibility: hidden;
   @media (min-width: 48rem) {
     transform: translateX(0);
+    visibility: visible;
   }
 }
 @utility sidebar-open {
   transform: translateX(0);
+  visibility: visible;
 }
 @utility brand-mark {
   display: grid;

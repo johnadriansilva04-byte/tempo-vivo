@@ -50,7 +50,7 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
     return (
       <div className="life-panel gap-5">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-faint">
             Memento Mori
           </p>
           <p className="mt-0.5 text-sm font-medium text-foreground">
@@ -87,7 +87,7 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
     <div className="life-panel">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-faint">
             Memento Mori
           </p>
           <p className="mt-0.5 text-sm font-medium text-foreground">

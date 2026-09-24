@@ -78,7 +78,7 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 gap-1.5 text-xs text-muted-foreground"
+            className="h-9 gap-1.5 text-xs text-muted-foreground sm:h-7"
             onClick={() => {
               setOpen(true);
               setEditing(true);
@@ -118,7 +118,7 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
               Cancelar
             </Button>
           </div>
-          <p className="text-[11px] text-faint">
+          <p className="text-xs text-faint">
             Após salvar, este registro entra em validação e trava em 24h — vira história permanente.
           </p>
         </div>

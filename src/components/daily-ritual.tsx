@@ -173,7 +173,7 @@ export function DailyRitual({ open, onOpenChange, log, initialPhase }: Props) {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) advance();
             }}
           />
-          <p className="mt-2 text-[11px] text-faint">
+          <p className="mt-2 text-xs text-faint">
             <kbd className="kbd">⌘</kbd> + <kbd className="kbd">Enter</kbd> para continuar
           </p>
         </div>
@@ -216,7 +216,7 @@ export function DailyRitual({ open, onOpenChange, log, initialPhase }: Props) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 border-t border-border bg-muted/40 px-6 py-3 text-[11px] text-faint sm:px-8">
+        <div className="flex items-center gap-2 border-t border-border bg-muted/40 px-6 py-3 text-xs text-faint sm:px-8">
           <Sparkles className="size-3" />
           Após salvar, o registro entra em validação e trava em 24h — vira história permanente.
         </div>

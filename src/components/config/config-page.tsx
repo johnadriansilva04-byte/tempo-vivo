@@ -236,7 +236,7 @@ export function ConfigPage() {
               step={1}
               onValueChange={(arr) => set("target_lifespan", arr[0] ?? 100)}
             />
-            <p className="mt-2 text-[11px] text-faint">40–150 anos. Padrão: 100.</p>
+            <p className="mt-2 text-xs text-faint">40–150 anos. Padrão: 100.</p>
           </Disclosure>
 
           <Disclosure
@@ -270,7 +270,7 @@ export function ConfigPage() {
               <Button variant="outline" size="sm" onClick={() => signOut()}>
                 <LogOut className="size-3.5" /> Sair da conta
               </Button>
-              <p className="w-full text-[11px] leading-5 text-faint">
+              <p className="w-full text-xs leading-5 text-faint">
                 Ao sair, sua história permanece salva nesta conta. Entre de novo com o mesmo
                 telefone e senha para retomar.
               </p>

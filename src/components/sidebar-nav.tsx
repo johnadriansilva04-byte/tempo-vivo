@@ -16,13 +16,14 @@ import {
   Trophy,
   X,
 } from "lucide-react";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useProfile } from "@/hooks/use-profile";
 import { signOut, useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { formatPhone } from "@/lib/identity";
 import { CommandPalette } from "@/components/command-palette";
 import { useCommandShortcut } from "@/hooks/use-command-shortcut";
+import { useOverlayBehavior } from "@/hooks/use-overlay-behavior";
 import { DailyRitual } from "@/components/daily-ritual";
 import { useDailyLogs } from "@/hooks/use-daily-logs";
 import { openRitual, setRitualOpen, useRitual } from "@/store/ritual-store";
@@ -43,6 +44,7 @@ const links = [
 export function SidebarNav({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
   const { profile } = useProfile();
   const { account } = useAuth();
   const { logs } = useDailyLogs();
@@ -50,6 +52,8 @@ export function SidebarNav({ children }: { children: ReactNode }) {
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   useCommandShortcut(openPalette);
+  const closeMenu = useCallback(() => setOpen(false), []);
+  useOverlayBehavior(open, closeMenu, sidebarRef);
 
   // O registro de hoje alimenta o ritual (fase sugerida e conteúdo existente).
   const todayLog = useMemo(() => {
@@ -59,9 +63,13 @@ export function SidebarNav({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
+      <aside
+        ref={sidebarRef}
+        className={`sidebar ${open ? "sidebar-open" : ""}`}
+        aria-label="Navegação principal"
+      >
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-5">
-          <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
+          <Link to="/" className="flex items-center gap-2.5" onClick={closeMenu}>
             <span className="brand-mark">
               <Activity className="size-4" />
             </span>
@@ -72,9 +80,9 @@ export function SidebarNav({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="size-11 md:hidden"
             aria-label="Fechar menu"
-            onClick={() => setOpen(false)}
+            onClick={closeMenu}
           >
             <X />
           </Button>
@@ -85,7 +93,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              closeMenu();
               openRitual(
                 todayLog?.planned_text.trim() && !todayLog.summary_text.trim() ? "noite" : "manha",
               );
@@ -106,7 +114,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
               key={to}
               to={to}
               activeOptions={{ exact: to === "/" }}
-              onClick={() => setOpen(false)}
+              onClick={closeMenu}
               className="nav-item"
               activeProps={{ className: "nav-item nav-item-active" }}
             >
@@ -133,7 +141,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
               <p className="truncate text-xs font-semibold text-sidebar-foreground">
                 {profile?.name || account?.name || "Carregando…"}
               </p>
-              <p className="truncate text-[11px] text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 {account ? formatPhone(account.phone) : "Perfil privado"}
               </p>
             </div>
@@ -141,26 +149,36 @@ export function SidebarNav({ children }: { children: ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 shrink-0"
+                className="size-11 shrink-0"
                 aria-label="Sair da conta"
                 title="Sair da conta"
                 onClick={() => {
-                  setOpen(false);
+                  closeMenu();
                   signOut();
                 }}
               >
-                <LogOut className="size-3.5" />
+                <LogOut className="size-4" />
               </Button>
             )}
           </div>
         </div>
       </aside>
       {open && (
-        <div className="fixed inset-0 z-30 bg-overlay md:hidden" onClick={() => setOpen(false)} />
+        <div
+          className="fixed inset-0 z-30 bg-overlay md:hidden"
+          onClick={closeMenu}
+          aria-hidden="true"
+        />
       )}
-      <div className="md:pl-56">
+      <div className="md:pl-56" inert={open || undefined}>
         <div className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/90 px-4 backdrop-blur md:hidden">
-          <Button variant="ghost" size="icon" aria-label="Abrir menu" onClick={() => setOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-11"
+            aria-label="Abrir menu"
+            onClick={() => setOpen(true)}
+          >
             <Menu />
           </Button>
           <span className="text-sm font-semibold">Perfil Vivo</span>
