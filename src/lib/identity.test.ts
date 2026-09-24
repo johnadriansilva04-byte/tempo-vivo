@@ -65,6 +65,17 @@ describe("phoneToEmail", () => {
     expect(phoneToEmail("(21) 98888-1122")).toBe("21988881122@perfilvivo.local");
     expect(phoneToEmail("21988881122")).toBe(phoneToEmail("(21) 98888-1122"));
   });
+
+  it("nunca vaza no formato de um e-mail real", () => {
+    // A pessoa entra só com telefone; o e-mail é detalhe interno do Supabase.
+    // Se um dia isso virar "@gmail" ou domínio externo, algo mudou o modelo.
+    const email = phoneToEmail("(11) 98765-4321");
+    expect(email.endsWith("@perfilvivo.local")).toBe(true);
+  });
+
+  it("isola números distintos, mesmo com DDD repetido", () => {
+    expect(phoneToEmail("11987654321")).not.toBe(phoneToEmail("21987654321"));
+  });
 });
 
 describe("birthDateFromAge", () => {

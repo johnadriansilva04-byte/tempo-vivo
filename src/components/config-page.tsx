@@ -3,6 +3,7 @@ import { Eye, ImagePlus, LogOut, Phone, Save, Trash2 } from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { signOut, updateAccount, useAuth } from "@/hooks/use-auth";
 import { birthDateFromAge, formatPhone } from "@/lib/identity";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { PageHeader } from "@/components/page-kit";
 import { LifetimeTracker } from "@/components/lifetime-tracker";
 import { computeLifetime } from "@/hooks/use-lifetime";
@@ -343,9 +344,11 @@ export function ConfigPage() {
             <Button onClick={save} disabled={update.isPending}>
               <Save className="size-4" /> Salvar alterações
             </Button>
-            <Button variant="ghost" onClick={clearLocal} className="gap-1.5 text-xs text-faint">
-              <Trash2 className="size-3.5" /> Apagar minha história neste navegador
-            </Button>
+            {!isSupabaseConfigured && (
+              <Button variant="ghost" onClick={clearLocal} className="gap-1.5 text-xs text-faint">
+                <Trash2 className="size-3.5" /> Apagar minha história neste navegador
+              </Button>
+            )}
           </div>
         </div>
 
@@ -395,8 +398,9 @@ export function ConfigPage() {
             </div>
           </div>
           <p className="text-xs leading-5 text-faint">
-            Suas alterações aparecem em todo o app imediatamente. Quando o Supabase estiver
-            configurado, ficam persistidas no banco para o usuário logado.
+            {isSupabaseConfigured
+              ? "Suas alterações aparecem em todo o app imediatamente e ficam salvas na sua conta, no banco de dados."
+              : "Suas alterações aparecem em todo o app imediatamente e ficam salvas neste navegador."}
           </p>
         </div>
       </div>
