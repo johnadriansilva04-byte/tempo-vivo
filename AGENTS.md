@@ -22,3 +22,10 @@
   que monta a tela e módulos burros ao redor (sem lógica de dados).
 - Verificação antes de commitar: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`,
   `npm run build`.
+- UX não mostra tudo de uma vez: telas se organizam em blocos expansíveis usando
+  `components/ui/disclosure.tsx` (padrão aplicado em Cadastro, Configurações,
+  Agenda, Dashboard, Projetos, Realizações, Currículo e Planejamento). Abra por
+  padrão só o que o usuário precisa agora (ex.: o dia de hoje na Agenda).
+- Para testar a UI sem Supabase, remova temporariamente `.env.local`: o app cai no
+  repositório local (localStorage por conta). Com `.env.local` presente ele exige
+  Supabase em `127.0.0.1:54321`, que não existe neste ambiente.
