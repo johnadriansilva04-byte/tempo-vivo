@@ -1,9 +1,11 @@
-import { Check, LockKeyhole, Pencil } from "lucide-react";
+import { Check, LockKeyhole, Pencil, Smile, Frown, Meh } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { useUpsertDailyLog } from "@/hooks/use-daily-logs";
 import { VoiceInputButton } from "@/components/voice-input-button";
+import { analyzeSentiment } from "@/lib/sentiment-analysis";
 import type { DailyLog } from "@/types/profile";
 
 const statusMeta: Record<
@@ -38,6 +40,11 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
     summary_text: log.summary_text,
   });
 
+  // Calculate sentiment of the summary
+  const sentiment = analyzeSentiment(log.summary_text || '');
+  const sentimentIcon = sentiment.type === 'positive' ? Smile : sentiment.type === 'negative' ? Frown : Meh;
+  const sentimentColor = sentiment.type === 'positive' ? 'text-green-500' : sentiment.type === 'negative' ? 'text-red-500' : 'text-gray-500';
+
   const save = () => {
     upsert.mutate({ ...log, ...draft });
     setEditing(false);
@@ -67,6 +74,12 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
             {log.status === "LOCKED" && <LockKeyhole className="size-3" />}
             {meta.label}
           </span>
+          {log.summary_text && !editing && (
+            <Badge variant="outline" className="gap-1 text-xs">
+              <sentimentIcon className={`h-3 w-3 ${sentimentColor}`} />
+              {sentiment.emotion}
+            </Badge>
+          )}
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Activity,
   BookOpen,
+  Brain,
   CalendarDays,
   CircleUserRound,
   Flag,
@@ -29,6 +30,8 @@ const links = [
   ["/analytics", "Analytics", BarChart3],
   ["/gamification", "Gamificação", Award],
   ["/insights", "Insights", Lightbulb],
+  ["/intelligence-dashboard", "Inteligência", Brain],
+  ["/local-systems", "Sistemas Locais", Activity],
   ["/export", "Exportar", Download],
   ["/curriculo", "Currículo", BookOpen],
   ["/planejamento", "Planejamento", Flag],
