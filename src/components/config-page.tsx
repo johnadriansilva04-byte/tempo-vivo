@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Cloud,
   Eye,
+  HardDrive,
   ImagePlus,
   KeyRound,
   Loader2,
@@ -172,6 +174,8 @@ export function ConfigPage() {
           </Button>
         }
       />
+
+      <StorageModeNotice />
 
       {incomplete && (
         <div className="mb-6 rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
@@ -446,6 +450,42 @@ export function ConfigPage() {
 // Pergunta secreta na tela de Configurações: mostra a pergunta ativa e permite
 // trocá-la. A resposta nunca volta do servidor — só é enviada quando salva.
 // ---------------------------------------------------------------------------
+/**
+ * Deixa visível ONDE a história está guardada.
+ *
+ * Sem isso o app trocava de modo em silêncio: ao configurar o Supabase ele passa
+ * a gravar na nuvem, e sem credenciais volta a gravar só neste navegador — sem a
+ * pessoa perceber. Como o modo local não sincroniza entre aparelhos, saber em
+ * qual deles você está é o que evita achar que a história sumiu.
+ */
+function StorageModeNotice() {
+  const remote = isSupabaseConfigured;
+  return (
+    <div
+      className={`mb-6 rounded-lg border px-4 py-3 ${
+        remote ? "border-border bg-card" : "border-amber-500/30 bg-amber-500/10"
+      }`}
+    >
+      <p className="flex items-center gap-2 text-sm font-medium">
+        {remote ? (
+          <>
+            <Cloud className="size-4 text-primary" /> Sincronizado na nuvem
+          </>
+        ) : (
+          <>
+            <HardDrive className="size-4 text-amber-500" /> Somente neste navegador
+          </>
+        )}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+        {remote
+          ? "Sua história fica na sua conta e aparece em qualquer aparelho onde você entrar."
+          : "O Supabase não está configurado, então a história fica guardada apenas neste navegador e não aparece em outros aparelhos. Entre com o mesmo telefone e senha no mesmo navegador para retomar."}
+      </p>
+    </div>
+  );
+}
+
 function RecoverySecretField() {
   const { account } = useAuth();
   const [current, setCurrent] = useState<{ set: boolean; question: string | null }>({

@@ -1,9 +1,14 @@
 // ---------------------------------------------------------------------------
-// Identidade: telefone, e-mail sintético e data de nascimento.
+// Identidade: telefone, login interno e data de nascimento.
 //
-// O Perfil Vivo entra por telefone + senha. O Supabase Auth trabalha com e-mail
-// ou OTP por SMS; sem provedor de SMS usamos um e-mail sintético determinístico
-// a partir dos dígitos do telefone, o que mantém o login simples e sem custo.
+// O Perfil Vivo entra por telefone + senha. O Supabase Auth só aceita e-mail ou
+// OTP por SMS — e auth por telefone exige um provedor de SMS pago, que não está
+// configurado (`phone_provider_disabled`). Então o login usa um e-mail interno
+// determinístico derivado dos dígitos do telefone.
+//
+// Esse e-mail é um detalhe de implementação, não algo que a pessoa veja ou
+// digite. O domínio `.invalid` é reservado por RFC 2606: ele nunca resolve e
+// nunca pode ser confundido com um endereço real.
 // ---------------------------------------------------------------------------
 
 /** Telefone normalizado: apenas dígitos (ex.: "11987654321"). */
@@ -25,9 +30,20 @@ export function isValidPhone(value: string): boolean {
   return d.length === 10 || d.length === 11;
 }
 
-/** E-mail determinístico derivado do telefone (único por número). */
+/**
+ * Domínio reservado para o login interno (RFC 2606). Não é um provedor de
+ * e-mail: nada é enviado para cá e nenhum endereço real usa este sufixo.
+ */
+export const INTERNAL_LOGIN_DOMAIN = "perfilvivo.invalid";
+
+/**
+ * Login interno derivado do telefone (único por número).
+ *
+ * O nome do parâmetro e a função existem para deixar claro que isto NÃO é um
+ * e-mail da pessoa — é a chave que o Supabase Auth usa para reconhecer a conta.
+ */
 export function phoneToEmail(value: string): string {
-  return `${normalizePhone(value)}@perfilvivo.local`;
+  return `${normalizePhone(value)}@${INTERNAL_LOGIN_DOMAIN}`;
 }
 
 /** Converte a idade informada no cadastro em data de nascimento aproximada. */

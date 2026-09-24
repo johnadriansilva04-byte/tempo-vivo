@@ -41,6 +41,3 @@ export function StoryText({ text, variant = "inline", className = "", children }
 
   return <span className={`italic text-faint ${className}`}>{readable}</span>;
 }
-
-/** True quando o texto é um convite pendente (para estilos condicionais). */
-export { isPlaceholderText };

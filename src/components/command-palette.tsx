@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Activity,
@@ -114,20 +114,6 @@ export function CommandPalette({ open, onOpenChange, onRitual }: Props) {
       </CommandList>
     </CommandDialog>
   );
-}
-
-/** Atalho global: ⌘K / Ctrl+K abre a paleta. */
-export function useCommandShortcut(onOpen: () => void) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        onOpen();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onOpen]);
 }
 
 /** Botão visível do atalho, usado no cabeçalho mobile e na sidebar. */

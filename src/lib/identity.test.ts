@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  INTERNAL_LOGIN_DOMAIN,
   birthDateFromAge,
   formatPhone,
   initialsOf,
@@ -62,15 +63,17 @@ describe("isValidPhone", () => {
 
 describe("phoneToEmail", () => {
   it("é determinístico e ignora formatação", () => {
-    expect(phoneToEmail("(21) 98888-1122")).toBe("21988881122@perfilvivo.local");
+    expect(phoneToEmail("(21) 98888-1122")).toBe("21988881122@perfilvivo.invalid");
     expect(phoneToEmail("21988881122")).toBe(phoneToEmail("(21) 98888-1122"));
   });
 
-  it("nunca vaza no formato de um e-mail real", () => {
-    // A pessoa entra só com telefone; o e-mail é detalhe interno do Supabase.
-    // Se um dia isso virar "@gmail" ou domínio externo, algo mudou o modelo.
+  it("nunca usa um domínio que possa pertencer a alguém", () => {
+    // A pessoa entra só com telefone; o login interno é chave do Supabase.
+    // `.invalid` é reservado por RFC 2606 e nunca resolve — se virar um domínio
+    // real (ou o antigo `.local`, que é sufixo de mDNS), o modelo mudou.
     const email = phoneToEmail("(11) 98765-4321");
-    expect(email.endsWith("@perfilvivo.local")).toBe(true);
+    expect(email.endsWith(`@${INTERNAL_LOGIN_DOMAIN}`)).toBe(true);
+    expect(email.endsWith("@perfilvivo.invalid")).toBe(true);
   });
 
   it("isola números distintos, mesmo com DDD repetido", () => {
