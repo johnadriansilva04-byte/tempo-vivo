@@ -798,19 +798,21 @@
     width: 1.5rem;
   }
 }
-@utility locked-game {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+@utility game-card {
+  display: block;
   border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  padding: 1rem;
-  font-size: 0.75rem;
-  color: var(--faint);
-  svg {
-    height: 0.8rem;
-    width: 0.8rem;
+  border-radius: var(--radius);
+  padding: 1.35rem;
+  background: var(--card);
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease;
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+    transform: translateY(-2px);
+    .icon-tile {
+      color: var(--primary);
+    }
   }
 }
 @utility focus-bar {

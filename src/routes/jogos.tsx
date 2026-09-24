@@ -6,10 +6,15 @@ export const Route = createFileRoute("/jogos")({
       { title: "Jogos — Perfil Vivo" },
       {
         name: "description",
-        content: "Experiências futuras para explorar memória e autoconhecimento.",
+        content:
+          "A pracinha de jogos do Perfil Vivo: teste de QI, clássicos de tabuleiro e o Campus da Cidadela do Pracinha.",
       },
       { property: "og:title", content: "Jogos — Perfil Vivo" },
-      { property: "og:description", content: "Novas formas de explorar uma trajetória viva." },
+      {
+        property: "og:description",
+        content:
+          "Teste de QI, clássicos de estratégia e campus numa pracinha ligada ao seu perfil.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
