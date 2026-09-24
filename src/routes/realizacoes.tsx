@@ -1,0 +1,21 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AchievementsPage } from "@/components/pages";
+export const Route = createFileRoute("/realizacoes")({
+  head: () => ({
+    meta: [
+      { title: "Realizações — Perfil Vivo" },
+      {
+        name: "description",
+        content: "Linha do tempo de marcos importantes da sua vida.",
+      },
+      { property: "og:title", content: "Realizações — Perfil Vivo" },
+      {
+        property: "og:description",
+        content: "Marcos preservados ao longo de uma trajetória viva.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: AchievementsPage,
+});

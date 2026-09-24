@@ -1,0 +1,206 @@
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  FolderKanban,
+  Inbox,
+  Sparkles,
+} from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { DailyLogCard } from "@/components/daily-log-card";
+import { EmptyState } from "@/components/empty-state";
+import { FocusCard } from "@/components/focus-card";
+import { ProfileHeader } from "@/components/profile-header";
+import { AnimatedCard, FadeIn } from "@/components/animated-card";
+import { Metric, Section } from "@/components/page-kit";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDailyLogs } from "@/hooks/use-daily-logs";
+import { useMilestones } from "@/hooks/use-milestones";
+import { useProjects } from "@/hooks/use-projects";
+
+export function DashboardPage() {
+  const { logs } = useDailyLogs();
+  const { projects } = useProjects();
+  const { milestones } = useMilestones();
+  const latest = milestones[0];
+  const [showAllLogs, setShowAllLogs] = useState(false);
+
+  const openLogs = logs.filter((l) => l.status !== "LOCKED");
+  const visibleLogs = (showAllLogs ? logs : openLogs.slice(0, 2)).slice(0, 4);
+
+  // Métricas derivadas — zero quando o app começa vazio.
+  const daysWithSummary = logs.filter((l) => l.summary_text.trim() !== "").length;
+  const summaryPct = logs.length === 0 ? 0 : Math.round((daysWithSummary / logs.length) * 100);
+
+  return (
+    <>
+      <FadeIn>
+        <ProfileHeader />
+      </FadeIn>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1.45fr_0.85fr]">
+        <div className="space-y-9">
+          <AnimatedCard delay={0.1}>
+            <Tabs defaultValue="agora">
+              <TabsList className="bg-muted/50">
+                <TabsTrigger value="agora">Agora</TabsTrigger>
+                <TabsTrigger value="agenda">Agenda</TabsTrigger>
+                <TabsTrigger value="metas">Metas da semana</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="agora" className="mt-5">
+                <Section title="Agora" detail="O que está recebendo sua energia">
+                  {projects.length === 0 ? (
+                    <EmptyState
+                      icon={<FolderKanban className="size-5" />}
+                      title="Nenhum projeto ainda"
+                      description="Crie seu primeiro projeto em Projetos e acompanhe o avanço aqui."
+                      actionLabel="Ir para Projetos"
+                      onAction={() => (window.location.href = "/projetos")}
+                    />
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {projects.slice(0, 2).map((p, index) => (
+                        <AnimatedCard key={p.name} delay={0.2 + index * 0.1}>
+                          <Link to="/projetos" className="card-interactive">
+                            <div className="flex items-start justify-between">
+                              <span className="status status-neutral">{p.status}</span>
+                              <ArrowRight className="size-4 text-faint" />
+                            </div>
+                            <h3 className="mt-5 font-display text-base font-semibold">{p.name}</h3>
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                              {p.description}
+                            </p>
+                            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full rounded-full bg-primary transition-all"
+                                style={{ width: `${p.progress}%` }}
+                              />
+                            </div>
+                            <p className="mt-2 text-xs text-faint">{p.progress}% concluído</p>
+                          </Link>
+                        </AnimatedCard>
+                      ))}
+                    </div>
+                  )}
+                </Section>
+              </TabsContent>
+
+              <TabsContent value="agenda" className="mt-5">
+                <Section title="Próximos registros" detail="Livro de bordo — dias vivos">
+                  <div className="space-y-4">
+                    {visibleLogs.length === 0 && (
+                      <EmptyState
+                        icon={<Inbox className="size-5" />}
+                        title="Nenhum registro vivo"
+                        description="O dia de hoje é o próximo. Abra o registro e descreva sua intenção."
+                        actionLabel="Abrir Agenda"
+                        onAction={() => (window.location.href = "/agenda")}
+                      />
+                    )}
+                    {visibleLogs.map((log, index) => (
+                      <AnimatedCard key={log.id} delay={0.3 + index * 0.05}>
+                        <DailyLogCard log={log} />
+                      </AnimatedCard>
+                    ))}
+                  </div>
+                  {!showAllLogs && logs.length > visibleLogs.length && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-4 -ml-3 text-xs text-muted-foreground"
+                      onClick={() => setShowAllLogs(true)}
+                    >
+                      Ver histórico completo <ChevronDown className="size-3.5" />
+                    </Button>
+                  )}
+                </Section>
+              </TabsContent>
+
+              <TabsContent value="metas" className="mt-5">
+                <Section title="Metas da semana" detail="Progresso comprometido, não desejado">
+                  <AnimatedCard delay={0.4}>
+                    <FocusCard />
+                  </AnimatedCard>
+                </Section>
+              </TabsContent>
+            </Tabs>
+          </AnimatedCard>
+        </div>
+
+        <div className="space-y-9">
+          <AnimatedCard delay={0.5}>
+            <Section title="Em números">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-7 border-y border-border py-5">
+                <Metric value={String(logs.length)} label="Dias registrados" />
+                <Metric value={String(milestones.length)} label="Marcos preservados" />
+                <Metric
+                  value={String(projects.filter((p) => p.status === "Concluído").length)}
+                  label="Projetos concluídos"
+                />{" "}
+                <Metric
+                  {...(logs.length === 0
+                    ? { detail: "sem dados", value: `${summaryPct}%`, label: "Dias com resumo" }
+                    : { value: `${summaryPct}%`, label: "Dias com resumo" })}
+                />
+              </div>
+            </Section>
+          </AnimatedCard>
+
+          <AnimatedCard delay={0.6}>
+            <Collapsible defaultOpen className="group">
+              <Section title="Última realização" className="">
+                {" "}
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="-ml-3 gap-1 text-xs text-muted-foreground"
+                  >
+                    <ChevronDown className="size-3.5 transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
+                    Detalhes
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  {latest ? (
+                    <div className="quiet-panel">
+                      <div className="flex items-center gap-2 text-xs font-medium text-accent-foreground">
+                        <Sparkles className="size-3.5" />
+                        {latest.category}
+                      </div>
+                      <h3 className="mt-4 font-display text-lg font-semibold">{latest.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {latest.description}
+                      </p>
+                      <div className="mt-5 flex items-center gap-2 text-xs text-faint">
+                        <CheckCircle2 className="size-3.5" />
+                        Preservado em {latest.year}
+                      </div>
+                    </div>
+                  ) : (
+                    <EmptyState
+                      icon={<Sparkles className="size-5" />}
+                      title="Nenhum marco ainda"
+                      description="Seu primeiro marco vai brilhar aqui. Registre uma realização em Realizações."
+                    />
+                  )}
+                </CollapsibleContent>
+              </Section>
+            </Collapsible>
+          </AnimatedCard>
+
+          <AnimatedCard delay={0.7}>
+            <div className="flex items-center gap-2 text-xs text-faint">
+              <Clock3 className="size-3.5" />
+              <span>Cada registro fortalece a sua história.</span>
+            </div>
+          </AnimatedCard>
+        </div>
+      </div>
+    </>
+  );
+}
