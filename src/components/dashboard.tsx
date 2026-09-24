@@ -19,7 +19,7 @@ import { isPlaceholderText } from "@/lib/placeholder";
 import { RitualInvite } from "@/components/daily-ritual";
 import { Metric, Section } from "@/components/page-kit";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Disclosure } from "@/components/ui/disclosure";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDailyLogs } from "@/hooks/use-daily-logs";
 import { useMilestones } from "@/hooks/use-milestones";
@@ -32,6 +32,7 @@ export function DashboardPage() {
   const { projects } = useProjects();
   const { milestones } = useMilestones();
   const [showAllLogs, setShowAllLogs] = useState(false);
+  const [showLatest, setShowLatest] = useState(true);
 
   // "Última realização" = o marco mais recente que o dono já viveu. Marcos com ano
   // em branco ou no futuro são objetivos, não conquistas, e ficam fora do destaque.
@@ -170,49 +171,41 @@ export function DashboardPage() {
             </div>
           </Section>
 
-          <Collapsible defaultOpen className="group">
-            <Section title="Última realização" className="">
-              {" "}
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="-ml-3 gap-1 text-xs text-muted-foreground"
-                >
-                  <ChevronDown className="size-3.5 transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
-                  Detalhes
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                {latest ? (
-                  <div className="quiet-panel ink-settle">
-                    <div className="flex items-center gap-2 text-xs font-medium text-accent-foreground">
-                      <Sparkles className="size-3.5" />
-                      {latest.category}
-                    </div>
-                    <h3 className="mt-4 font-display text-lg font-semibold">
-                      <StoryText text={latest.title} />
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      <StoryText text={latest.description} />
-                    </p>
-                    <div className="mt-5 flex items-center gap-2 text-xs text-faint">
-                      <CheckCircle2 className="size-3.5" />
-                      {isPlaceholderText(latest.year)
-                        ? "Marco preservado"
-                        : `Preservado em ${latest.year}`}
-                    </div>
-                  </div>
-                ) : (
-                  <EmptyState
-                    icon={<Sparkles className="size-5" />}
-                    title="Nenhum marco ainda"
-                    description="Seu primeiro marco vai brilhar aqui. Registre uma realização em Realizações."
-                  />
-                )}
-              </CollapsibleContent>
-            </Section>
-          </Collapsible>
+          <Disclosure
+            icon={Sparkles}
+            title="Última realização"
+            description={latest ? `${latest.category} · ${latest.year}` : "Nenhum marco ainda"}
+            summary={latest ? latest.title : "Seu primeiro marco vai brilhar aqui."}
+            open={showLatest}
+            onOpenChange={setShowLatest}
+          >
+            {latest ? (
+              <div className="quiet-panel ink-settle">
+                <div className="flex items-center gap-2 text-xs font-medium text-accent-foreground">
+                  <Sparkles className="size-3.5" />
+                  {latest.category}
+                </div>
+                <h3 className="mt-4 font-display text-lg font-semibold">
+                  <StoryText text={latest.title} />
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  <StoryText text={latest.description} />
+                </p>
+                <div className="mt-5 flex items-center gap-2 text-xs text-faint">
+                  <CheckCircle2 className="size-3.5" />
+                  {isPlaceholderText(latest.year)
+                    ? "Marco preservado"
+                    : `Preservado em ${latest.year}`}
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={<Sparkles className="size-5" />}
+                title="Nenhum marco ainda"
+                description="Seu primeiro marco vai brilhar aqui. Registre uma realização em Realizações."
+              />
+            )}
+          </Disclosure>
 
           <div className="flex items-center gap-2 text-xs text-faint">
             <Clock3 className="size-3.5" />

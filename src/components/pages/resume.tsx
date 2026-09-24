@@ -1,13 +1,21 @@
 import { useState } from "react";
-import { Award, BriefcaseBusiness, GraduationCap, Sparkles } from "lucide-react";
+import { Award, BriefcaseBusiness, GraduationCap, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
+import { Disclosure } from "@/components/ui/disclosure";
 import { useCareerChapters, useCreateCareerChapter } from "@/hooks/use-career-chapters";
 import { Field } from "@/components/pages/shared";
 import { TimelineSection } from "@/components/pages/shared";
+
+const TYPE_LABEL: Record<string, string> = {
+  EXPERIENCE: "Experiência",
+  EDUCATION: "Formação",
+  PRODUCTION: "Produção",
+  CERTIFICATE: "Certificado",
+};
 
 // ---------------------------------------------------------------- Currículo Vivo
 
@@ -56,62 +64,72 @@ export function ResumePage() {
         description="Formação e experiências apresentadas como partes de uma história humana, prontas para compartilhar."
         lede="Currículo não é lista de cargos: é a prova de que algo em você mudou a cada etapa."
         action={
-          <Button size="sm" onClick={() => setOpen((v) => !v)}>
-            {open ? "Fechar" : "Adicionar capítulo"}
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus className="size-3.5" /> Adicionar capítulo
           </Button>
         }
       />
 
-      {open && (
-        <div className="mb-6 rounded-lg border border-border bg-card p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Título">
-              <Input
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                placeholder="Cargo, formação ou produção"
+      <Disclosure
+        icon={Plus}
+        title="Adicionar capítulo"
+        description="Título, período e tipo — experiência, formação, produção ou certificado."
+        summary={
+          draft.title.trim()
+            ? `${TYPE_LABEL[draft.document_type] ?? "Registro"} · ${draft.title}`
+            : "Abra para escrever o próximo capítulo da sua trajetória."
+        }
+        open={open}
+        onOpenChange={setOpen}
+        className="mb-6"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Título">
+            <Input
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              placeholder="Cargo, formação ou produção"
+            />
+          </Field>
+          <Field label="Período">
+            <Input
+              value={draft.period}
+              onChange={(e) => setDraft({ ...draft, period: e.target.value })}
+              placeholder="Ex.: 2022 — hoje"
+            />
+          </Field>
+          <Field label="Tipo">
+            <select
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={draft.document_type}
+              onChange={(e) => setDraft({ ...draft, document_type: e.target.value })}
+            >
+              <option value="EXPERIENCE">Experiência</option>
+              <option value="EDUCATION">Formação</option>
+              <option value="PRODUCTION">Produção</option>
+              <option value="CERTIFICATE">Certificado</option>
+            </select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Conteúdo">
+              <Textarea
+                value={draft.content}
+                onChange={(e) => setDraft({ ...draft, content: e.target.value })}
+                placeholder="Breve descrição"
+                rows={2}
               />
             </Field>
-            <Field label="Período">
-              <Input
-                value={draft.period}
-                onChange={(e) => setDraft({ ...draft, period: e.target.value })}
-                placeholder="Ex.: 2022 — hoje"
-              />
-            </Field>
-            <Field label="Tipo">
-              <select
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={draft.document_type}
-                onChange={(e) => setDraft({ ...draft, document_type: e.target.value })}
-              >
-                <option value="EXPERIENCE">Experiência</option>
-                <option value="EDUCATION">Formação</option>
-                <option value="PRODUCTION">Produção</option>
-                <option value="CERTIFICATE">Certificado</option>
-              </select>
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Conteúdo">
-                <Textarea
-                  value={draft.content}
-                  onChange={(e) => setDraft({ ...draft, content: e.target.value })}
-                  placeholder="Breve descrição"
-                  rows={2}
-                />
-              </Field>
-            </div>
           </div>
-          <Button
-            size="sm"
-            className="mt-3"
-            onClick={submit}
-            disabled={!draft.title.trim() || create.isPending}
-          >
-            Salvar capítulo
-          </Button>
         </div>
-      )}
+        <Button
+          size="sm"
+          className="mt-4"
+          onClick={submit}
+          disabled={!draft.title.trim() || create.isPending}
+        >
+          Salvar capítulo
+        </Button>
+      </Disclosure>
 
       {chapters.length === 0 ? (
         <EmptyState

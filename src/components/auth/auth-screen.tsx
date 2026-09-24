@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Activity, ArrowRight, Loader2, LogIn, ShieldQuestion, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Disclosure } from "@/components/ui/disclosure";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   recoveryQuestionFor,
@@ -40,6 +41,13 @@ export function AuthScreen() {
   const [question, setQuestion] = useState<string>(RECOVERY_QUESTIONS[0]);
   const [customQuestion, setCustomQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+  const [openBlock, setOpenBlock] = useState<"identidade" | "acesso" | "recuperacao">("identidade");
+
+  // Completude de cada bloco — alimenta o resumo e o selo vistos com o bloco fechado.
+  const identDone = name.trim() !== "" && age.trim() !== "";
+  const acessoDone = phone.length >= 10 && password.length >= 4 && password === confirm;
+  const chosenQuestion = customQuestion.trim() || question;
+  const recDone = chosenQuestion !== "" && answer.trim() !== "";
 
   // Recuperação
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("telefone");
@@ -234,72 +242,133 @@ export function AuthScreen() {
 
                 <TabsContent value="criar" className="mt-6">
                   <form
-                    className="space-y-4"
+                    className="space-y-3"
                     onSubmit={(e) => {
                       e.preventDefault();
                       void submit();
                     }}
                   >
-                    <AuthField label="Nome completo">
-                      <Input
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Como você quer ser chamado"
-                        autoComplete="name"
-                      />
-                    </AuthField>
-                    <AuthField label="Idade">
-                      <Input
-                        type="number"
-                        min={1}
-                        max={120}
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                        placeholder="Ex.: 34"
-                        autoComplete="off"
-                      />
-                    </AuthField>
-                    <AuthField label="Telefone">
-                      <Input
-                        value={formatPhone(phone)}
-                        onChange={(e) => setPhone(normalizePhone(e.target.value))}
-                        placeholder="(11) 98765-4321"
-                        inputMode="tel"
-                        autoComplete="tel"
-                      />
-                    </AuthField>
-                    <AuthField label="Senha">
-                      <PasswordInput
-                        value={password}
-                        onChange={setPassword}
-                        show={showPassword}
-                        onToggle={() => setShowPassword((v) => !v)}
-                        placeholder="Mínimo de 4 caracteres"
-                        autoComplete="new-password"
-                      />
-                    </AuthField>
-                    <AuthField label="Confirmar senha">
-                      <PasswordInput
-                        value={confirm}
-                        onChange={setConfirm}
-                        show={showPassword}
-                        onToggle={() => setShowPassword((v) => !v)}
-                        placeholder="Repita a senha"
-                        autoComplete="new-password"
-                      />
-                    </AuthField>
-
-                    {/* A pergunta secreta é o que permite recuperar a senha
-                        depois, já que não há e-mail no cadastro. */}
-                    <div className="rounded-lg border border-border/70 bg-muted/30 p-3.5">
-                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-faint">
-                        <ShieldQuestion className="size-3.5" /> Senha de segurança
+                    {/* Três blocos, um assunto cada. Fechado, cada um ainda diz o
+                        que já foi preenchido — a tela deixa de ser uma parede. */}
+                    <Disclosure
+                      icon={UserPlus}
+                      title="Quem é você"
+                      description="Em uma linha por campo: nome e idade."
+                      badge={identDone ? "Pronto" : "1/3"}
+                      summary={
+                        identDone
+                          ? `${name.trim()} · ${age} anos`
+                          : "É o ponto de partida da sua linha do tempo."
+                      }
+                      open={openBlock === "identidade"}
+                      onOpenChange={(v) => setOpenBlock(v ? "identidade" : "")}
+                    >
+                      <div className="space-y-4">
+                        <AuthField label="Nome completo">
+                          <Input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Como você quer ser chamado"
+                            autoComplete="name"
+                          />
+                        </AuthField>
+                        <AuthField label="Idade">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={120}
+                            value={age}
+                            onChange={(e) => setAge(e.target.value)}
+                            placeholder="Ex.: 34"
+                            autoComplete="off"
+                          />
+                        </AuthField>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setOpenBlock("acesso")}
+                        >
+                          Continuar para o acesso
+                          <ArrowRight className="size-3.5" />
+                        </Button>
                       </div>
-                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        Se um dia você esquecer a senha, é esta pergunta que devolve o acesso — sem
-                        depender de e-mail.
-                      </p>
-                      <div className="mt-3 space-y-3">
+                    </Disclosure>
+
+                    <Disclosure
+                      icon={LogIn}
+                      title="Telefone e senha"
+                      description="Seu telefone é o login — não há e-mail."
+                      badge={acessoDone ? "Pronto" : "2/3"}
+                      summary={
+                        phone
+                          ? `${formatPhone(phone)}${acessoDone ? " · senha definida" : ""}`
+                          : "Define como você entra no app."
+                      }
+                      open={openBlock === "acesso"}
+                      onOpenChange={(v) => setOpenBlock(v ? "acesso" : "")}
+                    >
+                      <div className="space-y-4">
+                        <AuthField label="Telefone">
+                          <Input
+                            value={formatPhone(phone)}
+                            onChange={(e) => setPhone(normalizePhone(e.target.value))}
+                            placeholder="(11) 98765-4321"
+                            inputMode="tel"
+                            autoComplete="tel"
+                          />
+                        </AuthField>
+                        <AuthField label="Senha">
+                          <PasswordInput
+                            value={password}
+                            onChange={setPassword}
+                            show={showPassword}
+                            onToggle={() => setShowPassword((v) => !v)}
+                            placeholder="Mínimo de 4 caracteres"
+                            autoComplete="new-password"
+                          />
+                        </AuthField>
+                        <AuthField label="Confirmar senha">
+                          <PasswordInput
+                            value={confirm}
+                            onChange={setConfirm}
+                            show={showPassword}
+                            onToggle={() => setShowPassword((v) => !v)}
+                            placeholder="Repita a senha"
+                            autoComplete="new-password"
+                          />
+                        </AuthField>
+                        {confirm !== "" && password !== confirm && (
+                          <p className="text-xs text-destructive">As senhas não conferem.</p>
+                        )}
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setOpenBlock("recuperacao")}
+                        >
+                          Continuar para a segurança
+                          <ArrowRight className="size-3.5" />
+                        </Button>
+                      </div>
+                    </Disclosure>
+
+                    <Disclosure
+                      icon={ShieldQuestion}
+                      title="Senha de segurança"
+                      description="Sem e-mail, é o que devolve o acesso se você esquecer a senha."
+                      badge={recDone ? "Pronto" : "3/3"}
+                      summary={
+                        recDone
+                          ? chosenQuestion
+                          : "Escolha uma pergunta e uma resposta que só você sabe."
+                      }
+                      open={openBlock === "recuperacao"}
+                      onOpenChange={(v) => setOpenBlock(v ? "recuperacao" : "")}
+                    >
+                      <div className="space-y-3">
                         <AuthField label="Pergunta secreta">
                           <select
                             value={question}
@@ -330,7 +399,7 @@ export function AuthScreen() {
                           />
                         </AuthField>
                       </div>
-                    </div>
+                    </Disclosure>
 
                     <Button type="submit" className="w-full" disabled={pending}>
                       {pending ? (

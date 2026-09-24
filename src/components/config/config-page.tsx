@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, ImagePlus, LogOut, Phone, Save, Trash2 } from "lucide-react";
+import {
+  Clock3,
+  Eye,
+  ImagePlus,
+  LogOut,
+  Palette,
+  Phone,
+  Save,
+  ShieldQuestion,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { signOut, updateAccount, useAuth } from "@/hooks/use-auth";
 import { birthDateFromAge, formatPhone } from "@/lib/identity";
@@ -10,10 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { Disclosure } from "@/components/ui/disclosure";
 import { Field, PreviewLifetime, StorageModeNotice } from "@/components/config/parts";
 import { RecoverySecretField } from "@/components/config/recovery-secret-field";
 import { emptyProfileDraft, initialsOf, type ProfileDraft } from "@/components/config/draft";
 import { toast } from "sonner";
+
+type ConfigBlock = "identidade" | "tempo" | "conta" | "seguranca" | "visual";
 
 export function ConfigPage() {
   const { profile } = useProfile();
@@ -22,8 +36,11 @@ export function ConfigPage() {
   const [draft, setDraft] = useState<ProfileDraft>(emptyProfileDraft);
   const [touched, setTouched] = useState(false);
   const [age, setAge] = useState("");
+  const [block, setBlock] = useState<ConfigBlock>("identidade");
   const fileAvatarRef = useRef<HTMLInputElement>(null);
   const fileCoverRef = useRef<HTMLInputElement>(null);
+
+  const toggle = (id: ConfigBlock) => (open: boolean) => setBlock(open ? id : ("" as ConfigBlock));
 
   useEffect(() => {
     if (account) setAge(String(account.age));
@@ -134,13 +151,23 @@ export function ConfigPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
-        {/* Formulário */}
-        <div className="space-y-6">
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Identidade
-            </h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        {/* Cada seção é um bloco expansível: a tela mostra a estrutura antes de
+            pedir edição. O cabeçalho resume o que já está definido. */}
+        <div className="space-y-3">
+          <Disclosure
+            icon={UserRound}
+            title="Identidade"
+            description="Como você aparece — nome, ocupação, onde vive e bio."
+            badge={draft.name.trim() ? "Definido" : "Vazio"}
+            summary={
+              draft.name.trim()
+                ? [draft.name, draft.role, draft.location].filter(Boolean).join(" · ")
+                : "Ainda sem nome. É o primeiro dado da sua história."
+            }
+            open={block === "identidade"}
+            onOpenChange={toggle("identidade")}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nome completo">
                 <Input
                   value={draft.name}
@@ -182,44 +209,46 @@ export function ConfigPage() {
                 </Field>
               </div>
             </div>
-          </section>
+          </Disclosure>
 
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Tempo de vida
-            </h2>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Ajusta o horizonte do donut Memento Mori e os 4 ciclos de 25 anos.
-            </p>
-            <div className="mt-5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold uppercase tracking-wide text-faint">
-                  Horizonte alvo
-                </Label>
-                <span className="font-display text-sm font-bold text-primary">
-                  {draft.target_lifespan} anos
-                </span>
-              </div>
-              <Slider
-                className="mt-3"
-                value={[draft.target_lifespan]}
-                min={40}
-                max={150}
-                step={1}
-                onValueChange={(arr) => set("target_lifespan", arr[0] ?? 100)}
-              />
-              <p className="mt-2 text-[11px] text-faint">40–150 anos. Padrão: 100.</p>
+          <Disclosure
+            icon={Clock3}
+            title="Tempo de vida"
+            description="Ajusta o horizonte do Memento Mori e os quatro ciclos de 25 anos."
+            badge={`${draft.target_lifespan} anos`}
+            summary="Padrão: 100 anos. Só entra em cena quando você quiser."
+            open={block === "tempo"}
+            onOpenChange={toggle("tempo")}
+          >
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-faint">
+                Horizonte alvo
+              </Label>
+              <span className="font-display text-sm font-bold text-primary">
+                {draft.target_lifespan} anos
+              </span>
             </div>
-          </section>
+            <Slider
+              className="mt-3"
+              value={[draft.target_lifespan]}
+              min={40}
+              max={150}
+              step={1}
+              onValueChange={(arr) => set("target_lifespan", arr[0] ?? 100)}
+            />
+            <p className="mt-2 text-[11px] text-faint">40–150 anos. Padrão: 100.</p>
+          </Disclosure>
 
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Conta
-            </h2>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Telefone usado para entrar no app e a idade que define seu ponto de partida.
-            </p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <Disclosure
+            icon={Phone}
+            title="Conta"
+            description="O telefone que entra no app e a idade que define seu ponto de partida."
+            badge={account ? formatPhone(account.phone) : "—"}
+            summary="Sair da conta mantém sua história salva aqui."
+            open={block === "conta"}
+            onOpenChange={toggle("conta")}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Telefone">
                 <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
                   <Phone className="size-3.5" />
@@ -246,26 +275,33 @@ export function ConfigPage() {
                 telefone e senha para retomar.
               </p>
             </div>
-          </section>
+          </Disclosure>
 
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Segurança
-            </h2>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Se você esquecer a senha, é a pergunta secreta que devolve o acesso — sem depender de
-              e-mail.
-            </p>
-            <div className="mt-5">
-              <RecoverySecretField />
-            </div>
-          </section>
+          <Disclosure
+            icon={ShieldQuestion}
+            title="Segurança"
+            description="Sem e-mail, a pergunta secreta é o que devolve o acesso."
+            summary="Defina ou troque a pergunta usada na recuperação de senha."
+            open={block === "seguranca"}
+            onOpenChange={toggle("seguranca")}
+          >
+            <RecoverySecretField />
+          </Disclosure>
 
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Visual
-            </h2>
-            <div className="mt-5 grid gap-4">
+          <Disclosure
+            icon={Palette}
+            title="Visual"
+            description="Foto de perfil e banner do Dashboard."
+            badge={draft.avatar_url || draft.cover_url ? "Personalizado" : "Padrão"}
+            summary={
+              draft.avatar_url || draft.cover_url
+                ? "Você já tem imagens próprias configuradas."
+                : "Sem imagens: usamos suas iniciais e um fundo do app."
+            }
+            open={block === "visual"}
+            onOpenChange={toggle("visual")}
+          >
+            <div className="grid gap-4">
               <Field label="Foto do perfil (URL)">
                 <div className="flex gap-2">
                   <Input
@@ -323,7 +359,7 @@ export function ConfigPage() {
                 </div>
               </Field>
             </div>
-          </section>
+          </Disclosure>
 
           <div className="flex flex-wrap gap-2 border-t border-border pt-6">
             <Button onClick={save} disabled={update.isPending}>

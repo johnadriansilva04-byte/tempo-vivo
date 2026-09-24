@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
 import { PageHeader, Section } from "@/components/page-kit";
 import { FocusCard } from "@/components/focus-card";
+import { Disclosure } from "@/components/ui/disclosure";
 import { useCreateFocus } from "@/hooks/use-weekly-focus";
 import { useAuth } from "@/hooks/use-auth";
 import { CYCLES, cycleForAge } from "@/lib/life-story";
@@ -12,6 +13,7 @@ import { CYCLES, cycleForAge } from "@/lib/life-story";
 
 export function PlanningPage() {
   const [input, setInput] = useState({ title: "", description: "" });
+  const [open, setOpen] = useState(false);
   const create = useCreateFocus();
   const { account } = useAuth();
   const cycle = cycleForAge(account?.age ?? 0);
@@ -29,7 +31,12 @@ export function PlanningPage() {
         week_number: week,
         year: now.getFullYear(),
       },
-      { onSuccess: () => setInput({ title: "", description: "" }) },
+      {
+        onSuccess: () => {
+          setInput({ title: "", description: "" });
+          setOpen(false);
+        },
+      },
     );
   };
 
@@ -44,31 +51,48 @@ export function PlanningPage() {
       />
       <Section title="Metas da semana" detail="Progresso comprometido, não desejado">
         <FocusCard />
-        <div className="mt-4 flex flex-col gap-2 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-end">
-          <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-faint">
-              Nova meta
-            </Label>
-            <Input
-              value={input.title}
-              onChange={(e) => setInput({ ...input, title: e.target.value })}
-              placeholder="Título"
-            />
+        <Disclosure
+          icon={Plus}
+          title="Nova meta da semana"
+          description="Um título e, se quiser, uma linha de contexto."
+          summary={
+            input.title.trim() ? input.title : "Abra para comprometer mais uma frente da semana."
+          }
+          open={open}
+          onOpenChange={setOpen}
+          className="mt-4"
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-faint">
+                Título
+              </label>
+              <Input
+                value={input.title}
+                onChange={(e) => setInput({ ...input, title: e.target.value })}
+                placeholder="O que você quer cumprir"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-faint">
+                Descrição
+              </label>
+              <Input
+                value={input.description}
+                onChange={(e) => setInput({ ...input, description: e.target.value })}
+                placeholder="Opcional"
+              />
+            </div>
           </div>
-          <div className="flex-1 space-y-1.5">
-            <Label className="text-xs font-semibold uppercase tracking-wide text-faint">
-              Descrição
-            </Label>
-            <Input
-              value={input.description}
-              onChange={(e) => setInput({ ...input, description: e.target.value })}
-              placeholder="Opcional"
-            />
-          </div>
-          <Button size="sm" onClick={submit} disabled={!input.title.trim() || create.isPending}>
-            Adicionar
+          <Button
+            size="sm"
+            className="mt-4"
+            onClick={submit}
+            disabled={!input.title.trim() || create.isPending}
+          >
+            Adicionar meta
           </Button>
-        </div>
+        </Disclosure>
       </Section>
 
       <Section
