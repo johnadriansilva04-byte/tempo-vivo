@@ -629,6 +629,14 @@
     grid-template-columns: 1fr 1fr 1.2fr;
   }
 }
+/* Dentro do bloco expansível o padding já vem do disclosure-body. */
+.disclosure-body .record-grid {
+  padding: 0;
+}
+.disclosure-body .validation-note,
+.disclosure-body .archive-note {
+  margin: 1.25rem -1.125rem -1.125rem;
+}
 @utility record-label {
   margin-bottom: 0.75rem;
   font-size: 0.65rem;

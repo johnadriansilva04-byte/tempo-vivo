@@ -1,6 +1,7 @@
-import { Check, LockKeyhole, Pencil } from "lucide-react";
+import { CalendarDays, Check, LockKeyhole, Pencil } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Disclosure } from "@/components/ui/disclosure";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpsertDailyLog } from "@/hooks/use-daily-logs";
 import { StoryText } from "@/components/story-text";
@@ -15,22 +16,34 @@ const statusMeta: Record<
   LOCKED: { label: "Travado", className: "status-archive", editable: false },
 };
 
-function formatDay(isoDate: string): { day: string; weekday: string } {
+function formatDay(isoDate: string): { day: string; weekday: string; isToday: boolean } {
   const d = new Date(`${isoDate}T00:00:00`);
   const day = d
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
     .replace(".", "")
     .toUpperCase();
   const weekday = d.toLocaleDateString("pt-BR", { weekday: "long" });
-  const today = new Date().toISOString().slice(0, 10) === isoDate;
-  return { day, weekday: today ? "Hoje" : weekday.charAt(0).toUpperCase() + weekday.slice(1) };
+  const isToday = new Date().toISOString().slice(0, 10) === isoDate;
+  return {
+    day,
+    weekday: isToday ? "Hoje" : weekday.charAt(0).toUpperCase() + weekday.slice(1),
+    isToday,
+  };
 }
 
-/** Um dia do livro de bordo: Planejado, Executado e Resumo — com trava de 24h. */
+/** Linha de apoio fechada: o resumo do dia, ou a intenção, ou o convite a escrever. */
+function preview(log: DailyLog): string {
+  const source = log.summary_text || log.executed_text || log.planned_text;
+  const first = source.split("\n").find((line) => line.trim() !== "");
+  return first?.trim() ?? "Sem registro ainda — abra para escrever o dia.";
+}
+
+/** Um dia do livro de bordo: fechado conta o essencial, aberto revela o registro. */
 export function DailyLogCard({ log }: { log: DailyLog }) {
   const upsert = useUpsertDailyLog();
   const meta = statusMeta[log.status];
-  const { day, weekday } = formatDay(log.log_date);
+  const { day, weekday, isToday } = formatDay(log.log_date);
+  const [open, setOpen] = useState(isToday && meta.editable);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({
     planned_text: log.planned_text,
@@ -46,32 +59,38 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
   const lines = (text: string) => text.split("\n").filter(Boolean);
 
   return (
-    <article className={`day-record ${log.status === "LOCKED" ? "day-locked" : ""}`}>
-      <div className="day-heading">
-        <div>
-          <p className="font-display text-xl font-semibold">{day}</p>
-          <p className="text-xs text-muted-foreground">{weekday}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {meta.editable && !editing && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1.5 text-xs text-muted-foreground"
-              onClick={() => setEditing(true)}
-            >
-              <Pencil className="size-3" /> Registrar
-            </Button>
-          )}
-          <span className={`status ${meta.className}`}>
-            {log.status === "LOCKED" && <LockKeyhole className="size-3" />}
-            {meta.label}
-          </span>
-        </div>
-      </div>
-
+    <Disclosure
+      icon={CalendarDays}
+      title={day}
+      description={weekday}
+      badge={
+        <span className={`status ${meta.className}`}>
+          {log.status === "LOCKED" && <LockKeyhole className="size-3" />}
+          {meta.label}
+        </span>
+      }
+      summary={preview(log)}
+      open={open}
+      onOpenChange={setOpen}
+      className={log.status === "LOCKED" ? "day-locked" : undefined}
+      action={
+        meta.editable && !editing ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1.5 text-xs text-muted-foreground"
+            onClick={() => {
+              setOpen(true);
+              setEditing(true);
+            }}
+          >
+            <Pencil className="size-3" /> Registrar
+          </Button>
+        ) : undefined
+      }
+    >
       {editing ? (
-        <div className="space-y-3 p-4">
+        <div className="space-y-3">
           <Field
             label="Planejado"
             value={draft.planned_text}
@@ -104,32 +123,34 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
           </p>
         </div>
       ) : (
-        <div className="record-grid">
-          <Block title="Planejado" items={lines(log.planned_text)} empty="Nada planejado." />
-          <Block
-            title="Executado"
-            items={lines(log.executed_text)}
-            empty="Ainda sem execução registrada."
-          />
-          <div>
-            <p className="record-label">Resumo</p>
-            <p className="text-sm leading-6 text-muted-foreground">
-              {log.summary_text.trim() === "" ? "—" : <StoryText text={log.summary_text} />}
-            </p>
+        <>
+          <div className="record-grid">
+            <Block title="Planejado" items={lines(log.planned_text)} empty="Nada planejado." />
+            <Block
+              title="Executado"
+              items={lines(log.executed_text)}
+              empty="Ainda sem execução registrada."
+            />
+            <div>
+              <p className="record-label">Resumo</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {log.summary_text.trim() === "" ? "—" : <StoryText text={log.summary_text} />}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
 
-      {log.status === "VALIDATING" && (
-        <p className="validation-note">Correções disponíveis até o fechamento das 24h</p>
+          {log.status === "VALIDATING" && (
+            <p className="validation-note">Correções disponíveis até o fechamento das 24h</p>
+          )}
+          {log.status === "LOCKED" && (
+            <p className="archive-note">
+              <LockKeyhole />
+              Registro Histórico • somente leitura
+            </p>
+          )}
+        </>
       )}
-      {log.status === "LOCKED" && (
-        <p className="archive-note">
-          <LockKeyhole />
-          Registro Histórico • somente leitura
-        </p>
-      )}
-    </article>
+    </Disclosure>
   );
 }
 

@@ -41,7 +41,9 @@ export function AuthScreen() {
   const [question, setQuestion] = useState<string>(RECOVERY_QUESTIONS[0]);
   const [customQuestion, setCustomQuestion] = useState("");
   const [answer, setAnswer] = useState("");
-  const [openBlock, setOpenBlock] = useState<"identidade" | "acesso" | "recuperacao">("identidade");
+  const [openBlock, setOpenBlock] = useState<"identidade" | "acesso" | "recuperacao" | "">(
+    "identidade",
+  );
 
   // Completude de cada bloco — alimenta o resumo e o selo vistos com o bloco fechado.
   const identDone = name.trim() !== "" && age.trim() !== "";

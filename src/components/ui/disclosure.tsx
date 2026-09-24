@@ -12,21 +12,21 @@ import { cn } from "@/lib/utils";
  */
 
 type DisclosureProps = {
-  icon?: LucideIcon;
+  icon?: LucideIcon | undefined;
   title: string;
   /** Linha de apoio sempre visível: o que este bloco guarda. */
-  description?: string;
+  description?: string | undefined;
   /** Estado do preenchimento, lido pelo dono sem precisar abrir. */
-  summary?: ReactNode;
+  summary?: ReactNode | undefined;
   /** Selo curto no cabeçalho (ex.: "2 de 5"). */
-  badge?: ReactNode;
+  badge?: ReactNode | undefined;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
   /** Ação à direita do cabeçalho, fora do gatilho. */
-  action?: ReactNode;
-  className?: string;
-  disabled?: boolean;
+  action?: ReactNode | undefined;
+  className?: string | undefined;
+  disabled?: boolean | undefined;
 };
 
 export function Disclosure({
@@ -46,11 +46,14 @@ export function Disclosure({
     <CollapsiblePrimitive.Root
       open={open}
       onOpenChange={onOpenChange}
-      disabled={disabled}
+      {...(disabled !== undefined ? { disabled } : {})}
       className={cn("disclosure", open && "disclosure-open", className)}
     >
       <div className="disclosure-head">
-        <CollapsiblePrimitive.Trigger className="disclosure-trigger" disabled={disabled}>
+        <CollapsiblePrimitive.Trigger
+          className="disclosure-trigger"
+          {...(disabled !== undefined ? { disabled } : {})}
+        >
           {Icon && (
             <span className="disclosure-icon">
               <Icon />
