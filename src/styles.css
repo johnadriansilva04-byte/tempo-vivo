@@ -88,7 +88,8 @@
   --border: oklch(0.28 0.012 160);
   --input: oklch(0.3 0.012 160);
   --ring: oklch(0.79 0.16 165);
-  --faint: oklch(0.52 0.014 155);
+  /* Contraste AA garantido nos dois fundos (bg 4.84:1, card 4.55:1). */
+  --faint: oklch(0.59 0.014 155);
   --overlay: oklch(0.08 0.01 160 / 60%);
   --chart-1: oklch(0.79 0.16 165);
   --chart-2: oklch(0.68 0.12 185);
