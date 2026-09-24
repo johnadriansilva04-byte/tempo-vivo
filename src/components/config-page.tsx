@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, ImagePlus, Save, Trash2 } from "lucide-react";
+import { Eye, ImagePlus, LogOut, Phone, Save, Trash2 } from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
+import { signOut, updateAccount, useAuth } from "@/hooks/use-auth";
+import { birthDateFromAge, formatPhone } from "@/store/auth-store";
 import { PageHeader } from "@/components/page-kit";
 import { LifetimeTracker } from "@/components/lifetime-tracker";
+import { computeLifetime } from "@/hooks/use-lifetime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,11 +46,17 @@ function initialsOf(name: string) {
 
 export function ConfigPage() {
   const { profile } = useProfile();
+  const { account } = useAuth();
   const update = useUpdateProfile();
   const [draft, setDraft] = useState<Draft>(empty);
   const [touched, setTouched] = useState(false);
+  const [age, setAge] = useState("");
   const fileAvatarRef = useRef<HTMLInputElement>(null);
   const fileCoverRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (account) setAge(String(account.age));
+  }, [account]);
 
   useEffect(() => {
     if (!profile || touched) return;
@@ -80,18 +89,27 @@ export function ConfigPage() {
   const incomplete = profile.name.trim() === "";
 
   const save = () => {
+    const parsedAge = Number(age);
+    const ageChanged =
+      account !== null && Number.isFinite(parsedAge) && Math.round(parsedAge) !== account.age;
     const payload = {
       name: draft.name.trim() || "",
       role: draft.role.trim(),
       location: draft.location.trim(),
       bio: draft.bio.trim(),
-      birth_date: draft.birth_date || "",
+      birth_date: ageChanged ? birthDateFromAge(Math.round(parsedAge)) : draft.birth_date || "",
       target_lifespan: Math.max(40, Math.min(150, draft.target_lifespan)),
       avatar_url: draft.avatar_url.trim() || null,
       cover_url: draft.cover_url.trim() || null,
     };
     update.mutate(payload, {
       onSuccess: () => {
+        if (account && (ageChanged || (draft.name.trim() && draft.name.trim() !== account.name))) {
+          updateAccount(account.id, {
+            ...(draft.name.trim() ? { name: draft.name.trim() } : {}),
+            ...(ageChanged ? { age: Math.round(parsedAge) } : {}),
+          });
+        }
         toast.success("Perfil salvo. Suas alterações já estão visíveis em todo o app.");
         setTouched(false);
       },
@@ -101,8 +119,10 @@ export function ConfigPage() {
 
   const clearLocal = () => {
     try {
-      window.localStorage.removeItem("perfil-vivo:db:v2");
-      window.localStorage.removeItem("perfil-vivo:db:v1");
+      // Apaga apenas os dados da conta logada — a conta e a sessão continuam.
+      for (const key of Object.keys(window.localStorage)) {
+        if (key.startsWith("perfil-vivo:db:")) window.localStorage.removeItem(key);
+      }
     } catch {
       // armazenamento local pode não existir neste ambiente
     }
@@ -219,6 +239,42 @@ export function ConfigPage() {
 
           <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
             <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
+              Conta
+            </h2>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Telefone usado para entrar no app e a idade que define seu ponto de partida.
+            </p>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field label="Telefone">
+                <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                  <Phone className="size-3.5" />
+                  {account ? formatPhone(account.phone) : "—"}
+                </div>
+              </Field>
+              <Field label="Idade">
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="Ex.: 34"
+                />
+              </Field>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-5">
+              <Button variant="outline" size="sm" onClick={() => signOut()}>
+                <LogOut className="size-3.5" /> Sair da conta
+              </Button>
+              <p className="w-full text-[11px] leading-5 text-faint">
+                Ao sair, sua história permanece salva nesta conta. Entre de novo com o mesmo
+                telefone e senha para retomar.
+              </p>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
               Visual
             </h2>
             <div className="mt-5 grid gap-4">
@@ -286,7 +342,7 @@ export function ConfigPage() {
               <Save className="size-4" /> Salvar alterações
             </Button>
             <Button variant="ghost" onClick={clearLocal} className="gap-1.5 text-xs text-faint">
-              <Trash2 className="size-3.5" /> Limpar dados locais e recarregar
+              <Trash2 className="size-3.5" /> Apagar minha história neste navegador
             </Button>
           </div>
         </div>
@@ -362,23 +418,14 @@ function PreviewLifetime({
   birth_date: string;
   target_lifespan: number;
 }) {
-  const now = new Date();
-  const birth = new Date(`${birth_date}T00:00:00`);
-  const valid =
-    birth_date !== "" && !Number.isNaN(birth.getTime()) && birth.getTime() <= now.getTime();
-  if (!valid) {
+  const life = computeLifetime(birth_date, target_lifespan);
+  if (!life.hasBirthDate) {
     return (
       <p className="text-xs text-faint">
         Informe uma data de nascimento válida para ver o Memento Mori.
       </p>
     );
   }
-  const daysLived = Math.floor((now.getTime() - birth.getTime()) / (24 * 60 * 60 * 1000));
-  const age = Math.floor(daysLived / 365.2425);
-  const targetDays = Math.round(target_lifespan * 365.2425);
-  const pct = Math.min(100, (daysLived / targetDays) * 100);
-  const idx = Math.min(Math.floor(age / 25), 3);
-  const names = ["Aprendizado", "Construção", "Consolidação", "Plenitude"];
   return (
     <div className="flex items-center gap-4">
       <div className="size-20 shrink-0 rounded-full border border-border bg-muted p-2">
@@ -386,10 +433,10 @@ function PreviewLifetime({
       </div>
       <div className="text-xs">
         <p className="font-semibold text-foreground">
-          {age} anos · {pct.toFixed(1)}% de {target_lifespan}
+          {life.age} anos · {life.pctConsumed.toFixed(1)}% de {target_lifespan}
         </p>
         <p className="text-muted-foreground">
-          Ciclo {idx + 1} · {names[idx]}
+          Ciclo {life.cycleIndex + 1} · {life.cycleName}
         </p>
       </div>
     </div>

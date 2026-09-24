@@ -611,10 +611,6 @@ export function AboutPage() {
       />
       <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <p className="font-display text-2xl leading-relaxed text-foreground">
-            “Quero compreender como guardamos o que vivemos e como essas memórias podem orientar
-            futuros mais humanos.”
-          </p>
           {isBlank ? (
             <EmptyState
               icon={<FileText className="size-5" />}
@@ -625,14 +621,22 @@ export function AboutPage() {
             />
           ) : (
             <>
-              <p className="mt-6 text-sm leading-7 text-muted-foreground">
-                {profile.bio || "Sua bio aparecerá aqui."} Minha história é atravessada por cidades,
-                relatos de família e pela vontade de transformar lembranças dispersas em
-                conhecimento compartilhado.
-              </p>
+              {profile.bio.trim() !== "" ? (
+                <p className="font-display text-2xl leading-relaxed text-foreground">
+                  “{profile.bio}”
+                </p>
+              ) : (
+                <p className="text-sm leading-7 text-muted-foreground">
+                  Escreva sua bio em Configurações para apresentar sua trajetória aqui.
+                </p>
+              )}
               <div className="mt-8 grid grid-cols-2 gap-4">
                 <SmallFact icon={MapPin} label="Vive em" value={profile.location || "—"} />
-                <SmallFact icon={Globe2} label="Nasceu em" value="—" />
+                <SmallFact
+                  icon={Globe2}
+                  label="Nasceu em"
+                  value={profile.birth_date ? profile.birth_date.slice(0, 4) : "—"}
+                />
               </div>
             </>
           )}

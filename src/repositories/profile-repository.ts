@@ -16,6 +16,7 @@ import {
   projects,
   weeklyFocus,
 } from "@/mock/profile";
+import { currentLocalUserId } from "@/lib/local-user";
 
 // ---------------------------------------------------------------------------
 // Repositório local persistente (localStorage) — começa VAZIO.
@@ -24,7 +25,13 @@ import {
 // permanece apenas como fallback offline.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "perfil-vivo:db:v2";
+const STORAGE_PREFIX = "perfil-vivo:db:v3";
+const ANONYMOUS_SCOPE = "anonymous";
+
+/** Cada conta tem seu próprio banco local: a história de um nunca vaza no outro. */
+function storageKey(): string {
+  return `${STORAGE_PREFIX}:${currentLocalUserId() ?? ANONYMOUS_SCOPE}`;
+}
 
 type LocalDB = {
   profile: Profile;
@@ -78,10 +85,11 @@ function seed(): LocalDB {
 function load(): LocalDB {
   if (typeof window === "undefined") return seed();
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const key = storageKey();
+    const raw = window.localStorage.getItem(key);
     if (!raw) {
       const fresh = seed();
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+      window.localStorage.setItem(key, JSON.stringify(fresh));
       return fresh;
     }
     const parsed = JSON.parse(raw) as LocalDB;
@@ -96,7 +104,7 @@ function load(): LocalDB {
 function save(db: LocalDB) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    window.localStorage.setItem(storageKey(), JSON.stringify(db));
   } catch {
     /* storage cheio/indisponível: mantém apenas em memória */
   }

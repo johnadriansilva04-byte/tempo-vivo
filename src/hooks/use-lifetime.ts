@@ -24,6 +24,16 @@ const CYCLE_NAMES = [
   "Plenitude & Sabedoria",
 ];
 
+/** Idade exata de calendário — evita o erro de 1 ano da média de 365,2425 dias. */
+function calendarAge(birth: Date, now: Date): number {
+  let age = now.getFullYear() - birth.getFullYear();
+  const beforeBirthday =
+    now.getMonth() < birth.getMonth() ||
+    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
+  if (beforeBirthday) age -= 1;
+  return Math.max(0, age);
+}
+
 export function computeLifetime(
   birthDate: string,
   target: number,
@@ -51,11 +61,13 @@ export function computeLifetime(
   }
   const msPerDay = 24 * 60 * 60 * 1000;
   const daysLived = Math.floor((now.getTime() - birth.getTime()) / msPerDay);
-  const ageDecimal = daysLived / 365.2425;
-  const age = Math.floor(ageDecimal);
-  const targetDays = Math.round(target * 365.2425);
+  const age = calendarAge(birth, now);
+  const targetDate = new Date(birth);
+  targetDate.setFullYear(birth.getFullYear() + target);
+  const targetDays = Math.round((targetDate.getTime() - birth.getTime()) / msPerDay);
   const pct = Math.min(100, (daysLived / targetDays) * 100);
   const cycleIndex = Math.min(Math.floor(age / 25), 3);
+  const ageDecimal = daysLived / (targetDays / target);
 
   return {
     hasBirthDate: true,

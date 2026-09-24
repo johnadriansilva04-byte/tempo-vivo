@@ -8,6 +8,7 @@ import {
   FolderKanban,
   Gamepad2,
   LayoutDashboard,
+  LogOut,
   Menu,
   Settings,
   Trophy,
@@ -15,7 +16,9 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useProfile } from "@/hooks/use-profile";
+import { signOut, useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { formatPhone } from "@/store/auth-store";
 
 const links = [
   ["/", "Dashboard", LayoutDashboard],
@@ -32,6 +35,7 @@ const links = [
 export function SidebarNav({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const { profile } = useProfile();
+  const { account } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,12 +77,29 @@ export function SidebarNav({ children }: { children: ReactNode }) {
         <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
             <div className="avatar-small">{profile?.initials ?? "··"}</div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-sidebar-foreground">
-                {profile?.name ?? "Carregando…"}
+                {profile?.name || account?.name || "Carregando…"}
               </p>
-              <p className="text-[11px] text-muted-foreground">Perfil privado</p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {account ? formatPhone(account.phone) : "Perfil privado"}
+              </p>
             </div>
+            {account && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 shrink-0"
+                aria-label="Sair da conta"
+                title="Sair da conta"
+                onClick={() => {
+                  setOpen(false);
+                  signOut();
+                }}
+              >
+                <LogOut className="size-3.5" />
+              </Button>
+            )}
           </div>
         </div>
       </aside>

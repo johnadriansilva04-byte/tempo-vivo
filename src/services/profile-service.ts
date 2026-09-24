@@ -1,5 +1,10 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { computeStatus, initialsOf, localRepository } from "@/repositories/profile-repository";
+import {
+  computeStatus,
+  initialsOf,
+  localRepository,
+  newId,
+} from "@/repositories/profile-repository";
 import type {
   CareerChapter,
   DailyLog,
@@ -181,7 +186,7 @@ export async function getWeeklyFocus(): Promise<WeeklyFocus[]> {
 export async function createWeeklyFocus(
   input: Pick<WeeklyFocus, "title" | "description" | "week_number" | "year">,
 ): Promise<void> {
-  const item: WeeklyFocus = { id: `wf-${Date.now()}`, progress_pct: 0, ...input };
+  const item: WeeklyFocus = { id: newId(), progress_pct: 0, ...input };
   if (isSupabaseConfigured) {
     const db = await requireSupabase();
     const { error } = await db.from("weekly_focus").insert({
@@ -252,7 +257,7 @@ export async function getCareerChapters(): Promise<CareerChapter[]> {
 }
 
 export async function createCareerChapter(input: Omit<CareerChapter, "id">): Promise<void> {
-  const item: CareerChapter = { id: `ch-${Date.now()}`, ...input };
+  const item: CareerChapter = { id: newId(), ...input };
   if (isSupabaseConfigured) {
     const db = await requireSupabase();
     const { error } = await db.from("career_chapters").insert({
@@ -366,7 +371,7 @@ export async function setLifePrologue(text: string): Promise<void> {
       if (error) throw error;
     } else {
       const { error } = await db.from("career_chapters").insert({
-        id: `ch-prologue-${Date.now()}`,
+        id: newId(),
         user_id: USER_ID,
         title: "Prólogo",
         period: "",

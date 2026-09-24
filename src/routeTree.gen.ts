@@ -9,9 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CurriculoRouteImport } from './routes/curriculo'
 import { Route as JogosRouteImport } from './routes/jogos'
 import { Route as PlanejamentoRouteImport } from './routes/planejamento'
@@ -19,11 +19,6 @@ import { Route as ProjetosRouteImport } from './routes/projetos'
 import { Route as RealizacoesRouteImport } from './routes/realizacoes'
 import { Route as SobreRouteImport } from './routes/sobre'
 
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -32,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const AgendaRoute = AgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CurriculoRoute = CurriculoRouteImport.update({
@@ -136,9 +136,9 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
   IndexRoute: typeof IndexRoute
   AgendaRoute: typeof AgendaRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
   CurriculoRoute: typeof CurriculoRoute
   JogosRoute: typeof JogosRoute
   PlanejamentoRoute: typeof PlanejamentoRoute
@@ -149,13 +149,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -168,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/agenda'
       fullPath: '/agenda'
       preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/curriculo': {
@@ -216,9 +216,9 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  ConfiguracoesRoute: ConfiguracoesRoute,
   IndexRoute: IndexRoute,
   AgendaRoute: AgendaRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
   CurriculoRoute: CurriculoRoute,
   JogosRoute: JogosRoute,
   PlanejamentoRoute: PlanejamentoRoute,
