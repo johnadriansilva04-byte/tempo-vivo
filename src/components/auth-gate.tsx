@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AuthScreen } from "@/components/auth-screen";
+import { AuthScreen } from "@/components/auth/auth-screen";
 import { StartLifeFlow } from "@/components/start-life-flow";
 import { useAuth } from "@/hooks/use-auth";
 

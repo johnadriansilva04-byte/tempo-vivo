@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ConfigPage } from "@/components/config-page";
+import { ConfigPage } from "@/components/config/config-page";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({

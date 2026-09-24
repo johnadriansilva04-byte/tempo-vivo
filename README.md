@@ -23,6 +23,17 @@ src/
     use-daily-logs.ts    # Livro de bordo + upsert
     use-lifetime.ts      # Idade de calendário, ciclos, % consumido, dias restantes (tick 60s)
     use-weekly-focus.ts  # Metas da semana
+  auth/                  # Fluxo de entrada, em partes pequenas
+    auth-screen.tsx      # Porta de entrada: abas criar/entrar + estado do fluxo
+    recovery-panel.tsx   # Recuperação em 3 passos (telefone → resposta → senha)
+    form.tsx             # Campo, erro e entrada de senha (sem lógica de auth)
+  config/                # Tela de Configurações, em partes pequenas
+    config-page.tsx      # Identidade, tempo de vida, conta, visual
+    recovery-secret-field.tsx # Pergunta secreta ativa + troca
+    parts.tsx            # Campo, preview do Memento Mori, aviso do modo de armazenamento
+    draft.ts             # Formato do formulário e valores iniciais
+  pages/                 # Páginas de conteúdo, uma por rota
+    index.ts             # Barrel: About, Achievements, Games, Planning, Projects, Resume
   services/
     onboarding-service.ts # Cria a vida inicial do usuário na primeira entrada
     profile-service.ts   # Fonte única de verdade: Supabase ⇄ repositório local

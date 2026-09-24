@@ -37,4 +37,13 @@ export default tseslint.config(
     },
   },
   eslintPluginPrettier,
+  {
+    // Componentes de UI são gerados pelo shadcn/ui e seguem o padrão dele de
+    // exportar variantes junto do componente. Não vale desviar do padrão só
+    // para calar o aviso — ele mede só a granularidade do Fast Refresh.
+    files: ["src/components/ui/**/*.{ts,tsx}"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );

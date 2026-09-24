@@ -1,79 +1,25 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Cloud,
-  Eye,
-  HardDrive,
-  ImagePlus,
-  KeyRound,
-  Loader2,
-  LogOut,
-  Phone,
-  Save,
-  ShieldQuestion,
-  Trash2,
-} from "lucide-react";
+import { Eye, ImagePlus, LogOut, Phone, Save, Trash2 } from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
-import {
-  myRecoverySecret,
-  saveRecoverySecret,
-  signOut,
-  updateAccount,
-  useAuth,
-} from "@/hooks/use-auth";
+import { signOut, updateAccount, useAuth } from "@/hooks/use-auth";
 import { birthDateFromAge, formatPhone } from "@/lib/identity";
-import {
-  RECOVERY_QUESTIONS,
-  isPresetQuestion,
-  isValidAnswer,
-  isValidQuestion,
-} from "@/lib/recovery";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { PageHeader } from "@/components/page-kit";
-import { LifetimeTracker } from "@/components/lifetime-tracker";
-import { computeLifetime } from "@/hooks/use-lifetime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { Field, PreviewLifetime, StorageModeNotice } from "@/components/config/parts";
+import { RecoverySecretField } from "@/components/config/recovery-secret-field";
+import { emptyProfileDraft, initialsOf, type ProfileDraft } from "@/components/config/draft";
 import { toast } from "sonner";
-
-type Draft = {
-  name: string;
-  role: string;
-  location: string;
-  bio: string;
-  birth_date: string;
-  target_lifespan: number;
-  avatar_url: string;
-  cover_url: string;
-};
-
-const empty: Draft = {
-  name: "",
-  role: "",
-  location: "",
-  bio: "",
-  birth_date: "",
-  target_lifespan: 100,
-  avatar_url: "",
-  cover_url: "",
-};
-
-function initialsOf(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 export function ConfigPage() {
   const { profile } = useProfile();
   const { account } = useAuth();
   const update = useUpdateProfile();
-  const [draft, setDraft] = useState<Draft>(empty);
+  const [draft, setDraft] = useState<ProfileDraft>(emptyProfileDraft);
   const [touched, setTouched] = useState(false);
   const [age, setAge] = useState("");
   const fileAvatarRef = useRef<HTMLInputElement>(null);
@@ -106,7 +52,7 @@ export function ConfigPage() {
     );
   }
 
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+  const set = <K extends keyof ProfileDraft>(key: K, value: ProfileDraft[K]) => {
     setTouched(true);
     setDraft((d) => ({ ...d, [key]: value }));
   };
@@ -444,224 +390,5 @@ export function ConfigPage() {
         </div>
       </div>
     </>
-  );
-}
-// ---------------------------------------------------------------------------
-// Pergunta secreta na tela de Configurações: mostra a pergunta ativa e permite
-// trocá-la. A resposta nunca volta do servidor — só é enviada quando salva.
-// ---------------------------------------------------------------------------
-/**
- * Deixa visível ONDE a história está guardada.
- *
- * Sem isso o app trocava de modo em silêncio: ao configurar o Supabase ele passa
- * a gravar na nuvem, e sem credenciais volta a gravar só neste navegador — sem a
- * pessoa perceber. Como o modo local não sincroniza entre aparelhos, saber em
- * qual deles você está é o que evita achar que a história sumiu.
- */
-function StorageModeNotice() {
-  const remote = isSupabaseConfigured;
-  return (
-    <div
-      className={`mb-6 rounded-lg border px-4 py-3 ${
-        remote ? "border-border bg-card" : "border-amber-500/30 bg-amber-500/10"
-      }`}
-    >
-      <p className="flex items-center gap-2 text-sm font-medium">
-        {remote ? (
-          <>
-            <Cloud className="size-4 text-primary" /> Sincronizado na nuvem
-          </>
-        ) : (
-          <>
-            <HardDrive className="size-4 text-amber-500" /> Somente neste navegador
-          </>
-        )}
-      </p>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-        {remote
-          ? "Sua história fica na sua conta e aparece em qualquer aparelho onde você entrar."
-          : "O Supabase não está configurado, então a história fica guardada apenas neste navegador e não aparece em outros aparelhos. Entre com o mesmo telefone e senha no mesmo navegador para retomar."}
-      </p>
-    </div>
-  );
-}
-
-function RecoverySecretField() {
-  const { account } = useAuth();
-  const [current, setCurrent] = useState<{ set: boolean; question: string | null }>({
-    set: false,
-    question: null,
-  });
-  const [editing, setEditing] = useState(false);
-  const [preset, setPreset] = useState<string>(RECOVERY_QUESTIONS[0]);
-  const [custom, setCustom] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    void myRecoverySecret().then((value) => {
-      if (alive) setCurrent(value);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [account?.id]);
-
-  const chosen = custom.trim() || preset;
-
-  const startEditing = () => {
-    const isPreset = current.question !== null && isPresetQuestion(current.question);
-    setPreset(isPreset ? (current.question as string) : "");
-    setCustom(!isPreset ? (current.question ?? "") : "");
-    setAnswer("");
-    setEditing(true);
-  };
-
-  const save = async () => {
-    if (!isValidQuestion(chosen)) {
-      toast.error("Escolha uma pergunta secreta (ou escreva a sua).");
-      return;
-    }
-    if (!isValidAnswer(answer)) {
-      toast.error("A resposta secreta precisa de ao menos 2 caracteres.");
-      return;
-    }
-    setSaving(true);
-    try {
-      const result = await saveRecoverySecret(chosen, answer);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      setCurrent({ set: true, question: chosen });
-      setEditing(false);
-      setAnswer("");
-      toast.success("Pergunta secreta salva.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      {!editing ? (
-        <>
-          <div className="flex items-start gap-3 rounded-md border border-border/70 bg-muted/30 px-3.5 py-3">
-            <KeyRound className="mt-0.5 size-4 shrink-0 text-primary" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-faint">
-                {current.set ? "Pergunta ativa" : "Nenhuma pergunta cadastrada"}
-              </p>
-              <p className="mt-1 text-sm text-foreground">
-                {current.set ? current.question : "Sem isso, não há como recuperar a senha."}
-              </p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={startEditing}>
-            <ShieldQuestion className="size-3.5" />
-            {current.set ? "Trocar pergunta secreta" : "Definir pergunta secreta"}
-          </Button>
-        </>
-      ) : (
-        <>
-          <Field label="Pergunta secreta">
-            <select
-              value={preset}
-              onChange={(e) => setPreset(e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {RECOVERY_QUESTIONS.map((q) => (
-                <option key={q} value={q}>
-                  {q}
-                </option>
-              ))}
-              <option value="">Escrever a minha própria…</option>
-            </select>
-          </Field>
-          {preset === "" && (
-            <Field label="Sua pergunta">
-              <Input
-                value={custom}
-                onChange={(e) => setCustom(e.target.value)}
-                placeholder="Ex.: Qual o nome da minha primeira rua?"
-              />
-            </Field>
-          )}
-          <Field label="Resposta secreta">
-            <Input
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Algo que você não esquece"
-              autoComplete="off"
-            />
-          </Field>
-          <p className="text-[11px] leading-5 text-faint">
-            Maiúsculas, acentos e espaços não importam na hora de responder.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => void save()} disabled={saving}>
-              {saving ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Save className="size-3.5" />
-              )}
-              Salvar pergunta
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setEditing(false);
-                setAnswer("");
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-faint">{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-function PreviewLifetime({
-  birth_date,
-  target_lifespan,
-}: {
-  birth_date: string;
-  target_lifespan: number;
-}) {
-  const life = computeLifetime(birth_date, target_lifespan);
-  if (!life.hasBirthDate) {
-    return (
-      <p className="text-xs text-faint">
-        Informe uma data de nascimento válida para ver o Memento Mori.
-      </p>
-    );
-  }
-  return (
-    <div className="flex items-center gap-4">
-      <div className="size-20 shrink-0 rounded-full border border-border bg-muted p-2">
-        <LifetimeTracker compact />
-      </div>
-      <div className="text-xs">
-        <p className="font-semibold text-foreground">
-          {life.age} anos · {life.pctConsumed.toFixed(1)}% de {target_lifespan}
-        </p>
-        <p className="text-muted-foreground">
-          Ciclo {life.cycleIndex + 1} · {life.cycleName}
-        </p>
-      </div>
-    </div>
   );
 }
