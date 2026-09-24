@@ -1,9 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import {
   completeOnboarding,
-  currentAccount,
   getServerSnapshot,
   getSnapshot,
+  initAuth,
   signIn,
   signOut,
   signUp,
@@ -16,13 +16,24 @@ export type AuthState = {
   account: Account | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** `false` enquanto a sessão persistida ainda está sendo restaurada. */
+  ready: boolean;
 };
 
-/** Estado de autenticação reativo sobre o store local (sincroniza entre abas). */
+/** Estado de autenticação reativo (Supabase Auth ou store local). */
 export function useAuth(): AuthState {
-  const db = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const account = currentAccount(db);
-  return { account, isAuthenticated: account !== null, isLoading: false };
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  useEffect(() => {
+    initAuth();
+  }, []);
+
+  return {
+    account: snapshot.account,
+    isAuthenticated: snapshot.account !== null,
+    isLoading: snapshot.isLoading,
+    ready: snapshot.ready,
+  };
 }
 
 export { completeOnboarding, signIn, signOut, signUp, updateAccount };

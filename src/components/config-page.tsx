@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Eye, ImagePlus, LogOut, Phone, Save, Trash2 } from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { signOut, updateAccount, useAuth } from "@/hooks/use-auth";
-import { birthDateFromAge, formatPhone } from "@/store/auth-store";
+import { birthDateFromAge, formatPhone } from "@/lib/identity";
 import { PageHeader } from "@/components/page-kit";
 import { LifetimeTracker } from "@/components/lifetime-tracker";
 import { computeLifetime } from "@/hooks/use-lifetime";

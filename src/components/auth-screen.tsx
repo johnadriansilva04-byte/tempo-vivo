@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signIn, signUp } from "@/hooks/use-auth";
-import { formatPhone, normalizePhone } from "@/store/auth-store";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { formatPhone, normalizePhone } from "@/lib/identity";
 
 type Mode = "entrar" | "criar";
 
@@ -83,8 +84,9 @@ export function AuthScreen() {
         </div>
 
         <p className="relative text-xs leading-5 text-faint">
-          Seus registros ficam no seu próprio navegador enquanto o app roda sem servidor
-          configurado. Nada é publicado.
+          {isSupabaseConfigured
+            ? "Sua conta e sua história ficam no seu banco Supabase, isoladas por usuário. Nada é compartilhado com outras contas."
+            : "Seus registros ficam no seu próprio navegador enquanto o app roda sem servidor configurado. Nada é publicado."}
         </p>
       </section>
 
@@ -107,7 +109,14 @@ export function AuthScreen() {
               : "Use o telefone e a senha cadastrados."}
           </p>
 
-          <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)} className="mt-6">
+          <Tabs
+            value={mode}
+            onValueChange={(v) => {
+              setMode(v as Mode);
+              setError(null);
+            }}
+            className="mt-6"
+          >
             <TabsList className="grid w-full grid-cols-2 bg-muted/50">
               <TabsTrigger value="criar">Criar conta</TabsTrigger>
               <TabsTrigger value="entrar">Entrar</TabsTrigger>
@@ -226,7 +235,9 @@ export function AuthScreen() {
           )}
 
           <p className="mt-6 text-xs leading-5 text-faint">
-            A conta é local a este navegador: senha guardada como hash, nunca em texto puro.
+            {isSupabaseConfigured
+              ? "Sua conta é criada no Supabase: a senha é gerenciada pelo serviço de autenticação e seus dados ficam isolados por usuário."
+              : "A conta é local a este navegador: senha guardada como hash, nunca em texto puro."}
           </p>
         </div>
       </section>

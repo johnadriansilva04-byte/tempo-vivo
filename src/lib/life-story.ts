@@ -18,9 +18,9 @@ import { newId } from "@/repositories/profile-repository";
 // nada de fatos inventados sobre a pessoa; ela edita e substitui.
 // ---------------------------------------------------------------------------
 
-type Cycle = { index: number; range: string; name: string; intent: string };
+export type Cycle = { index: number; range: string; name: string; intent: string };
 
-const CYCLES: Cycle[] = [
+export const CYCLES: Cycle[] = [
   {
     index: 0,
     range: "0–25",
@@ -53,6 +53,28 @@ export function cycleForAge(age: number): Cycle {
 
 export type StoryPreset = "guided" | "blank";
 
+/**
+ * Respostas do ritual de primeira entrada. São as palavras do próprio dono —
+ * nada aqui é inventado pelo app; é o que ele escreve que vira a história.
+ */
+export type StoryAnswers = {
+  /** Onde a história começou (cidade/território). */
+  origin: string;
+  /** O que trouxe a pessoa até aqui: pessoas, lugares, decisões. */
+  journey: string;
+  /** O sentido que os próximos ciclos devem ter. */
+  intention: string;
+  /** A primeira frente que vai receber energia. */
+  focus: string;
+};
+
+export const EMPTY_ANSWERS: StoryAnswers = {
+  origin: "",
+  journey: "",
+  intention: "",
+  focus: "",
+};
+
 export type StarterLife = {
   profile: Partial<Profile>;
   prologue: string;
@@ -76,12 +98,15 @@ function currentWeek(): { week: number; year: number } {
 }
 
 /** Metas da semana adaptadas ao propósito do ciclo de vida atual. */
-function focusFor(cycle: Cycle): WeeklyFocus[] {
+function focusFor(cycle: Cycle, primaryFocus: string): WeeklyFocus[] {
   const { week, year } = currentWeek();
   const items: Array<[string, string]> = [
+    [
+      primaryFocus.trim() || "Dar o primeiro passo da frente que escolhi",
+      "Tirar a intenção do papel e colocar no mundo nesta semana",
+    ],
     [`Definir a direção de ${cycle.name}`, "O que os próximos 12 meses precisam significar"],
     ["Registrar 5 dias seguidos", "Constância no livro de bordo antes de qualquer perfeição"],
-    ["Concluir a primeira entrega do projeto ativo", "Tirar algo da intenção e colocar no mundo"],
   ];
   return items.map(([title, description]) => ({
     id: newId(),
@@ -93,16 +118,56 @@ function focusFor(cycle: Cycle): WeeklyFocus[] {
   }));
 }
 
-export function buildStarterLife(account: Account, preset: StoryPreset): StarterLife {
+/** Convite gentil quando um trecho do ritual fica em branco — nunca um colchete cru. */
+const OPENING = {
+  origin: (city: string) => (city.trim() ? `Nasci em ${city.trim()}.` : "Nasci e cresci."),
+  focus: (text: string) => text.trim(),
+};
+
+/**
+ * Limpa prólogos gravados por versões antigas do onboarding.
+ *
+ * Aquelas versões gravavam, junto com o relato do dono, linhas de instrução do
+ * app — sempre iniciadas por um rótulo fixo seguido de um trecho entre [ ].
+ * Só essas linhas conhecidas são removidas; todo o resto é preservado intacto,
+ * inclusive escritos do dono que porventura usem colchetes.
+ */
+const LEGACY_PROMPT_PREFIXES = [
+  "Antes deste app:",
+  "O que me trouxe até aqui:",
+  "O que quero construir daqui em diante:",
+];
+
+export function stripAppPrompts(prologue: string): string {
+  const kept = prologue
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (!trimmed.includes("[")) return true;
+      return !LEGACY_PROMPT_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+    })
+    .join("\n");
+
+  return kept.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+export function buildStarterLife(
+  account: Account,
+  preset: StoryPreset,
+  answers: StoryAnswers = EMPTY_ANSWERS,
+): StarterLife {
   const firstName = account.name.split(/\s+/)[0] ?? account.name;
   const cycle = cycleForAge(account.age);
   const birthYear = new Date(`${account.birth_date}T00:00:00`).getFullYear();
+  const thisYear = new Date().getFullYear();
 
   const profile: Partial<Profile> = {
     name: account.name,
     birth_date: account.birth_date,
     role: "",
-    location: "",
+    // A resposta de origem é do dono: vira o "onde você vive" do perfil, em vez
+    // de ficar só no prólogo e deixar a página Sobre em branco.
+    location: answers.origin.trim(),
     bio: "",
   };
 
@@ -127,21 +192,25 @@ export function buildStarterLife(account: Account, preset: StoryPreset): Starter
     };
   }
 
+  // O prólogo é montado com as palavras do dono: identidade + contexto + sentido.
+  // Trechos em branco são OMITIDOS — o app nunca escreve no lugar dele.
   const prologue = [
     `Este é o primeiro registro do meu Perfil Vivo. Meu nome é ${firstName} e nasci em ${birthYear}.`,
     `Tenho ${account.age} anos e estou no ciclo ${cycle.index + 1} — ${cycle.name} (${cycle.range} anos), que trata de ${cycle.intent}.`,
-    "Antes deste app: [escreva aqui, em poucas linhas, os anos que precedem este primeiro dia].",
-    "O que me trouxe até aqui: [cite as pessoas, lugares e decisões que explicam onde você está].",
-    "O que quero construir daqui em diante: [defina o sentido que os próximos ciclos devem ter].",
-  ].join("\n\n");
+    OPENING.origin(answers.origin),
+    answers.journey.trim(),
+    answers.intention.trim(),
+  ]
+    .filter((line) => line.trim() !== "")
+    .join("\n\n");
 
   const dailyLog: DailyLog = {
     id: newId(),
     log_date: todayIso(),
     planned_text: [
-      "Escolher a primeira frente de trabalho real deste ciclo",
+      answers.focus.trim() || "Escolher a primeira frente de trabalho real deste ciclo",
       "Separar 30 minutos para registrar memória e intenção do dia",
-      "Falar com alguém que ainda não sabe deste recomeço",
+      "Contar a alguém que este recomeço começou",
     ].join("\n"),
     executed_text: "",
     summary_text: "",
@@ -150,27 +219,29 @@ export function buildStarterLife(account: Account, preset: StoryPreset): Starter
     created_at: new Date().toISOString(),
   };
 
+  // Capítulos viram convites para escrever. Colchetes = texto do app; a exibição
+  // remove os colchetes e mostra em tom de convite até o dono escrever o relato.
   const chapters: CareerChapter[] = [
     {
       id: newId(),
-      title: "[Formação ou aprendizado fundador]",
-      period: `[ano] — [ano]`,
+      title: "Formação ou aprendizado fundador",
+      period: "",
       document_type: "EDUCATION",
-      content: "[O que você estudou, onde, e o que isso mudou no seu jeito de pensar]",
+      content: "[O que você estudou, onde, e o que isso mudou no seu jeito de pensar.]",
     },
     {
       id: newId(),
-      title: "[Experiência que mais te formou]",
-      period: "[ano] — hoje",
+      title: "A experiência que mais me formou",
+      period: "",
       document_type: "EXPERIENCE",
-      content: "[O que você fazia, com quem, e o resultado concreto que gerou]",
+      content: "[O que você fazia, com quem, e o resultado concreto que gerou.]",
     },
     {
       id: newId(),
-      title: "[Produção de que você se orgulha]",
-      period: "[ano]",
+      title: "Uma produção de que me orgulho",
+      period: "",
       document_type: "PRODUCTION",
-      content: "[Projeto, texto, obra, sistema ou pesquisa que continua de pé]",
+      content: "[Projeto, texto, obra, sistema ou pesquisa que continua de pé depois de você.]",
     },
   ];
 
@@ -178,31 +249,31 @@ export function buildStarterLife(account: Account, preset: StoryPreset): Starter
     {
       year: String(birthYear),
       title: "O começo de tudo",
-      description: `Nasci em [cidade]. Foi aqui que esta história começou.`,
+      description: OPENING.origin(answers.origin),
       category: "Vida",
     },
     {
-      year: String(new Date().getFullYear()),
+      year: String(thisYear),
       title: "Primeiro dia no Perfil Vivo",
       description:
         "Decidi parar de perder minha própria trajetória e começar a registrá-la dia a dia.",
       category: "Vida",
     },
     {
-      year: "[ano]",
-      title: "[Marco que você quer alcançar]",
-      description: "[Descreva a virada que você está construindo agora]",
+      year: String(thisYear + 1),
+      title: answers.intention.trim() || "[A virada que estou construindo agora]",
+      description: `Dentro de ${cycle.name}: ${cycle.intent}.`,
       category: cycle.name,
     },
   ];
 
   const projects: Project[] = [
     {
-      name: "[Projeto que está recebendo sua energia]",
-      description: "[Em poucas palavras, o que é e por que importa]",
+      name: OPENING.focus(answers.focus) || "[A frente que quero colocar em movimento]",
+      description: "A frente que está recebendo minha energia neste ciclo.",
       status: "Em andamento",
       progress: 0,
-      objective: "[O que precisa estar pronto para você considerar concluído]",
+      objective: "[O que precisa estar pronto para eu considerar esta frente concluída.]",
     },
     {
       name: "Registro diário por 30 dias",
@@ -213,5 +284,13 @@ export function buildStarterLife(account: Account, preset: StoryPreset): Starter
     },
   ];
 
-  return { profile, prologue, dailyLog, focus: focusFor(cycle), chapters, milestones, projects };
+  return {
+    profile,
+    prologue,
+    dailyLog,
+    focus: focusFor(cycle, answers.focus),
+    chapters,
+    milestones,
+    projects,
+  };
 }

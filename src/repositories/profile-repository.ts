@@ -16,17 +16,30 @@ import {
   projects,
   weeklyFocus,
 } from "@/mock/profile";
-import { currentLocalUserId } from "@/lib/local-user";
 
 // ---------------------------------------------------------------------------
 // Repositório local persistente (localStorage) — começa VAZIO.
 // Nenhuma informação fictícia: tudo que aparece no app foi digitado pelo dono.
-// Quando `isSupabaseConfigured`, o service usa o banco real e este arquivo
-// permanece apenas como fallback offline.
+// Este arquivo é o caminho de dados quando o Supabase não está configurado;
+// com Supabase, o service usa o banco real e este vira apenas o fallback.
 // ---------------------------------------------------------------------------
 
 const STORAGE_PREFIX = "perfil-vivo:db:v3";
 const ANONYMOUS_SCOPE = "anonymous";
+const AUTH_KEY = "perfil-vivo:auth:v1";
+
+/** Id da conta logada (lido direto do storage para evitar ciclo de imports). */
+function currentLocalUserId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(AUTH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { session?: { user_id?: string } | null };
+    return parsed.session?.user_id ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** Cada conta tem seu próprio banco local: a história de um nunca vaza no outro. */
 function storageKey(): string {

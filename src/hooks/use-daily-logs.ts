@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDailyLogs, setLifePrologue, upsertDailyLog } from "@/services/profile-service";
+import { newId } from "@/repositories/profile-repository";
 import type { DailyLog } from "@/types/profile";
 
 export function useDailyLogs() {
@@ -34,8 +35,10 @@ export function useOpenTodayLog() {
   return {
     openToday: () => {
       const today = new Date().toISOString().slice(0, 10);
+      // O id é gerado pelo banco (uuid) quando há Supabase; aqui só identificamos
+      // a data, que é a chave única de um registro diário.
       return upsert.mutateAsync({
-        id: `log-${today}-${Date.now()}`,
+        id: newId(),
         log_date: today,
         planned_text: "",
         executed_text: "",

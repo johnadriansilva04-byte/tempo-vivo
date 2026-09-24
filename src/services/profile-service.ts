@@ -1,4 +1,6 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { stripAppPrompts } from "@/lib/life-story";
+import { currentAccount } from "@/store/auth-store";
 import {
   computeStatus,
   initialsOf,
@@ -16,95 +18,97 @@ import type {
 
 // ---------------------------------------------------------------------------
 // Fonte única de verdade para toda a UI.
-// - Supabase configurado → lê/escreve nas tabelas SQL reais.
-// - Sem credenciais      → repositório local persistente (mesma forma).
-// O produto começa VAZIO: nenhum registro fictício é retornado até o dono
-// escrever o próprio conteúdo.
+// - Supabase configurado e usuário logado → lê/escreve nas tabelas SQL reais,
+//   sempre com `user_id = auth.uid()` (a RLS reforça o isolamento no servidor).
+// - Sem credenciais → repositório local persistente (mesma forma).
+// Nenhum dado fictício: o app começa vazio e só mostra o que o dono escreveu.
 // ---------------------------------------------------------------------------
 
-const USER_ID = "00000000-0000-0000-0000-000000000001"; // singleton local até haver auth
-
-async function requireSupabase() {
-  if (!supabase) throw new Error("Supabase não configurado");
-  return supabase;
+/** Id do usuário no Supabase, ou null quando não há sessão remota. */
+function remoteUid(): string | null {
+  if (!isSupabaseConfigured || !supabase) return null;
+  return currentAccount()?.id ?? null;
 }
+
+function remote(): { db: NonNullable<typeof supabase>; uid: string } | null {
+  const uid = remoteUid();
+  if (!uid || !supabase) return null;
+  return { db: supabase, uid };
+}
+
+const EMPTY_PROFILE: Profile = {
+  name: "",
+  role: "",
+  location: "",
+  bio: "",
+  initials: "?",
+  birth_date: "",
+  target_lifespan: 100,
+  avatar_url: null,
+  cover_url: null,
+};
 
 // ------------------------------------------------------------------ Profile
 
-async function fetchProfileRemote(): Promise<Profile> {
-  const db = await requireSupabase();
-  const { data, error } = await db.from("profiles").select("*").eq("id", USER_ID).maybeSingle();
-  if (error) throw error;
-  if (!data) return localRepository.getProfile();
+type ProfileRow = Record<string, unknown>;
+
+function fromRemoteProfile(row: ProfileRow): Profile {
+  const name = String(row["full_name"] ?? "");
   return {
-    id: data.id,
-    name: String(data["full_name"] ?? ""),
-    role: String(data["role"] ?? ""),
-    location: String(data["location"] ?? ""),
-    bio: String(data["bio"] ?? ""),
-    initials: initialsOf(String(data["full_name"] ?? "")),
-    birth_date: String(data["birth_date"] ?? "").slice(0, 10),
-    target_lifespan: Number(data["target_lifespan"] ?? 100),
-    avatar_url: (data["avatar_url"] as string | null) ?? null,
-    cover_url: (data["cover_url"] as string | null) ?? null,
+    id: String(row["id"]),
+    name,
+    role: String(row["role"] ?? ""),
+    location: String(row["location"] ?? ""),
+    bio: String(row["bio"] ?? ""),
+    initials: initialsOf(name),
+    birth_date: String(row["birth_date"] ?? "").slice(0, 10),
+    target_lifespan: Number(row["target_lifespan"] ?? 100),
+    avatar_url: (row["avatar_url"] as string | null) ?? null,
+    cover_url: (row["cover_url"] as string | null) ?? null,
   };
 }
 
-function initials(name: string): string {
-  return initialsOf(name);
-}
-
 export async function getProfile(): Promise<Profile> {
-  if (isSupabaseConfigured) {
-    try {
-      return await fetchProfileRemote();
-    } catch (e) {
-      console.warn("[profileService] fallback local:", e);
-    }
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db.from("profiles").select("*").eq("id", r.uid).maybeSingle();
+    if (error) throw error;
+    return data ? fromRemoteProfile(data as ProfileRow) : { ...EMPTY_PROFILE, id: r.uid };
   }
   return localRepository.getProfile();
 }
 
 export async function updateProfile(patch: Partial<Omit<Profile, "id">>): Promise<Profile> {
+  const r = remote();
+  if (r) {
+    const row: Record<string, unknown> = { id: r.uid };
+    if (patch.name !== undefined) row["full_name"] = patch.name;
+    if (patch.role !== undefined) row["role"] = patch.role;
+    if (patch.location !== undefined) row["location"] = patch.location;
+    if (patch.bio !== undefined) row["bio"] = patch.bio;
+    if (patch.birth_date !== undefined) row["birth_date"] = patch.birth_date || null;
+    if (patch.target_lifespan !== undefined) row["target_lifespan"] = patch.target_lifespan;
+    if (patch.avatar_url !== undefined) row["avatar_url"] = patch.avatar_url;
+    if (patch.cover_url !== undefined) row["cover_url"] = patch.cover_url;
+
+    // upsert: cria a linha no primeiro salvamento e atualiza depois (nunca no-op).
+    const { data, error } = await r.db
+      .from("profiles")
+      .upsert(row, { onConflict: "id" })
+      .select()
+      .single();
+    if (error) throw error;
+    return fromRemoteProfile(data as ProfileRow);
+  }
+
   const normalized = {
     ...patch,
-    ...(patch.name !== undefined && { initials: initials(patch.name) }),
+    ...(patch.name !== undefined && { initials: initialsOf(patch.name) }),
   } as Partial<Omit<Profile, "id">>;
-
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const row: Record<string, unknown> = {};
-    if (normalized.name !== undefined) row["full_name"] = normalized.name;
-    if (normalized.role !== undefined) row["role"] = normalized.role;
-    if (normalized.location !== undefined) row["location"] = normalized.location;
-    if (normalized.bio !== undefined) row["bio"] = normalized.bio;
-    if (normalized.birth_date !== undefined) row["birth_date"] = normalized.birth_date;
-    if (normalized.target_lifespan !== undefined)
-      row["target_lifespan"] = normalized.target_lifespan;
-    if (normalized.avatar_url !== undefined) row["avatar_url"] = normalized.avatar_url;
-    if (normalized.cover_url !== undefined) row["cover_url"] = normalized.cover_url;
-    const { error } = await db.from("profiles").update(row).eq("id", USER_ID);
-    if (error) throw error;
-    return fetchProfileRemote();
-  }
   return localRepository.updateProfile(normalized);
 }
 
 // --------------------------------------------------------------- DailyLogs
-
-function toRemoteLog(log: DailyLog) {
-  return {
-    id: log.id,
-    user_id: USER_ID,
-    log_date: log.log_date,
-    planned_text: log.planned_text,
-    executed_text: log.executed_text,
-    summary_text: log.summary_text,
-    status: log.status,
-    locked_at: log.locked_at,
-    created_at: log.created_at,
-  };
-}
 
 function fromRemoteLog(row: Record<string, unknown>): DailyLog {
   return {
@@ -120,36 +124,42 @@ function fromRemoteLog(row: Record<string, unknown>): DailyLog {
 }
 
 export async function getDailyLogs(): Promise<DailyLog[]> {
-  if (isSupabaseConfigured) {
-    try {
-      const db = await requireSupabase();
-      const { data, error } = await db
-        .from("daily_logs")
-        .select("*")
-        .eq("user_id", USER_ID)
-        .order("log_date", { ascending: false });
-      if (error) throw error;
-      return (data ?? []).map(fromRemoteLog);
-    } catch (e) {
-      console.warn("[profileService] fallback local:", e);
-    }
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("daily_logs")
+      .select("*")
+      .eq("user_id", r.uid)
+      .order("log_date", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => fromRemoteLog(row as Record<string, unknown>));
   }
   return localRepository.getDailyLogs();
 }
 
 export async function upsertDailyLog(log: DailyLog): Promise<DailyLog> {
-  const normalized: DailyLog = { ...log, status: computeStatus(log) };
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const { data, error } = await db
+  const r = remote();
+  if (r) {
+    // `status` e a trava de 24h são decididos pela trigger no banco — o cliente
+    // apenas envia o conteúdo e lê de volta o registro oficial.
+    const { data, error } = await r.db
       .from("daily_logs")
-      .upsert(toRemoteLog(normalized))
+      .upsert(
+        {
+          user_id: r.uid,
+          log_date: log.log_date,
+          planned_text: log.planned_text,
+          executed_text: log.executed_text,
+          summary_text: log.summary_text,
+        } as never,
+        { onConflict: "user_id,log_date" },
+      )
       .select()
       .single();
     if (error) throw error;
-    return fromRemoteLog(data);
+    return fromRemoteLog(data as Record<string, unknown>);
   }
-  return localRepository.upsertDailyLog(normalized);
+  return localRepository.upsertDailyLog({ ...log, status: computeStatus(log) });
 }
 
 // ------------------------------------------------------------- WeeklyFocus
@@ -166,19 +176,15 @@ function fromRemoteFocus(row: Record<string, unknown>): WeeklyFocus {
 }
 
 export async function getWeeklyFocus(): Promise<WeeklyFocus[]> {
-  if (isSupabaseConfigured) {
-    try {
-      const db = await requireSupabase();
-      const { data, error } = await db
-        .from("weekly_focus")
-        .select("*")
-        .eq("user_id", USER_ID)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data ?? []).map(fromRemoteFocus);
-    } catch (e) {
-      console.warn("[profileService] fallback local:", e);
-    }
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("weekly_focus")
+      .select("*")
+      .eq("user_id", r.uid)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => fromRemoteFocus(row as Record<string, unknown>));
   }
   return localRepository.getWeeklyFocus();
 }
@@ -186,29 +192,34 @@ export async function getWeeklyFocus(): Promise<WeeklyFocus[]> {
 export async function createWeeklyFocus(
   input: Pick<WeeklyFocus, "title" | "description" | "week_number" | "year">,
 ): Promise<void> {
-  const item: WeeklyFocus = { id: newId(), progress_pct: 0, ...input };
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const { error } = await db.from("weekly_focus").insert({
-      id: item.id,
-      user_id: USER_ID,
-      title: item.title,
-      description: item.description,
-      week_number: item.week_number,
-      year: item.year,
-      progress_pct: 0,
-    } as never);
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("weekly_focus").upsert(
+      {
+        user_id: r.uid,
+        title: input.title,
+        description: input.description,
+        week_number: input.week_number,
+        year: input.year,
+        progress_pct: 0,
+      } as never,
+      { onConflict: "user_id,year,week_number,title" },
+    );
     if (error) throw error;
     return;
   }
-  localRepository.upsertWeeklyFocus(item);
+  localRepository.upsertWeeklyFocus({ id: newId(), progress_pct: 0, ...input });
 }
 
 export async function updateWeeklyFocusProgress(id: string, progress_pct: number): Promise<void> {
   const clamped = Math.max(0, Math.min(100, Math.round(progress_pct)));
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const { error } = await db.from("weekly_focus").update({ progress_pct: clamped }).eq("id", id);
+  const r = remote();
+  if (r) {
+    const { error } = await r.db
+      .from("weekly_focus")
+      .update({ progress_pct: clamped })
+      .eq("id", id)
+      .eq("user_id", r.uid);
     if (error) throw error;
     return;
   }
@@ -217,9 +228,9 @@ export async function updateWeeklyFocusProgress(id: string, progress_pct: number
 }
 
 export async function deleteWeeklyFocus(id: string): Promise<void> {
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const { error } = await db.from("weekly_focus").delete().eq("id", id);
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("weekly_focus").delete().eq("id", id).eq("user_id", r.uid);
     if (error) throw error;
     return;
   }
@@ -239,93 +250,122 @@ function fromRemoteChapter(row: Record<string, unknown>): CareerChapter {
 }
 
 export async function getCareerChapters(): Promise<CareerChapter[]> {
-  if (isSupabaseConfigured) {
-    try {
-      const db = await requireSupabase();
-      const { data, error } = await db
-        .from("career_chapters")
-        .select("*")
-        .eq("user_id", USER_ID)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return (data ?? []).map(fromRemoteChapter);
-    } catch (e) {
-      console.warn("[profileService] fallback local:", e);
-    }
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("career_chapters")
+      .select("*")
+      .eq("user_id", r.uid)
+      .neq("document_type", "PROLOGUE")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => fromRemoteChapter(row as Record<string, unknown>));
   }
   return localRepository.getCareerChapters();
 }
 
 export async function createCareerChapter(input: Omit<CareerChapter, "id">): Promise<void> {
-  const item: CareerChapter = { id: newId(), ...input };
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const { error } = await db.from("career_chapters").insert({
-      id: item.id,
-      user_id: USER_ID,
-      title: item.title,
-      period: item.period,
-      document_type: item.document_type,
-      content: item.content,
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("career_chapters").insert({
+      id: newId(),
+      user_id: r.uid,
+      title: input.title,
+      period: input.period,
+      document_type: input.document_type,
+      content: input.content,
     } as never);
     if (error) throw error;
     return;
   }
-  localRepository.upsertCareerChapter(item);
+  localRepository.upsertCareerChapter({ id: newId(), ...input });
 }
 
-// ------------------------------------------------ Projects (persiste local; colunas no banco vêm no migration 2)
+// ----------------------------------------------------------------- Projects
+
+function fromRemoteProject(row: Record<string, unknown>): Project {
+  return {
+    name: String(row["name"] ?? ""),
+    description: String(row["description"] ?? ""),
+    status: String(row["status"] ?? "Planejado"),
+    progress: Number(row["progress"] ?? 0),
+    objective: String(row["objective"] ?? ""),
+  };
+}
 
 export async function getProjects(): Promise<Project[]> {
-  if (isSupabaseConfigured) {
-    try {
-      const db = await requireSupabase();
-      const { data, error } = await db.from("projects").select("*").eq("user_id", USER_ID);
-      if (error) throw error;
-      return (data as unknown as Project[]) ?? [];
-    } catch (e) {
-      console.warn("[projects] fallback local:", e);
-    }
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("projects")
+      .select("*")
+      .eq("user_id", r.uid)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => fromRemoteProject(row as Record<string, unknown>));
   }
   return localRepository.getProjects();
 }
 
 export async function upsertProject(project: Project): Promise<void> {
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const { error } = await db
-      .from("projects")
-      .upsert({ id: project.name, user_id: USER_ID, ...project } as never);
+  const r = remote();
+  if (r) {
+    // `id` é uuid gerado pelo banco; a identidade lógica é (user_id, name).
+    const { error } = await r.db.from("projects").upsert(
+      {
+        user_id: r.uid,
+        name: project.name,
+        description: project.description,
+        status: project.status,
+        progress: project.progress,
+        objective: project.objective,
+      } as never,
+      { onConflict: "user_id,name" },
+    );
     if (error) throw error;
     return;
   }
   localRepository.upsertProject(project);
 }
 
-// -------------------------------------------- Milestones (persiste local; tabela no migration 2)
+// --------------------------------------------------------------- Milestones
+
+function fromRemoteMilestone(row: Record<string, unknown>): Milestone {
+  return {
+    year: String(row["year"] ?? ""),
+    title: String(row["title"] ?? ""),
+    description: String(row["description"] ?? ""),
+    category: String(row["category"] ?? "Vida"),
+  };
+}
 
 export async function getMilestones(): Promise<Milestone[]> {
-  if (isSupabaseConfigured) {
-    try {
-      const db = await requireSupabase();
-      const { data, error } = await db
-        .from("milestones")
-        .select("*")
-        .eq("user_id", USER_ID)
-        .order("year", { ascending: false });
-      if (error) throw error;
-      return (data as unknown as Milestone[]) ?? [];
-    } catch (e) {
-      console.warn("[milestones] fallback local:", e);
-    }
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("milestones")
+      .select("*")
+      .eq("user_id", r.uid)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => fromRemoteMilestone(row as Record<string, unknown>));
   }
   return localRepository.getMilestones();
 }
 
 export async function createMilestone(item: Milestone): Promise<void> {
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    const { error } = await db.from("milestones").insert({ user_id: USER_ID, ...item } as never);
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("milestones").upsert(
+      {
+        user_id: r.uid,
+        year: item.year,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+      } as never,
+      { onConflict: "user_id,title" },
+    );
     if (error) throw error;
     return;
   }
@@ -335,52 +375,51 @@ export async function createMilestone(item: Milestone): Promise<void> {
 // ------------------------------------------------------------------ Prologue
 
 export async function getLifePrologue(): Promise<string> {
-  if (isSupabaseConfigured) {
-    try {
-      const db = await requireSupabase();
-      const { data, error } = await db
-        .from("career_chapters")
-        .select("content")
-        .eq("user_id", USER_ID)
-        .eq("document_type", "PROLOGUE")
-        .maybeSingle();
-      if (!error && data?.["content"] !== undefined) return String(data["content"]);
-    } catch {
-      // fallback local
-    }
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("career_chapters")
+      .select("content")
+      .eq("user_id", r.uid)
+      .eq("document_type", "PROLOGUE")
+      .maybeSingle();
+    if (error) throw error;
+    return data ? stripAppPrompts(String((data as Record<string, unknown>)["content"] ?? "")) : "";
   }
-  return localRepository.getPrologue();
+  return stripAppPrompts(localRepository.getPrologue());
 }
 
 export async function setLifePrologue(text: string): Promise<void> {
-  if (isSupabaseConfigured) {
-    const db = await requireSupabase();
-    // Upsert do prólogo como um capítulo PROLOGUE único.
-    const { error: selError, data } = await db
+  const clean = stripAppPrompts(text);
+  const r = remote();
+  if (r) {
+    const { data, error: selectError } = await r.db
       .from("career_chapters")
       .select("id")
-      .eq("user_id", USER_ID)
+      .eq("user_id", r.uid)
       .eq("document_type", "PROLOGUE")
       .maybeSingle();
-    if (selError) throw selError;
+    if (selectError) throw selectError;
+
     if (data) {
-      const { error } = await db
+      const { error } = await r.db
         .from("career_chapters")
-        .update({ content: text, title: "Prólogo" })
-        .eq("id", data["id"]);
+        .update({ content: clean, title: "Prólogo" })
+        .eq("id", (data as Record<string, unknown>)["id"] as string)
+        .eq("user_id", r.uid);
       if (error) throw error;
     } else {
-      const { error } = await db.from("career_chapters").insert({
+      const { error } = await r.db.from("career_chapters").insert({
         id: newId(),
-        user_id: USER_ID,
+        user_id: r.uid,
         title: "Prólogo",
         period: "",
-        document_type: "PROLOGUE" as unknown as never,
-        content: text,
+        document_type: "PROLOGUE",
+        content: clean,
       } as never);
       if (error) throw error;
     }
     return;
   }
-  localRepository.setPrologue(text);
+  localRepository.setPrologue(clean);
 }

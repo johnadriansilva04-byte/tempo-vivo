@@ -1,4 +1,4 @@
-/** Conta local do Perfil Vivo (fluxo de entrada sem servidor de autenticação). */
+/** Conta do Perfil Vivo (Supabase Auth ou modo local sem servidor). */
 export type Account = {
   id: string;
   name: string;
@@ -7,13 +7,9 @@ export type Account = {
   age: number;
   /** Derivada da idade informada no cadastro. */
   birth_date: string;
-  password_hash: string;
-  password_salt: string;
   onboarding_completed: boolean;
   created_at: string;
 };
-
-export type Session = { user_id: string; started_at: string };
 
 export type SignUpInput = {
   name: string;
@@ -23,3 +19,5 @@ export type SignUpInput = {
 };
 
 export type SignInInput = { phone: string; password: string };
+
+export type AuthResult = { ok: true; account: Account } | { ok: false; error: string };

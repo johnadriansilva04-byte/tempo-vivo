@@ -1,50 +1,73 @@
-import type { Account, Session, SignInInput, SignUpInput } from "@/types/auth";
-import { newId } from "@/repositories/profile-repository";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { birthDateFromAge, isValidPhone, normalizePhone, phoneToEmail } from "@/lib/identity";
+import type { Account, AuthResult, SignInInput, SignUpInput } from "@/types/auth";
 
 // ---------------------------------------------------------------------------
-// Autenticação local do Perfil Vivo.
+// Autenticação do Perfil Vivo.
 //
-// O app é single-user local: as contas vivem no `localStorage` do navegador e a
-// senha nunca é guardada em texto puro — só um hash SHA-256 com salt aleatório.
-// Não substitui um provedor de identidade real (Supabase Auth), mas permite o
-// fluxo completo de entrada: criar conta por telefone/senha/nome/idade, entrar,
-// sair e manter a sessão entre recargas.
+// Dois modos, mesma interface:
+// - Supabase configurado → contas reais no Supabase Auth (e-mail sintético
+//   derivado do telefone) e sessão persistida pelo próprio SDK. É o modo que
+//   sincroniza entre dispositivos e é protegido por RLS.
+// - Sem credenciais → contas locais no localStorage, com senha em hash + salt.
+//   Serve para rodar e testar sem servidor; não sincroniza entre navegadores.
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEY = "perfil-vivo:auth:v1";
 
-export type AuthDB = { accounts: Account[]; session: Session | null };
+type LocalAuthDB = { accounts: LocalAccount[]; session: { user_id: string } | null };
+type LocalAccount = Account & { password_hash: string; password_salt: string };
 
-const EMPTY: AuthDB = { accounts: [], session: null };
+export type AuthState = { account: Account | null; isLoading: boolean; ready: boolean };
 
-let cache: AuthDB | null = null;
+const EMPTY_STATE: AuthState = { account: null, isLoading: false, ready: !isSupabaseConfigured };
+
+let state: AuthState = EMPTY_STATE;
 const listeners = new Set<() => void>();
 
-/** Telefone normalizado: apenas dígitos (ex.: "11987654321"). */
-export function normalizePhone(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 11);
+function emit(next: AuthState): void {
+  state = next;
+  for (const listener of listeners) listener();
 }
 
-/** Formata para exibição: (11) 98765-4321. */
-export function formatPhone(value: string): string {
-  const d = normalizePhone(value);
-  if (d.length <= 2) return d;
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+export function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
-export function isValidPhone(value: string): boolean {
-  const d = normalizePhone(value);
-  return d.length === 10 || d.length === 11;
+export function getSnapshot(): AuthState {
+  return state;
 }
 
-/** Converte a idade informada no cadastro em data de nascimento aproximada. */
-export function birthDateFromAge(age: number, now: Date = new Date()): string {
-  const year = now.getFullYear() - age;
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+export function getServerSnapshot(): AuthState {
+  return EMPTY_STATE;
+}
+
+/** Conta logada — usada por serviços fora do React (ex.: onboarding). */
+export function currentAccount(): Account | null {
+  return state.account;
+}
+
+// --------------------------------------------------------------- modo local
+
+function readLocal(): LocalAuthDB {
+  if (typeof window === "undefined") return { accounts: [], session: null };
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as LocalAuthDB) : { accounts: [], session: null };
+  } catch {
+    return { accounts: [], session: null };
+  }
+}
+
+function writeLocal(db: LocalAuthDB): void {
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    } catch {
+      /* storage indisponível: mantém apenas em memória */
+    }
+  }
 }
 
 function randomSalt(): string {
@@ -63,141 +86,358 @@ async function hashPassword(password: string, salt: string): Promise<string> {
     const digest = await crypto.subtle.digest("SHA-256", data);
     return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
   }
-  // Sem Web Crypto (contextos não seguros): hash simples só para não persistir texto puro.
   let h = 0;
   const text = `${salt}:${password}`;
   for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
   return `weak-${(h >>> 0).toString(16)}`;
 }
 
-function read(): AuthDB {
-  if (cache) return cache;
-  if (typeof window === "undefined") return EMPTY;
+function localAccountFrom(db: LocalAuthDB): Account | null {
+  if (!db.session) return null;
+  return db.accounts.find((a) => a.id === db.session?.user_id) ?? null;
+}
+
+function publishLocal(): void {
+  emit({ account: localAccountFrom(readLocal()), isLoading: false, ready: true });
+}
+
+// ------------------------------------------------------------- modo Supabase
+
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  age: number | null;
+  birth_date: string | null;
+  onboarding_completed: boolean | null;
+  created_at: string | null;
+};
+
+function accountFromProfile(row: ProfileRow): Account {
+  return {
+    id: row.id,
+    name: row.full_name ?? "",
+    phone: row.phone ?? "",
+    age: row.age ?? 0,
+    birth_date: (row.birth_date ?? "").slice(0, 10),
+    onboarding_completed: Boolean(row.onboarding_completed),
+    created_at: row.created_at ?? new Date().toISOString(),
+  };
+}
+
+async function fetchProfileRow(userId: string): Promise<ProfileRow | null> {
+  const db = supabase;
+  if (!db) return null;
+  const { data, error } = await db.from("profiles").select("*").eq("id", userId).maybeSingle();
+  if (error) throw error;
+  return (data as ProfileRow | null) ?? null;
+}
+
+/** Garante que existe a linha de perfil do usuário autenticado. */
+async function ensureProfileRow(user: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown>;
+}): Promise<ProfileRow> {
+  const db = supabase;
+  if (!db) throw new Error("Supabase não configurado");
+
+  const existing = await fetchProfileRow(user.id);
+  if (existing) return existing;
+
+  const meta = user.user_metadata ?? {};
+  const phone = normalizePhone(String(meta["phone"] ?? user.email?.split("@")[0] ?? ""));
+  const rawAge = Number(meta["age"] ?? 0);
+  const age = Number.isFinite(rawAge) && rawAge > 0 ? Math.round(rawAge) : null;
+  const { data, error } = await db
+    .from("profiles")
+    .upsert(
+      {
+        id: user.id,
+        full_name: String(meta["full_name"] ?? ""),
+        phone: phone || null,
+        age,
+        birth_date: age !== null ? birthDateFromAge(age) : null,
+      } as never,
+      { onConflict: "id", ignoreDuplicates: false },
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ProfileRow;
+}
+
+async function loadRemoteAccount(user?: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const db = supabase;
+  if (!db) return;
+
+  let target = user;
+  if (!target) {
+    const { data } = await db.auth.getSession();
+    target = data.session?.user;
+  }
+  if (!target) {
+    writeLocal({ accounts: [], session: null });
+    emit({ account: null, isLoading: false, ready: true });
+    return;
+  }
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    cache = raw ? ({ ...EMPTY, ...(JSON.parse(raw) as AuthDB) } as AuthDB) : { ...EMPTY };
-  } catch {
-    cache = { ...EMPTY };
+    const row = await ensureProfileRow(target);
+    // Escopo local alinhado ao usuário remoto (fallback offline por conta).
+    writeLocal({ accounts: [], session: { user_id: target.id } });
+    emit({ account: accountFromProfile(row), isLoading: false, ready: true });
+  } catch (e) {
+    // Falha transitória (rede/RLS) não pode derrubar uma sessão válida.
+    console.warn("[auth] falha ao carregar perfil:", e);
+    if (state.account) emit({ ...state, isLoading: false, ready: true });
+    else emit({ account: null, isLoading: false, ready: true });
   }
-  return cache;
 }
 
-function write(db: AuthDB): void {
-  cache = db;
-  if (typeof window !== "undefined") {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    } catch {
-      /* storage indisponível: mantém apenas em memória */
+let initialized = false;
+
+/** Inicializa o modo (Supabase ou local) uma única vez por carga da página. */
+export function initAuth(): void {
+  if (initialized || typeof window === "undefined") return;
+  initialized = true;
+
+  if (!isSupabaseConfigured || !supabase) {
+    publishLocal();
+    window.addEventListener("storage", (event) => {
+      if (event.key === STORAGE_KEY) publishLocal();
+    });
+    return;
+  }
+
+  emit({ account: null, isLoading: true, ready: false });
+  void loadRemoteAccount();
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      writeLocal({ accounts: [], session: null });
+      emit({ account: null, isLoading: false, ready: true });
+      return;
     }
-  }
-  for (const listener of listeners) listener();
-}
-
-if (typeof window !== "undefined") {
-  // Outra aba entrou/saiu: invalida o cache e re-renderiza.
-  window.addEventListener("storage", (event) => {
-    if (event.key !== STORAGE_KEY) return;
-    cache = null;
-    for (const listener of listeners) listener();
+    if (event === "INITIAL_SESSION") {
+      if (session?.user) void loadRemoteAccount(session.user);
+      else emit({ account: null, isLoading: false, ready: true });
+      return;
+    }
+    if (
+      (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") &&
+      session?.user
+    ) {
+      // Usa o usuário do próprio evento: chamar getSession() aqui trava o lock
+      // interno do supabase-js e a sessão nunca é aplicada.
+      void loadRemoteAccount(session.user);
+    }
   });
 }
 
-export function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
+// ------------------------------------------------------------------ cadastro
 
-export function getSnapshot(): AuthDB {
-  return read();
+function invalidSignUp(input: SignUpInput): string | null {
+  if (input.name.trim().length < 2) return "Informe seu nome completo.";
+  if (!Number.isFinite(input.age) || input.age < 1 || input.age > 120)
+    return "Informe uma idade entre 1 e 120 anos.";
+  if (!isValidPhone(input.phone)) return "Informe um telefone com DDD válido.";
+  if (input.password.length < 4) return "A senha precisa de ao menos 4 caracteres.";
+  return null;
 }
-
-export function getServerSnapshot(): AuthDB {
-  return EMPTY;
-}
-
-export type AuthResult = { ok: true; account: Account } | { ok: false; error: string };
 
 export async function signUp(input: SignUpInput): Promise<AuthResult> {
+  const invalid = invalidSignUp(input);
+  if (invalid) return { ok: false, error: invalid };
+
   const name = input.name.trim();
   const phone = normalizePhone(input.phone);
-  const password = input.password;
+  const age = Math.round(input.age);
 
-  if (name.length < 2) return { ok: false, error: "Informe seu nome completo." };
-  if (!Number.isFinite(input.age) || input.age < 1 || input.age > 120)
-    return { ok: false, error: "Informe uma idade entre 1 e 120 anos." };
-  if (!isValidPhone(phone)) return { ok: false, error: "Informe um telefone com DDD válido." };
-  if (password.length < 4) return { ok: false, error: "A senha precisa de ao menos 4 caracteres." };
+  if (isSupabaseConfigured && supabase) {
+    emit({ ...state, isLoading: true });
+    const { data, error } = await supabase.auth.signUp({
+      email: phoneToEmail(phone),
+      password: input.password,
+      options: { data: { full_name: name, phone, age } },
+    });
+    if (error) {
+      emit({ ...state, isLoading: false });
+      const duplicate = /already|registered|exists/i.test(error.message);
+      return {
+        ok: false,
+        error: duplicate ? "Já existe uma conta com este telefone." : error.message,
+      };
+    }
+    if (!data.session || !data.user) {
+      emit({ ...state, isLoading: false });
+      return {
+        ok: false,
+        error:
+          "Conta criada, mas o login automático está desativado. Desative a confirmação de e-mail no Supabase Auth para entrar direto.",
+      };
+    }
+    try {
+      const row = await ensureProfileRow(data.user);
+      writeLocal({ accounts: [], session: { user_id: data.user.id } });
+      const account = accountFromProfile(row);
+      emit({ account, isLoading: false, ready: true });
+      return { ok: true, account };
+    } catch (e) {
+      emit({ ...state, isLoading: false });
+      return { ok: false, error: e instanceof Error ? e.message : "Falha ao criar o perfil." };
+    }
+  }
 
-  const db = read();
+  const db = readLocal();
   if (db.accounts.some((a) => a.phone === phone))
     return { ok: false, error: "Já existe uma conta com este telefone." };
 
   const salt = randomSalt();
-  const account: Account = {
-    id: newId(),
+  const account: LocalAccount = {
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name,
     phone,
-    age: Math.round(input.age),
-    birth_date: birthDateFromAge(Math.round(input.age)),
-    password_hash: await hashPassword(password, salt),
+    age,
+    birth_date: birthDateFromAge(age),
+    password_hash: await hashPassword(input.password, salt),
     password_salt: salt,
     onboarding_completed: false,
     created_at: new Date().toISOString(),
   };
-
-  write({
+  writeLocal({
     accounts: [...db.accounts, account],
-    session: { user_id: account.id, started_at: new Date().toISOString() },
+    session: { user_id: account.id },
   });
+  publishLocal();
   return { ok: true, account };
 }
+
+// -------------------------------------------------------------------- login
 
 export async function signIn(input: SignInInput): Promise<AuthResult> {
   const phone = normalizePhone(input.phone);
-  const db = read();
+
+  if (isSupabaseConfigured && supabase) {
+    emit({ ...state, isLoading: true });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: phoneToEmail(phone),
+      password: input.password,
+    });
+    if (error) {
+      emit({ ...state, isLoading: false });
+      return { ok: false, error: "Telefone ou senha incorretos." };
+    }
+    try {
+      const row = await ensureProfileRow(data.user);
+      writeLocal({ accounts: [], session: { user_id: data.user.id } });
+      const account = accountFromProfile(row);
+      emit({ account, isLoading: false, ready: true });
+      return { ok: true, account };
+    } catch (e) {
+      emit({ ...state, isLoading: false });
+      return { ok: false, error: e instanceof Error ? e.message : "Falha ao carregar o perfil." };
+    }
+  }
+
+  const db = readLocal();
   const account = db.accounts.find((a) => a.phone === phone);
   if (!account) return { ok: false, error: "Não encontramos uma conta com este telefone." };
-
   const hash = await hashPassword(input.password, account.password_salt);
   if (hash !== account.password_hash) return { ok: false, error: "Senha incorreta." };
 
-  write({ ...db, session: { user_id: account.id, started_at: new Date().toISOString() } });
+  writeLocal({ ...db, session: { user_id: account.id } });
+  publishLocal();
   return { ok: true, account };
 }
 
-export function signOut(): void {
-  const db = read();
-  write({ ...db, session: null });
+export async function signOut(): Promise<void> {
+  if (isSupabaseConfigured && supabase) {
+    await supabase.auth.signOut();
+    writeLocal({ accounts: [], session: null });
+    emit({ account: null, isLoading: false, ready: true });
+    return;
+  }
+  const db = readLocal();
+  writeLocal({ ...db, session: null });
+  publishLocal();
 }
 
-export function completeOnboarding(): void {
-  const db = read();
-  const userId = db.session?.user_id;
-  if (!userId) return;
-  write({
+// ---------------------------------------------------------------- pós-login
+
+/** Marca a conta logada como "história iniciada". */
+export async function completeOnboarding(): Promise<void> {
+  const account = state.account;
+  if (!account) return;
+
+  if (isSupabaseConfigured && supabase) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ onboarding_completed: true })
+      .eq("id", account.id);
+    if (error) throw error;
+    emit({ ...state, account: { ...account, onboarding_completed: true } });
+    return;
+  }
+
+  const db = readLocal();
+  writeLocal({
     ...db,
-    accounts: db.accounts.map((a) => (a.id === userId ? { ...a, onboarding_completed: true } : a)),
+    accounts: db.accounts.map((a) =>
+      a.id === account.id ? { ...a, onboarding_completed: true } : a,
+    ),
   });
+  publishLocal();
 }
 
-export function updateAccount(userId: string, patch: Partial<Pick<Account, "name" | "age">>): void {
-  const db = read();
-  write({
+/** Atualiza nome/idade na conta — mantém perfil e credenciais coerentes. */
+export async function updateAccount(
+  userId: string,
+  patch: Partial<Pick<Account, "name" | "age">>,
+): Promise<void> {
+  const age = patch.age !== undefined ? Math.round(patch.age) : undefined;
+
+  if (isSupabaseConfigured && supabase) {
+    const row: Record<string, unknown> = {};
+    if (patch.name !== undefined) row["full_name"] = patch.name;
+    if (age !== undefined) {
+      row["age"] = age;
+      row["birth_date"] = birthDateFromAge(age);
+    }
+    if (Object.keys(row).length > 0) {
+      const { error } = await supabase.from("profiles").update(row).eq("id", userId);
+      if (error) throw error;
+    }
+    if (state.account?.id === userId) {
+      emit({
+        ...state,
+        account: {
+          ...state.account,
+          ...(patch.name !== undefined ? { name: patch.name } : {}),
+          ...(age !== undefined ? { age, birth_date: birthDateFromAge(age) } : {}),
+        },
+      });
+    }
+    return;
+  }
+
+  const db = readLocal();
+  writeLocal({
     ...db,
     accounts: db.accounts.map((a) =>
       a.id === userId
         ? {
             ...a,
-            ...patch,
-            ...(patch.age !== undefined ? { birth_date: birthDateFromAge(patch.age) } : {}),
+            ...(patch.name !== undefined ? { name: patch.name } : {}),
+            ...(age !== undefined ? { age, birth_date: birthDateFromAge(age) } : {}),
           }
         : a,
     ),
   });
-}
-
-export function currentAccount(db: AuthDB): Account | null {
-  if (!db.session) return null;
-  return db.accounts.find((a) => a.id === db.session?.user_id) ?? null;
+  publishLocal();
 }

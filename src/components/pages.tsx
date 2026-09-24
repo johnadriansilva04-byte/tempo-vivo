@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Award,
   BookOpen,
   BriefcaseBusiness,
   ChevronDown,
@@ -31,129 +32,10 @@ import { useCareerChapters, useCreateCareerChapter } from "@/hooks/use-career-ch
 import { useMilestones, useCreateMilestone } from "@/hooks/use-milestones";
 import { useProjects, useUpsertProject } from "@/hooks/use-projects";
 import { useCreateFocus } from "@/hooks/use-weekly-focus";
-
-// ---------------------------------------------------------------- AgendaPage
-
-export function AgendaPage() {
-  const { logs, isLoading } = useDailyLogs();
-  const { profile } = useProfile();
-  const { prologue, isLoading: prologueLoading } = usePrologue();
-  const [prologueDraft, setPrologueDraft] = useState<string | null>(null);
-  const [savingPrologue, setSavingPrologue] = useState(false);
-  const setPrologue = useSetPrologue();
-  const openToday = useOpenTodayLog();
-
-  // Quando o draft é null, usamos o valor reativo do banco; assim o campo espelha
-  // o prólogo salvo e a atualização via mutation reflete sem reload.
-
-  return (
-    <>
-      <PageHeader
-        eyebrow="Livro de bordo"
-        title="Agenda"
-        description="Memória cronológica da vida real. O planejado orienta; o executado documenta; o resumo dá sentido."
-        action={
-          profile?.name && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                const el = document.getElementById("prologue-editor");
-                el?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Escrever prólogo
-            </Button>
-          )
-        }
-      />
-
-      {/* Prólogo — vazio até o dono escrever. Nada inventado. */}
-      <section id="prologue-editor" className="prologue">
-        <div className="prologue-icon">
-          <FileText />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="status status-archive">Início</span>
-            <span className="text-xs text-faint">Documento de origem • seu relato</span>
-          </div>
-          <h2 className="mt-3 font-display text-xl font-semibold">Relatório dos anos anteriores</h2>
-          {profile && profile.name.trim() === "" ? (
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Defina seu nome em{" "}
-              <a
-                href="/configuracoes"
-                className="font-medium text-primary underline underline-offset-2"
-              >
-                Configurações
-              </a>{" "}
-              e volte aqui para escrever o prólogo — só o seu relato será exibido.
-            </p>
-          ) : (
-            <>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Escreva o resumo honesto dos anos que precedem o primeiro dia neste app. Ele ficará
-                afixado no topo da sua agenda.
-              </p>
-              {prologueLoading ? (
-                <div className="mt-3 h-24 animate-pulse rounded-md border border-border bg-muted" />
-              ) : (
-                <>
-                  <Textarea
-                    className="mt-3 min-h-24 text-sm"
-                    placeholder="Ex.: Nasci em… Cresci… Em … mudei para…, trabalhei…, recomecei… Hoje começo este registro para que os próximos dias deixem sentido."
-                    value={prologueDraft ?? prologue}
-                    onChange={(e) => setPrologueDraft(e.target.value)}
-                  />
-                  <Button
-                    size="sm"
-                    className="mt-3"
-                    disabled={savingPrologue}
-                    onClick={() => {
-                      setSavingPrologue(true);
-                      setPrologue.mutate(prologueDraft ?? prologue, {
-                        onSettled: () => setSavingPrologue(false),
-                      });
-                    }}
-                  >
-                    {savingPrologue ? "Salvando…" : "Salvar prólogo"}
-                  </Button>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
-      <div className="timeline-line">
-        <span>Daqui em diante, cada dia constrói a história</span>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-4">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-lg border border-border bg-card" />
-          ))}
-        </div>
-      ) : logs.length === 0 ? (
-        <EmptyState
-          icon={<FileText className="size-5" />}
-          title="Sua agenda começa hoje"
-          description="Ainda não há registros. Abra o dia de hoje, descreva o que você pretende fazer e, à noite, registre o que de fato aconteceu."
-          actionLabel="Abrir o registro de hoje"
-          onAction={() => openToday.openToday()}
-        />
-      ) : (
-        <div className="space-y-5">
-          {logs.map((log) => (
-            <DailyLogCard key={log.id} log={log} />
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
+import { useAuth } from "@/hooks/use-auth";
+import { cycleForAge, CYCLES } from "@/lib/life-story";
+import { StoryText } from "@/components/story-text";
+import { isPlaceholderText } from "@/lib/placeholder";
 
 // ---------------------------------------------------------------- Currículo Vivo
 
@@ -171,6 +53,15 @@ export function ResumePage() {
   const byType = (t: string) => chapters.filter((c) => c.document_type === t);
   const experiences = byType("EXPERIENCE");
   const education = byType("EDUCATION");
+  const productions = byType("PRODUCTION");
+  const certificates = byType("CERTIFICATE");
+  // Tipos que o dono criar sem se encaixar nas seções acima não somem da página.
+  const otherTypes = chapters.filter(
+    (c) =>
+      !["EXPERIENCE", "EDUCATION", "PRODUCTION", "CERTIFICATE", "PROLOGUE"].includes(
+        c.document_type,
+      ),
+  );
 
   const submit = () => {
     if (!draft.title.trim()) return;
@@ -254,9 +145,11 @@ export function ResumePage() {
           icon={<BriefcaseBusiness className="size-5" />}
           title="Seu currículo vivo está vazio"
           description="Adicione experiências, formações e produções acima. Tudo fica salvo e aparece aqui — nada é inventado."
+          actionLabel="Adicionar o primeiro capítulo"
+          onAction={() => setOpen(true)}
         />
       ) : (
-        <div className="grid gap-9 lg:grid-cols-[1fr_280px]">
+        <div className="reveal grid gap-9 lg:grid-cols-[1fr_280px]">
           <div className="space-y-9">
             {experiences.length > 0 && (
               <TimelineSection
@@ -272,9 +165,30 @@ export function ResumePage() {
                 rows={education.map((c) => [c.period, c.title, c.content])}
               />
             )}
+            {productions.length > 0 && (
+              <TimelineSection
+                icon={Sparkles}
+                title="Produção"
+                rows={productions.map((c) => [c.period, c.title, c.content])}
+              />
+            )}
+            {certificates.length > 0 && (
+              <TimelineSection
+                icon={Award}
+                title="Certificados"
+                rows={certificates.map((c) => [c.period, c.title, c.content])}
+              />
+            )}
+            {otherTypes.length > 0 && (
+              <TimelineSection
+                icon={BriefcaseBusiness}
+                title="Outros registros"
+                rows={otherTypes.map((c) => [c.period, c.title, c.content])}
+              />
+            )}
           </div>
           <aside className="space-y-7">
-            {experiences.length === 0 && education.length === 0 && (
+            {chapters.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 Preencha seu histórico para montar sua página.
               </p>
@@ -300,6 +214,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export function PlanningPage() {
   const [input, setInput] = useState({ title: "", description: "" });
   const create = useCreateFocus();
+  const { account } = useAuth();
+  const cycle = cycleForAge(account?.age ?? 0);
   const submit = () => {
     if (!input.title.trim()) return;
     const now = new Date();
@@ -353,16 +269,21 @@ export function PlanningPage() {
           </Button>
         </div>
       </Section>
+
       <Section
-        title="Roadmap do ano"
-        detail="Quatro movimentos que conduzem 2026"
+        title="Horizonte do ciclo"
+        detail={`${cycle.index + 1}º ciclo · ${cycle.name} — ${cycle.range} anos`}
         className="mt-10"
       >
+        <p className="mb-4 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Seu ciclo atual trata de {cycle.intent}. As metas da semana são o que transforma esse
+          propósito em movimento.
+        </p>
         <div className="roadmap">
-          {["Investigar", "Documentar", "Compartilhar", "Preservar"].map((x, i) => (
-            <div key={x}>
-              <span>{i + 1}</span>
-              <p>{x}</p>
+          {CYCLES.map((c) => (
+            <div key={c.index} data-current={c.index === cycle.index}>
+              <span>{c.range}</span>
+              <p>{c.name}</p>
             </div>
           ))}
         </div>
@@ -457,14 +378,16 @@ export function AchievementsPage() {
       ) : (
         <div className="achievement-list">
           {milestones.map((m) => (
-            <article key={m.title}>
-              <div className="achievement-year">{m.year}</div>
+            <article key={`${m.year}-${m.title}`}>
+              <div className="achievement-year">{isPlaceholderText(m.year) ? "" : m.year}</div>
               <div className="achievement-dot" />
               <div className="pb-10">
                 <span className="status status-neutral">{m.category}</span>
-                <h2 className="mt-3 font-display text-xl font-semibold">{m.title}</h2>
+                <h2 className="mt-3 font-display text-xl font-semibold">
+                  <StoryText text={m.title} />
+                </h2>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                  {m.description}
+                  <StoryText text={m.description} />
                 </p>
               </div>
             </article>
@@ -581,10 +504,20 @@ export function ProjectsPage() {
                 <span className="status status-neutral">{p.status}</span>
                 <span className="text-xs font-medium">{p.progress}%</span>
               </div>
-              <h2 className="mt-6 font-display text-xl font-semibold">{p.name}</h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{p.description}</p>
-              <p className="mt-5 text-xs text-faint">Objetivo</p>
-              <p className="mt-1 text-sm">{p.objective}</p>
+              <h2 className="mt-6 font-display text-xl font-semibold">
+                <StoryText text={p.name} />
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                <StoryText text={p.description} />
+              </p>
+              {p.objective.trim() !== "" && (
+                <>
+                  <p className="mt-5 text-xs text-faint">Objetivo</p>
+                  <p className="mt-1 text-sm">
+                    <StoryText text={p.objective} />
+                  </p>
+                </>
+              )}
               <div className="mt-6">
                 <ProgressBar value={p.progress} />
               </div>
@@ -706,35 +639,26 @@ function TimelineSection({
   return (
     <Section title={title}>
       <div className="space-y-6">
-        {rows.map(([date, place, role]) => (
+        {rows.map(([date = "", place = "", role = ""]) => (
           <div className="flex gap-4" key={`${date}-${place}`}>
             <div className="icon-tile">
               <Icon />
             </div>
             <div>
-              <p className="text-xs text-faint">{date}</p>
-              <h3 className="mt-1 text-sm font-semibold">{place}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{role}</p>
+              {date.trim() !== "" && !isPlaceholderText(date) && (
+                <p className="text-xs text-faint">{date}</p>
+              )}
+              <h3 className="mt-1 text-sm font-semibold">
+                <StoryText text={place} />
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                <StoryText text={role} />
+              </p>
             </div>
           </div>
         ))}
       </div>
     </Section>
-  );
-}
-
-function InfoList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="border-t border-border pt-4">
-      <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-faint">{title}</h3>
-      <ul className="mt-4 space-y-2">
-        {items.map((i) => (
-          <li className="text-sm text-muted-foreground" key={i}>
-            {i}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

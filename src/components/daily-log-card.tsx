@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useUpsertDailyLog } from "@/hooks/use-daily-logs";
+import { StoryText } from "@/components/story-text";
 import type { DailyLog } from "@/types/profile";
 
 const statusMeta: Record<
@@ -112,7 +113,9 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
           />
           <div>
             <p className="record-label">Resumo</p>
-            <p className="text-sm leading-6 text-muted-foreground">{log.summary_text || "—"}</p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              {log.summary_text.trim() === "" ? "—" : <StoryText text={log.summary_text} />}
+            </p>
           </div>
         </div>
       )}
@@ -168,7 +171,7 @@ function Block({ title, items, empty }: { title: string; items: string[]; empty:
           {items.map((x) => (
             <li key={x} className="flex gap-2 text-sm leading-6 text-muted-foreground">
               <Check className="mt-1 size-3.5 shrink-0 text-accent-foreground" />
-              {x}
+              <StoryText text={x} />
             </li>
           ))}
         </ul>
