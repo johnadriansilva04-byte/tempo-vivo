@@ -9,21 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CurriculoRouteImport } from './routes/curriculo'
+import { Route as ExportRouteImport } from './routes/export'
+import { Route as FeatureFlagsRouteImport } from './routes/feature-flags'
+import { Route as GamificationRouteImport } from './routes/gamification'
+import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as IntelligenceDashboardRouteImport } from './routes/intelligence-dashboard'
 import { Route as JogosRouteImport } from './routes/jogos'
+import { Route as LocalSystemsRouteImport } from './routes/local-systems'
 import { Route as PlanejamentoRouteImport } from './routes/planejamento'
 import { Route as ProjetosRouteImport } from './routes/projetos'
 import { Route as RealizacoesRouteImport } from './routes/realizacoes'
 import { Route as SobreRouteImport } from './routes/sobre'
 
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -34,14 +37,59 @@ const AgendaRoute = AgendaRouteImport.update({
   path: '/agenda',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CurriculoRoute = CurriculoRouteImport.update({
   id: '/curriculo',
   path: '/curriculo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExportRoute = ExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeatureFlagsRoute = FeatureFlagsRouteImport.update({
+  id: '/feature-flags',
+  path: '/feature-flags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamificationRoute = GamificationRouteImport.update({
+  id: '/gamification',
+  path: '/gamification',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntelligenceDashboardRoute = IntelligenceDashboardRouteImport.update({
+  id: '/intelligence-dashboard',
+  path: '/intelligence-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JogosRoute = JogosRouteImport.update({
   id: '/jogos',
   path: '/jogos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocalSystemsRoute = LocalSystemsRouteImport.update({
+  id: '/local-systems',
+  path: '/local-systems',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanejamentoRoute = PlanejamentoRouteImport.update({
@@ -68,9 +116,17 @@ const SobreRoute = SobreRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/analytics': typeof AnalyticsRoute
+  '/auth': typeof AuthRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/curriculo': typeof CurriculoRoute
+  '/export': typeof ExportRoute
+  '/feature-flags': typeof FeatureFlagsRoute
+  '/gamification': typeof GamificationRoute
+  '/insights': typeof InsightsRoute
+  '/intelligence-dashboard': typeof IntelligenceDashboardRoute
   '/jogos': typeof JogosRoute
+  '/local-systems': typeof LocalSystemsRoute
   '/planejamento': typeof PlanejamentoRoute
   '/projetos': typeof ProjetosRoute
   '/realizacoes': typeof RealizacoesRoute
@@ -79,9 +135,17 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/analytics': typeof AnalyticsRoute
+  '/auth': typeof AuthRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/curriculo': typeof CurriculoRoute
+  '/export': typeof ExportRoute
+  '/feature-flags': typeof FeatureFlagsRoute
+  '/gamification': typeof GamificationRoute
+  '/insights': typeof InsightsRoute
+  '/intelligence-dashboard': typeof IntelligenceDashboardRoute
   '/jogos': typeof JogosRoute
+  '/local-systems': typeof LocalSystemsRoute
   '/planejamento': typeof PlanejamentoRoute
   '/projetos': typeof ProjetosRoute
   '/realizacoes': typeof RealizacoesRoute
@@ -91,9 +155,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/analytics': typeof AnalyticsRoute
+  '/auth': typeof AuthRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/curriculo': typeof CurriculoRoute
+  '/export': typeof ExportRoute
+  '/feature-flags': typeof FeatureFlagsRoute
+  '/gamification': typeof GamificationRoute
+  '/insights': typeof InsightsRoute
+  '/intelligence-dashboard': typeof IntelligenceDashboardRoute
   '/jogos': typeof JogosRoute
+  '/local-systems': typeof LocalSystemsRoute
   '/planejamento': typeof PlanejamentoRoute
   '/projetos': typeof ProjetosRoute
   '/realizacoes': typeof RealizacoesRoute
@@ -104,9 +176,17 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agenda'
+    | '/analytics'
+    | '/auth'
     | '/configuracoes'
     | '/curriculo'
+    | '/export'
+    | '/feature-flags'
+    | '/gamification'
+    | '/insights'
+    | '/intelligence-dashboard'
     | '/jogos'
+    | '/local-systems'
     | '/planejamento'
     | '/projetos'
     | '/realizacoes'
@@ -115,9 +195,17 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agenda'
+    | '/analytics'
+    | '/auth'
     | '/configuracoes'
     | '/curriculo'
+    | '/export'
+    | '/feature-flags'
+    | '/gamification'
+    | '/insights'
+    | '/intelligence-dashboard'
     | '/jogos'
+    | '/local-systems'
     | '/planejamento'
     | '/projetos'
     | '/realizacoes'
@@ -126,9 +214,17 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agenda'
+    | '/analytics'
+    | '/auth'
     | '/configuracoes'
     | '/curriculo'
+    | '/export'
+    | '/feature-flags'
+    | '/gamification'
+    | '/insights'
+    | '/intelligence-dashboard'
     | '/jogos'
+    | '/local-systems'
     | '/planejamento'
     | '/projetos'
     | '/realizacoes'
@@ -136,11 +232,19 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
   IndexRoute: typeof IndexRoute
   AgendaRoute: typeof AgendaRoute
+  AnalyticsRoute: typeof AnalyticsRoute
+  AuthRoute: typeof AuthRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
   CurriculoRoute: typeof CurriculoRoute
+  ExportRoute: typeof ExportRoute
+  FeatureFlagsRoute: typeof FeatureFlagsRoute
+  GamificationRoute: typeof GamificationRoute
+  InsightsRoute: typeof InsightsRoute
+  IntelligenceDashboardRoute: typeof IntelligenceDashboardRoute
   JogosRoute: typeof JogosRoute
+  LocalSystemsRoute: typeof LocalSystemsRoute
   PlanejamentoRoute: typeof PlanejamentoRoute
   ProjetosRoute: typeof ProjetosRoute
   RealizacoesRoute: typeof RealizacoesRoute
@@ -149,13 +253,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -170,6 +267,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgendaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/curriculo': {
       id: '/curriculo'
       path: '/curriculo'
@@ -177,11 +295,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CurriculoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/export': {
+      id: '/export'
+      path: '/export'
+      fullPath: '/export'
+      preLoaderRoute: typeof ExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feature-flags': {
+      id: '/feature-flags'
+      path: '/feature-flags'
+      fullPath: '/feature-flags'
+      preLoaderRoute: typeof FeatureFlagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gamification': {
+      id: '/gamification'
+      path: '/gamification'
+      fullPath: '/gamification'
+      preLoaderRoute: typeof GamificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/intelligence-dashboard': {
+      id: '/intelligence-dashboard'
+      path: '/intelligence-dashboard'
+      fullPath: '/intelligence-dashboard'
+      preLoaderRoute: typeof IntelligenceDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jogos': {
       id: '/jogos'
       path: '/jogos'
       fullPath: '/jogos'
       preLoaderRoute: typeof JogosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/local-systems': {
+      id: '/local-systems'
+      path: '/local-systems'
+      fullPath: '/local-systems'
+      preLoaderRoute: typeof LocalSystemsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/planejamento': {
@@ -216,11 +376,19 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  ConfiguracoesRoute: ConfiguracoesRoute,
   IndexRoute: IndexRoute,
   AgendaRoute: AgendaRoute,
+  AnalyticsRoute: AnalyticsRoute,
+  AuthRoute: AuthRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
   CurriculoRoute: CurriculoRoute,
+  ExportRoute: ExportRoute,
+  FeatureFlagsRoute: FeatureFlagsRoute,
+  GamificationRoute: GamificationRoute,
+  InsightsRoute: InsightsRoute,
+  IntelligenceDashboardRoute: IntelligenceDashboardRoute,
   JogosRoute: JogosRoute,
+  LocalSystemsRoute: LocalSystemsRoute,
   PlanejamentoRoute: PlanejamentoRoute,
   ProjetosRoute: ProjetosRoute,
   RealizacoesRoute: RealizacoesRoute,
