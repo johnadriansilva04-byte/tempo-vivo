@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DailyLogCard } from "@/components/daily-log-card";
 import { EmptyState } from "@/components/empty-state";
-import { PageHeader } from "@/components/page-kit";
+import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { useDailyLogs } from "@/hooks/use-daily-logs";
 import { usePrologue, useSetPrologue } from "@/hooks/use-prologue";
 import { openRitual } from "@/store/ritual-store";
@@ -43,7 +43,9 @@ function AgendaRoute() {
       <PageHeader
         eyebrow="Livro de bordo"
         title="Agenda"
+        mark="I"
         description="Memória cronológica da vida real. O planejado orienta; o executado documenta; o resumo dá sentido."
+        lede="A vida só vira história quando alguém a registra. Este é o seu livro de bordo."
         action={
           <Button size="sm" onClick={() => openRitual(null)}>
             <Sunrise className="size-3.5" />
@@ -65,7 +67,7 @@ function AgendaRoute() {
           <h2 className="mt-3 font-display text-xl font-semibold">Relatório dos anos anteriores</h2>
 
           {prologueLoading ? (
-            <div className="mt-3 h-20 animate-pulse rounded-md border border-border bg-muted" />
+            <div className="mt-3 skeleton h-20" />
           ) : editing ? (
             <>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -153,11 +155,7 @@ function AgendaRoute() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-4">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-lg border border-border bg-card" />
-          ))}
-        </div>
+        <PageSkeleton lines={2} rows={3} />
       ) : logs.length === 0 ? (
         <EmptyState
           icon={<Sunrise className="size-5" />}

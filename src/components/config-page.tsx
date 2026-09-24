@@ -75,8 +75,8 @@ export function ConfigPage() {
   if (!profile) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-40 animate-pulse rounded bg-muted" />
-        <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+        <div className="skeleton h-8 w-40" />
+        <div className="skeleton h-64 rounded-lg" />
       </div>
     );
   }
@@ -140,7 +140,9 @@ export function ConfigPage() {
       <PageHeader
         eyebrow="Ajustes"
         title="Configurações"
+        mark="VIII"
         description="Defina quem é você no Perfil Vivo. Todos os dados ficam salvos — no seu banco quando Supabase está configurado, ou localmente até lá."
+        lede="Antes de contar a história, é preciso decidir de onde ela parte. É o que se ajusta aqui."
         action={
           <Button size="sm" onClick={save} disabled={update.isPending}>
             <Save className="size-3.5" /> Salvar

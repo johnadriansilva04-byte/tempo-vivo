@@ -39,7 +39,13 @@ export function FocusCard() {
   const { focus, isLoading } = useWeeklyFocus();
 
   if (isLoading) {
-    return <div className="h-24 animate-pulse rounded-lg border border-border bg-card" />;
+    return (
+      <div className="space-y-3 rounded-lg border border-border bg-card p-5">
+        <div className="skeleton h-4 w-40" />
+        <div className="skeleton h-2.5 rounded-full" />
+        <div className="skeleton h-4 w-28" />
+      </div>
+    );
   }
   if (focus.length === 0) {
     return (

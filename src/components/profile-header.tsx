@@ -17,7 +17,13 @@ export function ProfileHeader() {
   const isBlank = profile?.name.trim() === "" || (profile?.name ?? "") === "";
 
   if (!profile) {
-    return <div className="h-44 animate-pulse rounded-lg border border-border bg-card" />;
+    return (
+      <div className="space-y-4 rounded-lg border border-border bg-card p-6">
+        <div className="skeleton h-32 rounded-lg" />
+        <div className="skeleton h-4 w-48" />
+        <div className="skeleton h-3.5 w-32" />
+      </div>
+    );
   }
 
   const startEdit = () => {

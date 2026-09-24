@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader, ProgressBar, Section } from "@/components/page-kit";
+import { PageHeader, PageSkeleton, ProgressBar, Section } from "@/components/page-kit";
 import type { Project } from "@/types/profile";
 import { DailyLogCard } from "@/components/daily-log-card";
 import { EmptyState } from "@/components/empty-state";
@@ -75,15 +75,16 @@ export function ResumePage() {
     });
   };
 
-  if (isLoading)
-    return <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />;
+  if (isLoading) return <PageSkeleton lines={2} rows={2} />;
 
   return (
     <>
       <PageHeader
         eyebrow="Trajetória profissional"
         title="Currículo vivo"
+        mark="II"
         description="Formação e experiências apresentadas como partes de uma história humana, prontas para compartilhar."
+        lede="Currículo não é lista de cargos: é a prova de que algo em você mudou a cada etapa."
         action={
           <Button size="sm" onClick={() => setOpen((v) => !v)}>
             {open ? "Fechar" : "Adicionar capítulo"}
@@ -241,7 +242,9 @@ export function PlanningPage() {
       <PageHeader
         eyebrow="Direção consciente"
         title="Planejamento"
+        mark="III"
         description="Objetivos que conectam intenção, ações e o futuro que está sendo construído."
+        lede="Semana sem direção vira semana perdida. Aqui a intenção vira compromisso visível."
       />
       <Section title="Metas da semana" detail="Progresso comprometido, não desejado">
         <FocusCard />
@@ -312,15 +315,16 @@ export function AchievementsPage() {
     create.mutate(draft, { onSuccess: () => setDraft({ ...draft, title: "", description: "" }) });
   };
 
-  if (isLoading)
-    return <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />;
+  if (isLoading) return <PageSkeleton lines={2} rows={2} />;
 
   return (
     <>
       <PageHeader
         eyebrow="Marcos preservados"
         title="Realizações"
+        mark="IV"
         description="Uma linha do tempo do que mudou sua história — grandes conquistas e viradas silenciosas."
+        lede="O que você já atravessou é argumento: prova concreta de que consegue de novo."
         action={
           <Button size="sm" onClick={() => setOpen((v) => !v)}>
             {open ? "Fechar" : "Registrar marco"}
@@ -424,15 +428,16 @@ export function ProjectsPage() {
     );
   };
 
-  if (isLoading)
-    return <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />;
+  if (isLoading) return <PageSkeleton lines={2} rows={2} />;
 
   return (
     <>
       <PageHeader
         eyebrow="Trabalho em movimento"
         title="Projetos"
+        mark="V"
         description="Iniciativas que conectam curiosidade, propósito e impacto ao longo do tempo."
+        lede="Projeto é intenção com prazo. Aqui ela sai do papel e ganha dono, objetivo e avanço."
         action={
           <Button size="sm" onClick={() => setOpen((v) => !v)}>
             {open ? "Fechar" : "Novo projeto"}
@@ -542,7 +547,9 @@ export function AboutPage() {
       <PageHeader
         eyebrow="Quem sou"
         title={isBlank ? "Sobre" : `Sobre ${profile.name.split(" ")[0]}`}
+        mark="VI"
         description="A pessoa por trás dos registros, seus vínculos e o sentido que atravessa sua trajetória."
+        lede="Um perfil não é vitrine: é o retrato de quem está por trás dos registros."
       />
       <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
@@ -629,7 +636,9 @@ export function GamesPage() {
       <PageHeader
         eyebrow="Parceria Pracinha"
         title="Jogos"
+        mark="VII"
         description="A Cidadela do Pracinha abre uma pracinha de jogos, testes e estudo para descansar a cabeça e voltar à história com a mente afiada."
+        lede="Descanso também faz parte da obra. Jogar afia a mente que volta a registrar."
       />
 
       <div className="games-stage">

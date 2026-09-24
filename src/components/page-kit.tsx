@@ -1,29 +1,48 @@
 import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 
+/**
+ * Abertura de capítulo.
+ *
+ * Cada página abre como um capítulo de livro: numeral, título em serifada,
+ * descrição funcional e — quando faz sentido — uma epígrafe historiográfica
+ * que dá sentido ao que vem abaixo. A regra em degradê separa sem poluir.
+ */
 export function PageHeader({
   eyebrow,
   title,
   description,
+  lede,
+  mark,
   action,
 }: {
   eyebrow: string;
   title: string;
   description: string;
+  /** Linha historiográfica: por que esta página existe na sua história. */
+  lede?: string;
+  /** Numeral do capítulo (ex.: "I", "II") para dar ritmo de livro. */
+  mark?: string;
   action?: ReactNode;
 }) {
   return (
-    <header className="mb-8 flex flex-col gap-5 border-b border-border pb-7 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">
-          {eyebrow}
-        </p>
-        <h1 className="font-display text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
-          {title}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+    <header className="page-header rise-in">
+      <span className="page-header-glow" aria-hidden="true" />
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          {mark && (
+            <span className="chapter-mark mb-4" aria-hidden="true">
+              {mark}
+            </span>
+          )}
+          <p className="page-eyebrow">{eyebrow}</p>
+          <h1 className="page-title">{title}</h1>
+          <p className="page-description">{description}</p>
+          {lede && <p className="page-lede">{lede}</p>}
+        </div>
+        {action && <div className="shrink-0 sm:pt-1">{action}</div>}
       </div>
-      {action}
+      <span className="page-rule" aria-hidden="true" />
     </header>
   );
 }
@@ -83,5 +102,41 @@ export function TextLink({ children }: { children: ReactNode }) {
       {children}
       <ArrowUpRight className="size-3.5" />
     </span>
+  );
+}
+
+/**
+ * Espera silenciosa: em vez de caixas que piscam, blocos com brilho deslizante
+ * que já desenham a silhueta do conteúdo. Mantém a calma da página durante o
+ * carregamento, sem a sensação de app travado.
+ */
+export function PageSkeleton({
+  lines = 3,
+  className = "",
+  rows = 0,
+}: {
+  /** Linhas de texto simuladas no topo. */
+  lines?: number;
+  /** Cartões empilhados abaixo, para páginas de lista. */
+  rows?: number;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-6 ${className}`} aria-busy="true" aria-live="polite">
+      <span className="sr-only">Carregando…</span>
+      <div className="space-y-3">
+        <div className="skeleton h-7 w-44" />
+        {Array.from({ length: lines }).map((_, i) => (
+          <div
+            className="skeleton h-3.5"
+            key={i}
+            style={{ width: `${[92, 78, 61][i % 3]}%`, animationDelay: `${i * 90}ms` }}
+          />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div className="skeleton h-32 rounded-lg" key={i} />
+      ))}
+    </div>
   );
 }
