@@ -61,7 +61,9 @@ usuário nunca aparece no outro.
 > uma pergunta secreta e uma resposta; `recovery_hint` revela só a pergunta, `recovery_verify`
 > confere a resposta normalizada (caixa, acentos e espaços não importam) e devolve um ticket
 > de uso único, e `recovery_reset` troca a senha. A resposta fica guardada apenas como hash
-> HMAC, em tabela que o cliente não lê nem escreve.
+> HMAC, em tabela que o cliente não lê nem escreve. Para a pergunta não virar alvo de força
+> bruta, cinco respostas erradas em quinze minutos bloqueiam a conferência; um acerto
+> reinicia a janela.
 
 ## Regra de Integridade Temporal (24h)
 
@@ -81,7 +83,7 @@ npm run dev
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
 2. No **SQL Editor**, rode as migrações em `supabase/migrations/` na ordem dos nomes
-   (`initial_schema` → `projects_milestones` → `auth_and_rls` → `password_recovery`).
+   (`initial_schema` → `projects_milestones` → `auth_and_rls` → `password_recovery` → `recovery_rate_limit`).
 3. Copie **Project URL** e **anon key** (Settings → API) para as variáveis de ambiente:
 
 ```sh
