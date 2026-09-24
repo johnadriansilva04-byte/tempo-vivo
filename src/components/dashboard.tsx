@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FocusCard } from "@/components/focus-card";
 import { ProfileHeader } from "@/components/profile-header";
 import { AnimatedCard, FadeIn } from "@/components/animated-card";
+import { WelcomePage } from "@/components/welcome-page";
 import { Metric, Section } from "@/components/page-kit";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -35,6 +36,13 @@ export function DashboardPage() {
   // Métricas derivadas — zero quando o app começa vazio.
   const daysWithSummary = logs.filter((l) => l.summary_text.trim() !== "").length;
   const summaryPct = logs.length === 0 ? 0 : Math.round((daysWithSummary / logs.length) * 100);
+
+  // Mostrar WelcomePage se não houver dados
+  const isEmpty = logs.length === 0 && projects.length === 0 && milestones.length === 0;
+
+  if (isEmpty) {
+    return <WelcomePage />;
+  }
 
   return (
     <>
