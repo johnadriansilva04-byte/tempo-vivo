@@ -63,12 +63,18 @@ Mapa fixo das telas — não volte a embrulhar estas páginas em narrativa:
   progresso, link e "Abrir projeto".
 - **Hoje/Dashboard** (`components/dashboard.tsx`): próximo compromisso, projeto
   principal, meta da semana, última realização e um resumo numérico. Sem capítulos.
-- **Perfil público** (`components/public/`): compartilhável em `/@{handle}`. O
-  handle é derivado do nome por `lib/handle.ts` (slug ASCII, testes em
-  `lib/handle.test.ts`) e a rota `routes/@{$handle}.tsx` abre em modo visitante —
-  `routes/__root.tsx` pula o `AuthGate`/`AppShell` quando o path começa com `/@`.
-  No Supabase, a view `public_profiles` (migration `20260926000000_*`) expõe
-  apenas os campos públicos e agrega milestones/projects/chapters.
+- **Perfil público** (`components/public/`): compartilhável em `/@{handle}` e
+  listado na Rede em `/rede`. `PublicProfileView` é a mesma vitrine para o dono
+  (em Sobre) e para o visitante: números no topo, abas Agenda/Feitos/Projetos/
+  Dados, agenda expansível (`public-agenda.tsx`). O handle é guardado no perfil e
+  derivado do nome quando vazio (`lib/handle.ts`: `resolveHandle`/`sameHandle`);
+  `ensurePublicHandle()` persiste na primeira visita a Sobre, senão o link
+  compartilhado cai em "não encontrado". `publishToNetwork()` espelha o perfil no
+  diretório local; a busca da Rede é pura em `lib/network.ts`. No modo visitante,
+  `routes/__root.tsx` pula `AuthGate`/`AppShell` para `/@*` e `/rede`.
+  No Supabase, a view `public_profiles` (migrations `20260926000000_*` e
+  `20260928000000_*`) expõe os campos públicos e agrega milestones/projects/
+  chapters/agenda/focus; o trigger `profiles_set_handle` preenche o handle.
 
 Mutação de dados sempre via hooks React Query (`use-agenda-events.ts`,
 `use-projects.ts`, `use-milestones.ts`, ...) com `invalidateQueries` no
