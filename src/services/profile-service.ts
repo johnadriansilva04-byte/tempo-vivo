@@ -14,6 +14,7 @@ import type {
   Milestone,
   Profile,
   Project,
+  Recurrence,
   WeeklyFocus,
 } from "@/types/profile";
 
@@ -391,6 +392,20 @@ export async function deleteMilestone(id: string): Promise<void> {
 
 // ------------------------------------------------------------- AgendaEvents
 
+/** Lê a coluna jsonb `recurrence`, tolerando null e formatos antigos. */
+function parseRecurrence(value: unknown): Recurrence | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as { days?: unknown; until?: unknown };
+  const days = Array.isArray(raw.days)
+    ? raw.days.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+    : [];
+  if (days.length === 0) return null;
+  return {
+    days: [...new Set(days)].sort((a, b) => a - b),
+    until: typeof raw.until === "string" ? raw.until.slice(0, 10) : "",
+  };
+}
+
 function fromRemoteEvent(row: Record<string, unknown>): AgendaEvent {
   return {
     id: String(row["id"]),
@@ -400,7 +415,15 @@ function fromRemoteEvent(row: Record<string, unknown>): AgendaEvent {
     end_time: String(row["end_time"] ?? "").slice(0, 5),
     location: String(row["location"] ?? ""),
     notes: String(row["notes"] ?? ""),
+    recurrence: parseRecurrence(row["recurrence"]),
   };
+}
+
+/** Colunas antigas sem `recurrence` (banco ainda não migrado) geram erro 42703.
+ *  Reenviar sem a coluna mantém o app salvando enquanto a migration não roda. */
+function isMissingRecurrenceColumn(error: { code?: string; message?: string }): boolean {
+  const text = `${error.code ?? ""} ${error.message ?? ""}`;
+  return error.code === "42703" || (error.code === "PGRST204" && /recurrence/i.test(text));
 }
 
 export async function getAgendaEvents(): Promise<AgendaEvent[]> {
@@ -421,20 +444,25 @@ export async function getAgendaEvents(): Promise<AgendaEvent[]> {
 export async function saveAgendaEvent(event: AgendaEvent): Promise<void> {
   const r = remote();
   if (r) {
-    const { error } = await r.db.from("agenda_events").upsert(
-      {
-        id: event.id || newId(),
-        user_id: r.uid,
-        title: event.title,
-        event_date: event.event_date,
-        start_time: event.start_time,
-        end_time: event.end_time,
-        location: event.location,
-        notes: event.notes,
-      } as never,
-      { onConflict: "id" },
-    );
-    if (error) throw error;
+    const base = {
+      id: event.id || newId(),
+      user_id: r.uid,
+      title: event.title,
+      event_date: event.event_date,
+      start_time: event.start_time,
+      end_time: event.end_time,
+      location: event.location,
+      notes: event.notes,
+    };
+    const withRecurrence = { ...base, recurrence: event.recurrence ?? null };
+    const { error } = await r.db
+      .from("agenda_events")
+      .upsert(withRecurrence as never, { onConflict: "id" });
+    if (!error) return;
+    if (!isMissingRecurrenceColumn(error)) throw error;
+    // Banco sem a coluna: grava o essencial para não perder o compromisso.
+    const retry = await r.db.from("agenda_events").upsert(base as never, { onConflict: "id" });
+    if (retry.error) throw retry.error;
     return;
   }
   localRepository.upsertAgendaEvent(event);

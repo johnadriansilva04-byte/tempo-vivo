@@ -50,14 +50,27 @@ export type Milestone = {
 };
 
 /** Compromisso da agenda: algo com data e hora para fazer. */
+
+/**
+ * Repetição de um compromisso. Ausente (null/undefined) = evento único.
+ *
+ * - `days`: dias da semana (0=domingo) em que o evento ocorre.
+ * - `until`: última data em que ele pode ocorrer (yyyy-mm-dd). Vazio = sem fim.
+ */
+export type Recurrence = {
+  days: number[];
+  until: string;
+};
+
 export type AgendaEvent = {
   id: string;
   title: string;
-  event_date: string; // ISO date (yyyy-mm-dd)
+  event_date: string; // ISO date (yyyy-mm-dd) — primeira ocorrência
   start_time: string; // HH:mm
   end_time: string; // HH:mm
   location: string;
   notes: string;
+  recurrence?: Recurrence | null;
 };
 
 export type Profile = {

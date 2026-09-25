@@ -2,7 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { EventDraft } from "@/components/agenda/draft";
+import {
+  REPEAT_PRESETS,
+  WEEKDAY_OPTIONS,
+  sameDays,
+  type EventDraft,
+} from "@/components/agenda/draft";
+import { cn } from "@/lib/utils";
 
 /** Formulário de compromisso. Sem lógica de dados: recebe, devolve e salva. */
 export function EventForm({
@@ -24,6 +30,13 @@ export function EventForm({
     onChange({ ...draft, [key]: value });
 
   const canSave = draft.title.trim() !== "" && draft.event_date !== "";
+
+  const toggleDay = (day: number) => {
+    const has = draft.repeatDays.includes(day);
+    set("repeatDays", has ? draft.repeatDays.filter((d) => d !== day) : [...draft.repeatDays, day]);
+  };
+
+  const repeating = draft.repeatDays.length > 0;
 
   return (
     <form
@@ -81,6 +94,84 @@ export function EventForm({
             onChange={(e) => set("end_time", e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-border p-3">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs text-muted-foreground">Repetir</Label>
+          <span className="text-xs text-muted-foreground">
+            {repeating ? "Compromisso repetido" : "Uma vez"}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {WEEKDAY_OPTIONS.map(([day, label]) => {
+            const active = draft.repeatDays.includes(day);
+            return (
+              <button
+                key={day}
+                type="button"
+                aria-pressed={active}
+                aria-label={label}
+                onClick={() => toggleDay(day)}
+                className={cn(
+                  "min-w-9 rounded-md border border-border px-2 py-1 text-xs font-medium transition-colors",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:border-primary/40",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {REPEAT_PRESETS.map(([label, days]) => {
+            const active = sameDays(draft.repeatDays, days);
+            return (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={active}
+                onClick={() => set("repeatDays", active ? [] : days)}
+                className={cn(
+                  "rounded-md px-2 py-1 text-xs transition-colors",
+                  active
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-muted-foreground underline-offset-2 hover:underline",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+          {repeating && (
+            <button
+              type="button"
+              onClick={() => set("repeatDays", [])}
+              className="rounded-md px-2 py-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+
+        {repeating && (
+          <div className="space-y-1.5">
+            <Label htmlFor="ev-until" className="text-xs text-muted-foreground">
+              Repetir até (opcional)
+            </Label>
+            <Input
+              id="ev-until"
+              type="date"
+              min={draft.event_date}
+              value={draft.repeatUntil}
+              onChange={(e) => set("repeatUntil", e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-1.5">

@@ -17,7 +17,15 @@ import {
   useDeleteAgendaEvent,
   useSaveAgendaEvent,
 } from "@/hooks/use-agenda-events";
-import { MONTHS, addDays, byStartTime, fromIso, toIso, weekDays } from "@/lib/calendar";
+import {
+  MONTHS,
+  addDays,
+  eventsByDayInRange,
+  fromIso,
+  monthGrid,
+  toIso,
+  weekDays,
+} from "@/lib/calendar";
 import { cn, plural } from "@/lib/utils";
 import type { AgendaEvent } from "@/types/profile";
 
@@ -37,7 +45,7 @@ function shiftMonth(iso: string, delta: number): string {
 
 /** Agenda = calendário real: ver os compromissos e agir sobre eles. */
 export function AgendaPage() {
-  const { events, isLoading } = useAgendaEvents();
+  const { events, isLoading, error } = useAgendaEvents();
   const save = useSaveAgendaEvent();
   const remove = useDeleteAgendaEvent();
 
@@ -47,18 +55,31 @@ export function AgendaPage() {
   const [selected, setSelected] = useState(today);
   const [draft, setDraft] = useState<EventDraft | null>(null);
 
-  const eventsByDay = useMemo(() => {
-    const map = new Map<string, AgendaEvent[]>();
-    for (const event of events) {
-      const list = map.get(event.event_date) ?? [];
-      list.push(event);
-      map.set(event.event_date, list);
+  // Intervalo visível de cada visão — as repetições só são expandidas aqui.
+  const range = useMemo<[string, string]>(() => {
+    if (view === "mes") {
+      const grid = monthGrid(anchor);
+      return [grid[0]?.iso ?? anchor, grid[grid.length - 1]?.iso ?? anchor];
     }
-    for (const [day, list] of map) map.set(day, byStartTime(list));
-    return map;
-  }, [events]);
+    if (view === "semana") {
+      const days = weekDays(anchor);
+      return [days[0] ?? anchor, days[days.length - 1] ?? anchor];
+    }
+    return [selected, selected];
+  }, [view, anchor, selected]);
+
+  const eventsByDay = useMemo(
+    () => eventsByDayInRange(events, range[0], range[1]),
+    [events, range],
+  );
 
   const selectedEvents = eventsByDay.get(selected) ?? [];
+
+  // Conta ocorrências (repetidos aparecem em cada dia), não definições.
+  const occurrenceCount = useMemo(
+    () => [...eventsByDay.values()].reduce((sum, list) => sum + list.length, 0),
+    [eventsByDay],
+  );
 
   const persist = (next: AgendaEvent) => {
     save.mutate(next, {
@@ -109,8 +130,8 @@ export function AgendaPage() {
       <PageHeader
         title="Agenda"
         detail={
-          events.length > 0
-            ? `${events.length} ${plural(events.length, "compromisso", "compromissos")}`
+          occurrenceCount > 0
+            ? `${occurrenceCount} ${plural(occurrenceCount, "compromisso", "compromissos")}`
             : undefined
         }
         action={
@@ -140,6 +161,18 @@ export function AgendaPage() {
 
       {isLoading ? (
         <PageSkeleton lines={2} rows={2} />
+      ) : error ? (
+        <EmptyState
+          icon={<CalendarDays className="size-5" />}
+          title="Não consegui carregar a agenda"
+          description={
+            /relation|does not exist|404|schema cache/i.test(
+              error instanceof Error ? error.message : "",
+            )
+              ? "A tabela de compromissos ainda não existe no banco. Rode a migration supabase/migrations/20260926000000_agenda_and_public_profile.sql no projeto Supabase e recarregue."
+              : "Falha ao ler os compromissos. Verifique a conexão e tente de novo."
+          }
+        />
       ) : view === "mes" ? (
         <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
           <div>

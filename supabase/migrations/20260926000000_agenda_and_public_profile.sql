@@ -21,6 +21,8 @@ create table if not exists public.agenda_events (
   end_time   text not null default '',
   location   text not null default '',
   notes      text not null default '',
+  -- Repetição: {"days": [1,3,5], "until": "2027-01-31"}. null = evento único.
+  recurrence jsonb,
   created_at timestamptz not null default now()
 );
 

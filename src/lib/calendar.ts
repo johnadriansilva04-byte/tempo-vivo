@@ -103,6 +103,73 @@ export function byStartTime<T extends { start_time: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.start_time.localeCompare(b.start_time));
 }
 
+// ----------------------------------------------------------- repetição ------
+//
+// Um compromisso pode repetir (trabalho 18h–23h toda semana, por exemplo). A
+// regra é pura: guardamos os dias da semana e uma data-limite opcional, e a
+// expansão em datas concretas é calculada aqui — não no banco nem na UI.
+
+type Recurring = {
+  event_date: string;
+  start_time: string;
+  recurrence?: { days: number[]; until: string } | null | undefined;
+};
+
+/** O evento se repete? (precisa de dias marcados) */
+export function isRecurring(event: Recurring): boolean {
+  return (event.recurrence?.days.length ?? 0) > 0;
+}
+
+/** O evento acontece em `iso`? Eventos únicos valem só na própria data. */
+export function occursOn(event: Recurring, iso: string): boolean {
+  if (!isRecurring(event)) return iso === event.event_date;
+  if (iso < event.event_date) return false;
+  const until = event.recurrence?.until ?? "";
+  if (until && iso > until) return false;
+  return (event.recurrence?.days ?? []).includes(fromIso(iso).getDay());
+}
+
+/**
+ * As datas em que o evento ocorre dentro de `[from, to]` (inclusive).
+ *
+ * Varre dia a dia: os intervalos pedidos são curtos (um mês, uma semana, um
+ * dia), então a simplicidade vale mais que otimização.
+ */
+export function occurrencesInRange(event: Recurring, from: string, to: string): string[] {
+  if (to < from) return [];
+  if (!isRecurring(event)) {
+    return occursOn(event, event.event_date) && event.event_date >= from && event.event_date <= to
+      ? [event.event_date]
+      : [];
+  }
+  const out: string[] = [];
+  for (let iso = from; iso <= to; iso = addDays(iso, 1)) {
+    if (occursOn(event, iso)) out.push(iso);
+  }
+  return out;
+}
+
+/**
+ * Agrupa os eventos por dia, expandindo as repetições no intervalo `[from, to]`.
+ * Um evento repetido aparece em cada dia em que acontece.
+ */
+export function eventsByDayInRange<T extends Recurring>(
+  events: T[],
+  from: string,
+  to: string,
+): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const event of events) {
+    for (const iso of occurrencesInRange(event, from, to)) {
+      const list = map.get(iso) ?? [];
+      list.push(event);
+      map.set(iso, list);
+    }
+  }
+  for (const [iso, list] of map) map.set(iso, byStartTime(list));
+  return map;
+}
+
 /** "HH:mm" → minutos desde a meia-noite; valor inválido conta como 0. */
 export function minutesOf(time: string): number {
   const [h, m] = time.slice(0, 5).split(":").map(Number);
@@ -110,7 +177,15 @@ export function minutesOf(time: string): number {
   return (h ?? 0) * 60 + (Number.isFinite(m) ? (m ?? 0) : 0);
 }
 
-type Timed = { event_date: string; start_time: string; end_time: string };
+type Timed = {
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  recurrence?: { days: number[]; until: string } | null | undefined;
+};
+
+/** Horizonte de busca de repetições: cobre bem mais de um ano. */
+const RECURRENCE_HORIZON_DAYS = 400;
 
 /**
  * O compromisso que ainda está por vir, a partir de `nowIso`/`nowTime`.
@@ -119,7 +194,8 @@ type Timed = { event_date: string; start_time: string; end_time: string };
  * 1. No dia de hoje, um evento só termina quando seu horário de fim passa —
  *    durante ele, ainda é "o próximo". Sem fim, usa a hora de início.
  * 2. Um evento de hoje cujo fim já passou não conta.
- * 3. Dias futuros contam, com o evento mais cedo primeiro.
+ * 3. Eventos repetidos contam na próxima data em que caem; os únicos, na
+ *    própria data.
  *
  * Devolve `null` quando não há nada adiante.
  */
@@ -129,16 +205,27 @@ export function nextEventAt<T extends Timed>(
   nowTime: string,
 ): T | null {
   const nowMin = minutesOf(nowTime);
+  const horizon = addDays(nowIso, RECURRENCE_HORIZON_DAYS);
+  const candidates: { date: string; event: T }[] = [];
+
+  for (const event of events) {
+    const from = isRecurring(event) ? nowIso : event.event_date;
+    for (const date of occurrencesInRange(event, from, horizon)) {
+      if (date < nowIso) continue;
+      if (date === nowIso) {
+        // Ocorrência de hoje: só conta se ainda não terminou.
+        const ends = event.end_time ? minutesOf(event.end_time) : minutesOf(event.start_time);
+        if (ends < nowMin) continue;
+      }
+      candidates.push({ date, event });
+      break;
+    }
+  }
+
   // Ordena por DIA e depois por hora — ordenar só pela hora misturaria dias
   // (um evento das 14:00 de amanhã viria antes do das 16:00 de hoje).
-  const ordered = [...events].sort(
-    (a, b) => a.event_date.localeCompare(b.event_date) || a.start_time.localeCompare(b.start_time),
+  candidates.sort(
+    (a, b) => a.date.localeCompare(b.date) || a.event.start_time.localeCompare(b.event.start_time),
   );
-  const upcoming = ordered.filter((e) => {
-    if (e.event_date > nowIso) return true;
-    if (e.event_date < nowIso) return false;
-    const ends = e.end_time ? minutesOf(e.end_time) : minutesOf(e.start_time);
-    return ends >= nowMin;
-  });
-  return upcoming[0] ?? null;
+  return candidates[0]?.event ?? null;
 }

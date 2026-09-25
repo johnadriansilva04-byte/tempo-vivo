@@ -1,8 +1,8 @@
-import { Clock3, MapPin, Pencil, Plus } from "lucide-react";
+import { Clock3, MapPin, Pencil, Plus, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EventForm } from "@/components/agenda/event-form";
 import type { EventDraft } from "@/components/agenda/draft";
-import { byStartTime, dayLabel, timeLabel } from "@/lib/calendar";
+import { byStartTime, dayLabel, isRecurring, timeLabel } from "@/lib/calendar";
 import { isPlaceholderText } from "@/lib/placeholder";
 import type { AgendaEvent } from "@/types/profile";
 
@@ -70,7 +70,13 @@ export function DayPanel({
             <li key={event.id} className="event-row">
               <span className="event-time">{timeLabel(event.start_time)}</span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
+                <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
+                  {isRecurring(event) && (
+                    <Repeat
+                      className="size-3 shrink-0 text-muted-foreground"
+                      aria-label="Repetido"
+                    />
+                  )}
                   {isPlaceholderText(event.title) ? "" : event.title}
                 </p>
                 {(event.location || event.notes) && (
