@@ -8,6 +8,8 @@ export type EventDraft = Omit<AgendaEvent, "id" | "recurrence"> & {
   repeatDays: number[];
   /** Data-limite da repetição (yyyy-mm-dd); vazio = sem fim. */
   repeatUntil: string;
+  /** Datas fora da série (folgas) preservadas ao editar um repetido. */
+  repeatSkip: string[];
 };
 
 export function emptyEventDraft(event_date: string): EventDraft {
@@ -20,6 +22,7 @@ export function emptyEventDraft(event_date: string): EventDraft {
     notes: "",
     repeatDays: [],
     repeatUntil: "",
+    repeatSkip: [],
   };
 }
 
@@ -29,6 +32,7 @@ export function draftFromEvent(event: AgendaEvent): EventDraft {
     ...rest,
     repeatDays: recurrence?.days ?? [],
     repeatUntil: recurrence?.until ?? "",
+    repeatSkip: recurrence?.skip ?? [],
   };
 }
 
@@ -56,7 +60,11 @@ function sameDays(a: number[], b: number[]): boolean {
 
 function toRecurrence(draft: EventDraft): Recurrence | null {
   if (draft.repeatDays.length === 0) return null;
-  return { days: [...draft.repeatDays].sort((a, b) => a - b), until: draft.repeatUntil };
+  return {
+    days: [...draft.repeatDays].sort((a, b) => a - b),
+    until: draft.repeatUntil,
+    ...(draft.repeatSkip.length > 0 ? { skip: [...draft.repeatSkip].sort() } : {}),
+  };
 }
 
 /** Gera um evento novo a partir do rascunho. Sem data válida, lança. */

@@ -1706,6 +1706,10 @@
   padding: 0.65rem 0.75rem;
   background: var(--card);
 }
+@utility event-row-conflict {
+  border-color: color-mix(in oklab, var(--destructive) 45%, var(--border));
+  background: color-mix(in oklab, var(--destructive) 6%, var(--card));
+}
 @utility event-time {
   flex: none;
   font-family: var(--font-display);

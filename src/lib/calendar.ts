@@ -109,10 +109,13 @@ export function byStartTime<T extends { start_time: string }>(items: T[]): T[] {
 // regra é pura: guardamos os dias da semana e uma data-limite opcional, e a
 // expansão em datas concretas é calculada aqui — não no banco nem na UI.
 
+/** Forma mínima da repetição que o cálculo precisa enxergar. */
+export type RecurrenceLike = { days: number[]; until: string; skip?: string[] };
+
 type Recurring = {
   event_date: string;
   start_time: string;
-  recurrence?: { days: number[]; until: string } | null | undefined;
+  recurrence?: RecurrenceLike | null | undefined;
 };
 
 /** O evento se repete? (precisa de dias marcados) */
@@ -126,6 +129,7 @@ export function occursOn(event: Recurring, iso: string): boolean {
   if (iso < event.event_date) return false;
   const until = event.recurrence?.until ?? "";
   if (until && iso > until) return false;
+  if (event.recurrence?.skip?.includes(iso)) return false;
   return (event.recurrence?.days ?? []).includes(fromIso(iso).getDay());
 }
 
@@ -175,6 +179,57 @@ export function minutesOf(time: string): number {
   const [h, m] = time.slice(0, 5).split(":").map(Number);
   if (!Number.isFinite(h)) return 0;
   return (h ?? 0) * 60 + (Number.isFinite(m) ? (m ?? 0) : 0);
+}
+
+/** Nome curto do dia da semana (0=domingo) para frases como "toda segunda". */
+const WEEKDAY_NAMES = [
+  "domingo",
+  "segunda",
+  "terça",
+  "quarta",
+  "quinta",
+  "sexta",
+  "sábado",
+] as const;
+
+/** O intervalo tem fim depois do início? Horários vazios não geram pendência. */
+export function isValidTimeRange(start: string, end: string): boolean {
+  if (start === "" || end === "") return true;
+  return minutesOf(end) > minutesOf(start);
+}
+
+/**
+ * Frase curta do padrão de repetição — "Toda segunda", "Dias úteis",
+ * "Seg e Qua". Vazio quando o evento não se repete.
+ */
+export function recurrenceLabel(recurrence: { days: number[] } | null | undefined): string {
+  const days = [...new Set(recurrence?.days ?? [])].sort((a, b) => a - b);
+  if (days.length === 0) return "";
+  if (days.length === 7) return "Todo dia";
+  if (days.length === 5 && days.every((d) => d >= 1 && d <= 5)) return "Dias úteis";
+  if (days.length === 2 && days.includes(0) && days.includes(6)) return "Fim de semana";
+  const names = days.map((d) => WEEKDAY_NAMES[d] ?? "").map(capitalize);
+  if (days.length === 1) return `Toda ${names[0]?.toLowerCase() ?? ""}`;
+  const last = names[names.length - 1] ?? "";
+  return [...names.slice(0, -1), last].join(" e ");
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * Devolve uma cópia do evento com `iso` fora da série (uma folga).
+ * Sem repetição não há o que pular — devolve o próprio evento.
+ */
+export function skipOccurrence<T extends Recurring>(
+  event: T,
+  iso: string,
+): Omit<T, "recurrence"> & { recurrence: RecurrenceLike } {
+  if (!isRecurring(event)) return event as Omit<T, "recurrence"> & { recurrence: RecurrenceLike };
+  const rec = event.recurrence ?? { days: [], until: "" };
+  const skip = [...new Set([...(rec.skip ?? []), iso])].sort();
+  return { ...event, recurrence: { ...rec, skip } };
 }
 
 type Timed = {
@@ -228,4 +283,31 @@ export function nextEventAt<T extends Timed>(
     (a, b) => a.date.localeCompare(b.date) || a.event.start_time.localeCompare(b.event.start_time),
   );
   return candidates[0]?.event ?? null;
+}
+
+/**
+ * Compromissos que disputam o mesmo horário num dia.
+ *
+ * Dois eventos colidem quando um começa antes de o outro terminar — sem fim
+ * declarado, o evento ocupa só o instante de início. Repetidos entram pelo dia
+ * em que caem, então um evento de hoje pode colidir com uma escala.
+ */
+export function conflictsFor<T extends Timed>(events: T[], iso: string): T[] {
+  const timed = events.filter((event) => occursOn(event, iso));
+  const conflicts = new Set<T>();
+  for (let i = 0; i < timed.length; i += 1) {
+    for (let j = i + 1; j < timed.length; j += 1) {
+      const a = timed[i]!;
+      const b = timed[j]!;
+      const aStart = minutesOf(a.start_time);
+      const aEnd = a.end_time ? minutesOf(a.end_time) : aStart;
+      const bStart = minutesOf(b.start_time);
+      const bEnd = b.end_time ? minutesOf(b.end_time) : bStart;
+      if (aStart < bEnd && bStart < aEnd) {
+        conflicts.add(a);
+        conflicts.add(b);
+      }
+    }
+  }
+  return [...conflicts];
 }

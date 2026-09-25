@@ -395,14 +395,22 @@ export async function deleteMilestone(id: string): Promise<void> {
 /** Lê a coluna jsonb `recurrence`, tolerando null e formatos antigos. */
 function parseRecurrence(value: unknown): Recurrence | null {
   if (!value || typeof value !== "object") return null;
-  const raw = value as { days?: unknown; until?: unknown };
+  const raw = value as { days?: unknown; until?: unknown; skip?: unknown };
   const days = Array.isArray(raw.days)
     ? raw.days.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
     : [];
   if (days.length === 0) return null;
+  const skip = Array.isArray(raw.skip)
+    ? [
+        ...new Set(
+          raw.skip.filter((d): d is string => typeof d === "string").map((d) => d.slice(0, 10)),
+        ),
+      ]
+    : [];
   return {
     days: [...new Set(days)].sort((a, b) => a - b),
     until: typeof raw.until === "string" ? raw.until.slice(0, 10) : "",
+    ...(skip.length > 0 ? { skip: skip.sort() } : {}),
   };
 }
 

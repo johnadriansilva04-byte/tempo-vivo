@@ -56,10 +56,12 @@ export type Milestone = {
  *
  * - `days`: dias da semana (0=domingo) em que o evento ocorre.
  * - `until`: última data em que ele pode ocorrer (yyyy-mm-dd). Vazio = sem fim.
+ * - `skip`: datas (yyyy-mm-dd) removidas da série — as folgas de uma escala.
  */
 export type Recurrence = {
   days: number[];
   until: string;
+  skip?: string[];
 };
 
 export type AgendaEvent = {

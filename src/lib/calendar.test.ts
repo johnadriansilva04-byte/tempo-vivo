@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  conflictsFor,
   dayLabel,
   eventsByDayInRange,
   fromIso,
+  isValidTimeRange,
   monthGrid,
   nextEventAt,
   occursOn,
   occurrencesInRange,
+  recurrenceLabel,
+  skipOccurrence,
   startOfWeek,
   toIso,
   weekDays,
@@ -235,5 +239,127 @@ describe("repetição", () => {
     };
     const fev = occurrencesInRange(diario, "2026-02-01", "2026-02-28");
     expect(fev).toHaveLength(28);
+  });
+});
+
+describe("folgas (skip)", () => {
+  const escala = {
+    event_date: "2026-01-01",
+    start_time: "18:00",
+    end_time: "23:00",
+    recurrence: { days: [0, 1, 2, 3, 4, 5, 6], until: "" },
+  };
+
+  it("ocorre normalmente antes de marcar a folga", () => {
+    expect(occursOn(escala, "2026-03-10")).toBe(true);
+  });
+
+  it("a folga tira só aquele dia, sem afetar vizinhos", () => {
+    const comFolga = skipOccurrence(escala, "2026-03-10");
+    expect(occursOn(comFolga, "2026-03-10")).toBe(false);
+    expect(occursOn(comFolga, "2026-03-09")).toBe(true);
+    expect(occursOn(comFolga, "2026-03-11")).toBe(true);
+  });
+
+  it("acumula folgas distintas sem duplicar", () => {
+    let e = skipOccurrence(escala, "2026-03-10");
+    e = skipOccurrence(e, "2026-03-11");
+    e = skipOccurrence(e, "2026-03-10");
+    expect(e.recurrence?.skip).toEqual(["2026-03-10", "2026-03-11"]);
+  });
+
+  it("a folga não some do evento único", () => {
+    const unico = { event_date: "2026-03-10", start_time: "10:00", end_time: "11:00" };
+    expect(skipOccurrence(unico, "2026-03-10")).toBe(unico);
+  });
+
+  it("ocorrências e contagem respeitam as folgas", () => {
+    const comFolga = skipOccurrence(escala, "2026-03-10");
+    const marco = occurrencesInRange(comFolga, "2026-03-01", "2026-03-31");
+    expect(marco).toHaveLength(30); // 31 dias menos a folga
+    expect(marco).not.toContain("2026-03-10");
+  });
+});
+
+describe("recurrenceLabel", () => {
+  it("reconhece os atalhos conhecidos", () => {
+    expect(recurrenceLabel({ days: [0, 1, 2, 3, 4, 5, 6] })).toBe("Todo dia");
+    expect(recurrenceLabel({ days: [1, 2, 3, 4, 5] })).toBe("Dias úteis");
+    expect(recurrenceLabel({ days: [0, 6] })).toBe("Fim de semana");
+  });
+
+  it("descreve um ou poucos dias", () => {
+    expect(recurrenceLabel({ days: [1] })).toBe("Toda segunda");
+    expect(recurrenceLabel({ days: [1, 3] })).toBe("Segunda e Quarta");
+  });
+
+  it("é vazio sem repetição", () => {
+    expect(recurrenceLabel(null)).toBe("");
+    expect(recurrenceLabel({ days: [] })).toBe("");
+  });
+});
+
+describe("isValidTimeRange", () => {
+  it("aceita fim depois do início", () => {
+    expect(isValidTimeRange("18:00", "23:00")).toBe(true);
+  });
+
+  it("recusa fim antes ou igual ao início", () => {
+    expect(isValidTimeRange("23:00", "18:00")).toBe(false);
+    expect(isValidTimeRange("18:00", "18:00")).toBe(false);
+  });
+
+  it("não trava quando falta um horário", () => {
+    expect(isValidTimeRange("", "23:00")).toBe(true);
+    expect(isValidTimeRange("18:00", "")).toBe(true);
+  });
+});
+
+describe("conflictsFor", () => {
+  const base = { start_time: "18:00", end_time: "23:00" };
+
+  it("sinaliza eventos que se sobrepõem no mesmo dia", () => {
+    const a = { id: "a", event_date: "2026-09-21", ...base };
+    const b = {
+      id: "b",
+      event_date: "2026-09-21",
+      start_time: "20:00",
+      end_time: "21:00",
+    };
+    expect(
+      conflictsFor([a, b], "2026-09-21")
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(["a", "b"]);
+  });
+
+  it("não sinaliza horários que só se tocam", () => {
+    const a = { id: "a", event_date: "2026-09-21", start_time: "18:00", end_time: "20:00" };
+    const b = { id: "b", event_date: "2026-09-21", start_time: "20:00", end_time: "21:00" };
+    expect(conflictsFor([a, b], "2026-09-21")).toEqual([]);
+  });
+
+  it("um repetido conflita com evento do dia em que cai", () => {
+    const escala = {
+      id: "escala",
+      event_date: "2026-09-21",
+      start_time: "18:00",
+      end_time: "23:00",
+      recurrence: { days: [1], until: "" },
+    };
+    const dentista = {
+      id: "dentista",
+      event_date: "2026-09-28",
+      start_time: "19:00",
+      end_time: "20:00",
+    };
+    // Segunda 28/09: a escala cai e colide com o dentista.
+    expect(
+      conflictsFor([escala, dentista], "2026-09-28")
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(["dentista", "escala"]);
+    // Terça: nada colide.
+    expect(conflictsFor([escala, dentista], "2026-09-29")).toEqual([]);
   });
 });

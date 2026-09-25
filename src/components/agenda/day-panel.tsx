@@ -1,35 +1,43 @@
-import { Clock3, MapPin, Pencil, Plus, Repeat } from "lucide-react";
+import { AlertTriangle, CalendarX, Clock3, Copy, MapPin, Pencil, Plus, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EventForm } from "@/components/agenda/event-form";
 import type { EventDraft } from "@/components/agenda/draft";
-import { byStartTime, dayLabel, isRecurring, timeLabel } from "@/lib/calendar";
+import { byStartTime, dayLabel, isRecurring, recurrenceLabel, timeLabel } from "@/lib/calendar";
 import { isPlaceholderText } from "@/lib/placeholder";
+import { cn } from "@/lib/utils";
 import type { AgendaEvent } from "@/types/profile";
 
 /** Lista + edição dos compromissos de um dia. Burro: só mostra e delega. */
 export function DayPanel({
   iso,
   events,
+  conflicts,
   editing,
   draft,
   pending,
   onDraftChange,
   onStartEdit,
   onStartCreate,
+  onDuplicate,
   onSave,
   onDelete,
+  onRemoveOccurrence,
   onCancel,
 }: {
   iso: string;
   events: AgendaEvent[];
+  /** Ids de compromissos que disputam o mesmo horário neste dia. */
+  conflicts: Set<string>;
   editing: boolean;
   draft: EventDraft | null;
   pending: boolean;
   onDraftChange: (draft: EventDraft) => void;
   onStartEdit: (event: AgendaEvent) => void;
   onStartCreate: () => void;
+  onDuplicate: (event: AgendaEvent) => void;
   onSave: () => void;
   onDelete: (id: string) => void;
+  onRemoveOccurrence: (event: AgendaEvent) => void;
   onCancel: () => void;
 }) {
   const ordered = byStartTime(events);
@@ -67,7 +75,10 @@ export function DayPanel({
       ) : (
         <ul className="space-y-2">
           {ordered.map((event) => (
-            <li key={event.id} className="event-row">
+            <li
+              key={event.id}
+              className={cn("event-row group", conflicts.has(event.id) && "event-row-conflict")}
+            >
               <span className="event-time">{timeLabel(event.start_time)}</span>
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
@@ -79,32 +90,61 @@ export function DayPanel({
                   )}
                   {isPlaceholderText(event.title) ? "" : event.title}
                 </p>
-                {(event.location || event.notes) && (
-                  <p className="mt-0.5 flex items-center gap-2 truncate text-xs text-muted-foreground">
-                    {event.location && (
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="size-3" />
-                        {event.location}
-                      </span>
-                    )}
-                    {event.end_time && (
-                      <span className="inline-flex items-center gap-1">
-                        <Clock3 className="size-3" />
-                        até {timeLabel(event.end_time)}
-                      </span>
-                    )}
-                  </p>
-                )}
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  {event.end_time && (
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 className="size-3" />
+                      até {timeLabel(event.end_time)}
+                    </span>
+                  )}
+                  {event.location && (
+                    <span className="inline-flex items-center gap-1 truncate">
+                      <MapPin className="size-3" />
+                      {event.location}
+                    </span>
+                  )}
+                  {isRecurring(event) && (
+                    <span className="text-faint">{recurrenceLabel(event.recurrence)}</span>
+                  )}
+                  {conflicts.has(event.id) && (
+                    <span className="inline-flex items-center gap-1 text-destructive">
+                      <AlertTriangle className="size-3" />
+                      Conflito de horário
+                    </span>
+                  )}
+                </p>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-8 shrink-0"
-                aria-label={`Editar ${event.title}`}
-                onClick={() => onStartEdit(event)}
-              >
-                <Pencil className="size-3.5" />
-              </Button>
+              <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-8"
+                  aria-label={`Duplicar ${event.title}`}
+                  onClick={() => onDuplicate(event)}
+                >
+                  <Copy className="size-3.5" />
+                </Button>
+                {isRecurring(event) && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-8"
+                    aria-label={`Remover ${event.title} só deste dia`}
+                    onClick={() => onRemoveOccurrence(event)}
+                  >
+                    <CalendarX className="size-3.5" />
+                  </Button>
+                )}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-8"
+                  aria-label={`Editar ${event.title}`}
+                  onClick={() => onStartEdit(event)}
+                >
+                  <Pencil className="size-3.5" />
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

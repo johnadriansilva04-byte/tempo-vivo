@@ -1,7 +1,17 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
 import { DayPanel } from "@/components/agenda/day-panel";
@@ -20,9 +30,11 @@ import {
 import {
   MONTHS,
   addDays,
+  conflictsFor,
   eventsByDayInRange,
   fromIso,
   monthGrid,
+  skipOccurrence,
   toIso,
   weekDays,
 } from "@/lib/calendar";
@@ -54,6 +66,8 @@ export function AgendaPage() {
   const [anchor, setAnchor] = useState(today);
   const [selected, setSelected] = useState(today);
   const [draft, setDraft] = useState<EventDraft | null>(null);
+  // Compromisso aberto no diálogo de exclusão (repetido oferece duas opções).
+  const [pendingDelete, setPendingDelete] = useState<AgendaEvent | null>(null);
 
   // Intervalo visível de cada visão — as repetições só são expandidas aqui.
   const range = useMemo<[string, string]>(() => {
@@ -75,6 +89,12 @@ export function AgendaPage() {
 
   const selectedEvents = eventsByDay.get(selected) ?? [];
 
+  // Compromissos que disputam horário no dia aberto — sinalizados na lista.
+  const conflicts = useMemo(
+    () => new Set(conflictsFor(events, selected).map((e) => e.id)),
+    [events, selected],
+  );
+
   // Conta ocorrências (repetidos aparecem em cada dia), não definições.
   const occurrenceCount = useMemo(
     () => [...eventsByDay.values()].reduce((sum, list) => sum + list.length, 0),
@@ -93,13 +113,28 @@ export function AgendaPage() {
     });
   };
 
-  const confirmDelete = (id: string) => {
-    remove.mutate(id, {
+  const removeEvent = (event: AgendaEvent) => {
+    remove.mutate(event.id, {
       onSuccess: () => {
         setDraft(null);
+        setPendingDelete(null);
         toast.success("Compromisso excluído.");
       },
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível excluir."),
     });
+  };
+
+  /** Marca só `selected` fora de uma série — vira uma folga, sem apagar o resto. */
+  const removeOccurrence = (event: AgendaEvent) => {
+    save.mutate(skipOccurrence(event, selected), {
+      onSuccess: () => toast.success("Dia removido da série."),
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível atualizar."),
+    });
+  };
+
+  const duplicate = (event: AgendaEvent) => {
+    const { id: _omit, ...rest } = draftFromEvent(event);
+    setDraft({ ...emptyEventDraft(selected), ...rest, title: `${event.title} (cópia)` });
   };
 
   const startCreate = (date: string) => {
@@ -113,14 +148,20 @@ export function AgendaPage() {
     <DayPanel
       iso={selected}
       events={selectedEvents}
+      conflicts={conflicts}
       editing={draft !== null}
       draft={draft}
       pending={save.isPending || remove.isPending}
       onDraftChange={setDraft}
       onStartEdit={(event) => setDraft(draftFromEvent(event))}
       onStartCreate={() => startCreate(selected)}
+      onDuplicate={duplicate}
       onSave={() => draft && persist(eventFromDraft(draft))}
-      onDelete={confirmDelete}
+      onDelete={(id) => {
+        const event = events.find((e) => e.id === id) ?? null;
+        if (event) setPendingDelete(event);
+      }}
+      onRemoveOccurrence={removeOccurrence}
       onCancel={() => setDraft(null)}
     />
   );
@@ -135,26 +176,21 @@ export function AgendaPage() {
             : undefined
         }
         action={
-          <div className="flex items-center gap-2">
-            <div className="segmented" role="group" aria-label="Período da agenda">
-              {VIEWS.map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={cn(view === id && "selected")}
-                  aria-pressed={view === id}
-                  onClick={() => {
-                    setView(id);
-                    if (id === "mes") setAnchor(selected);
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <Button size="sm" onClick={() => startCreate(selected)}>
-              <Plus className="size-3.5" /> Evento
-            </Button>
+          <div className="segmented" role="group" aria-label="Período da agenda">
+            {VIEWS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={cn(view === id && "selected")}
+                aria-pressed={view === id}
+                onClick={() => {
+                  setView(id);
+                  if (id === "mes") setAnchor(selected);
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         }
       />
@@ -307,6 +343,39 @@ export function AgendaPage() {
           )}
         </div>
       )}
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir “{pendingDelete?.title}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete && (pendingDelete.recurrence?.days.length ?? 0) > 0
+                ? "Este compromisso se repete. Você pode tirar só este dia ou excluir a série inteira."
+                : "Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            {pendingDelete && (pendingDelete.recurrence?.days.length ?? 0) > 0 && (
+              <AlertDialogAction
+                onClick={() => removeOccurrence(pendingDelete)}
+                className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              >
+                Só este dia
+              </AlertDialogAction>
+            )}
+            <AlertDialogAction
+              onClick={() => pendingDelete && removeEvent(pendingDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {(pendingDelete?.recurrence?.days.length ?? 0) > 0 ? "Série inteira" : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

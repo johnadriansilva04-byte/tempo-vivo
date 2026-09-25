@@ -74,4 +74,24 @@ describe("repetição no rascunho", () => {
     expect(sameDays([1, 2, 3], [3, 2, 1])).toBe(true);
     expect(sameDays([1, 2], [1, 2, 3])).toBe(false);
   });
+
+  it("sem folgas, a repetição não carrega a chave skip", () => {
+    const rec = eventFromDraft({
+      ...emptyEventDraft("2026-09-21"),
+      title: "Trabalho",
+      repeatDays: [1],
+    }).recurrence;
+    expect(rec).toEqual({ days: [1], until: "" });
+  });
+
+  it("folgas entram ordenadas e sobrevivem à ida e volta", () => {
+    const event = eventFromDraft({
+      ...emptyEventDraft("2026-09-21"),
+      title: "Trabalho",
+      repeatDays: [1],
+      repeatSkip: ["2026-10-12", "2026-09-28"],
+    });
+    expect(event.recurrence?.skip).toEqual(["2026-09-28", "2026-10-12"]);
+    expect(draftFromEvent(event).repeatSkip).toEqual(["2026-09-28", "2026-10-12"]);
+  });
 });
