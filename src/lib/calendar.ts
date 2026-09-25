@@ -214,6 +214,83 @@ export function recurrenceLabel(recurrence: { days: number[] } | null | undefine
   return [...names.slice(0, -1), last].join(" e ");
 }
 
+/** "2026-09-25" → "25/09". Vazio se a data não estiver completa. */
+export function shortIso(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
+/** Último dia do mês de `iso` (o mês já vem no formato da grade). */
+export function lastDayOfMonth(iso: string): string {
+  const d = fromIso(iso);
+  d.setMonth(d.getMonth() + 1, 0);
+  return toIso(d);
+}
+
+/** 31 de dezembro do ano de `iso`. */
+export function lastDayOfYear(iso: string): string {
+  return `${iso.slice(0, 4)}-12-31`;
+}
+
+/**
+ * Sequência curta dos dias da semana — "seg a dom", "seg, qua e sex".
+ * Complementa `recurrenceLabel`, que usa o vocabulário do produto ("Todo dia").
+ */
+export function daysPhrase(days: number[]): string {
+  const sorted = [...new Set(days)].sort((a, b) => a - b);
+  if (sorted.length === 7) return "seg a dom";
+  if (sorted.length === 0) return "";
+  const short = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  const ordered = [1, 2, 3, 4, 5, 6, 0].filter((d) => sorted.includes(d));
+  const labels = ordered.map((d) => short[d] ?? "");
+  // Sequência contínua vira intervalo: seg, ter, qua → "seg a qua".
+  const consecutive = ordered.every((d, i) =>
+    i === 0 ? true : ordered[i - 1]! === d - 1 || (ordered[i - 1] === 6 && d === 0),
+  );
+  if (consecutive && ordered.length > 2) {
+    return `${labels[0]} a ${labels[labels.length - 1]}`;
+  }
+  if (ordered.length === 2) return `${labels[0]} e ${labels[1]}`;
+  return [...labels.slice(0, -1), labels[labels.length - 1]].join(", ");
+}
+
+/**
+ * Frase completa do padrão: "Seg a dom, até 31/12/2026", "Dias úteis, sem fim".
+ * É o que o usuário lê fechado, sem abrir nada.
+ */
+export function recurrenceSentence(
+  recurrence: RecurrenceLike | null | undefined,
+  from: string,
+): string {
+  const days = recurrence?.days ?? [];
+  if (days.length === 0) return "";
+  const base = days.length === 7 ? "Seg a dom" : capitalize(daysPhrase(days));
+  const until = recurrence?.until ?? "";
+  const skipCount = recurrence?.skip?.length ?? 0;
+  const window =
+    until === ""
+      ? "sem fim"
+      : until >= lastDayOfYear(from)
+        ? `todo o ano de ${from.slice(0, 4)}`
+        : until === lastDayOfMonth(from)
+          ? "até o fim do mês"
+          : `até ${shortIso(until)}`;
+  const folgas = skipCount > 0 ? ` · ${skipCount} folga${skipCount > 1 ? "s" : ""}` : "";
+  return `${base}, ${window}${folgas}`;
+}
+
+/**
+ * Densidade de um dia para a célula do calendário: 0 vazio, 1 leve, 2 cheio,
+ * 3 lotado. A UI decide quantos chips mostrar sem deixar a linha crescer.
+ */
+export function dayDensity(count: number): 0 | 1 | 2 | 3 {
+  if (count === 0) return 0;
+  if (count <= 2) return 1;
+  if (count <= 5) return 2;
+  return 3;
+}
+
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

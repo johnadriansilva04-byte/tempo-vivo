@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
+import { DaySheet } from "@/components/agenda/day-sheet";
 import { DayPanel } from "@/components/agenda/day-panel";
 import { MonthGrid } from "@/components/agenda/month-grid";
 import {
@@ -34,7 +35,9 @@ import {
   eventsByDayInRange,
   fromIso,
   monthGrid,
+  nextEventAt,
   skipOccurrence,
+  timeLabel,
   toIso,
   weekDays,
 } from "@/lib/calendar";
@@ -55,7 +58,10 @@ function shiftMonth(iso: string, delta: number): string {
   return toIso(d);
 }
 
-/** Agenda = calendário real: ver os compromissos e agir sobre eles. */
+/**
+ * Agenda = calendário compacto + painel do dia. O mês cabe na tela; clicar num
+ * dia abre a gaveta com as atividades daquele dia — nada de coluna fixa.
+ */
 export function AgendaPage() {
   const { events, isLoading, error } = useAgendaEvents();
   const save = useSaveAgendaEvent();
@@ -65,8 +71,8 @@ export function AgendaPage() {
   const [view, setView] = useState<View>("mes");
   const [anchor, setAnchor] = useState(today);
   const [selected, setSelected] = useState(today);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [draft, setDraft] = useState<EventDraft | null>(null);
-  // Compromisso aberto no diálogo de exclusão (repetido oferece duas opções).
   const [pendingDelete, setPendingDelete] = useState<AgendaEvent | null>(null);
 
   // Intervalo visível de cada visão — as repetições só são expandidas aqui.
@@ -88,24 +94,27 @@ export function AgendaPage() {
   );
 
   const selectedEvents = eventsByDay.get(selected) ?? [];
+  const todayEvents = eventsByDay.get(today) ?? [];
+  const next = useMemo(
+    () => nextEventAt(events, today, new Date().toTimeString().slice(0, 5)),
+    [events, today],
+  );
 
-  // Compromissos que disputam horário no dia aberto — sinalizados na lista.
   const conflicts = useMemo(
     () => new Set(conflictsFor(events, selected).map((e) => e.id)),
     [events, selected],
   );
 
-  // Conta ocorrências (repetidos aparecem em cada dia), não definições.
   const occurrenceCount = useMemo(
     () => [...eventsByDay.values()].reduce((sum, list) => sum + list.length, 0),
     [eventsByDay],
   );
 
-  const persist = (next: AgendaEvent) => {
-    save.mutate(next, {
+  const persist = (nextEvent: AgendaEvent) => {
+    save.mutate(nextEvent, {
       onSuccess: () => {
-        setSelected(next.event_date);
-        setAnchor(next.event_date);
+        setSelected(nextEvent.event_date);
+        setAnchor(nextEvent.event_date);
         setDraft(null);
         toast.success("Compromisso salvo.");
       },
@@ -140,6 +149,12 @@ export function AgendaPage() {
   const startCreate = (date: string) => {
     setSelected(date);
     setDraft(emptyEventDraft(date));
+    setSheetOpen(true);
+  };
+
+  const openDay = (date: string) => {
+    setSelected(date);
+    setSheetOpen(true);
   };
 
   const monthLabel = `${MONTHS[fromIso(anchor).getMonth()]} ${fromIso(anchor).getFullYear()}`;
@@ -152,6 +167,7 @@ export function AgendaPage() {
       editing={draft !== null}
       draft={draft}
       pending={save.isPending || remove.isPending}
+      showHeader
       onDraftChange={setDraft}
       onStartEdit={(event) => setDraft(draftFromEvent(event))}
       onStartCreate={() => startCreate(selected)}
@@ -166,6 +182,33 @@ export function AgendaPage() {
     />
   );
 
+  const monthNav = (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        aria-label="Mês anterior"
+        onClick={() => {
+          const prev = shiftMonth(anchor, -1);
+          setAnchor(prev);
+        }}
+      >
+        <ChevronLeft className="size-4" />
+      </Button>
+      <p className="font-display text-sm font-semibold capitalize">{monthLabel}</p>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-8"
+        aria-label="Próximo mês"
+        onClick={() => setAnchor((a) => shiftMonth(a, 1))}
+      >
+        <ChevronRight className="size-4" />
+      </Button>
+    </div>
+  );
+
   return (
     <>
       <PageHeader
@@ -176,21 +219,26 @@ export function AgendaPage() {
             : undefined
         }
         action={
-          <div className="segmented" role="group" aria-label="Período da agenda">
-            {VIEWS.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={cn(view === id && "selected")}
-                aria-pressed={view === id}
-                onClick={() => {
-                  setView(id);
-                  if (id === "mes") setAnchor(selected);
-                }}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <div className="segmented hidden sm:flex" role="group" aria-label="Período da agenda">
+              {VIEWS.map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={cn(view === id && "selected")}
+                  aria-pressed={view === id}
+                  onClick={() => {
+                    setView(id);
+                    if (id === "mes") setAnchor(selected);
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <Button size="sm" onClick={() => startCreate(selected)}>
+              <Plus className="size-3.5" /> Novo
+            </Button>
           </div>
         }
       />
@@ -210,126 +258,107 @@ export function AgendaPage() {
           }
         />
       ) : view === "mes" ? (
-        <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-          <div>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  aria-label="Mês anterior"
-                  onClick={() => setAnchor((a) => shiftMonth(a, -1))}
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8"
-                  aria-label="Próximo mês"
-                  onClick={() => setAnchor((a) => shiftMonth(a, 1))}
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-              <p className="font-display text-sm font-semibold capitalize">{monthLabel}</p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs"
-                onClick={() => {
-                  setAnchor(today);
-                  setSelected(today);
-                }}
-              >
-                Hoje
-              </Button>
-            </div>
-            <MonthGrid
-              iso={anchor}
-              selected={selected}
-              today={today}
-              eventsByDay={eventsByDay}
-              onSelect={(iso) => {
-                setSelected(iso);
-                if (!draft) return;
-                setDraft({ ...draft, event_date: iso });
-              }}
-            />
-          </div>
-          <aside className="lg:border-l lg:border-border lg:pl-6">{dayPanel}</aside>
+        <div className="mx-auto max-w-3xl">
+          {next && (
+            <button
+              type="button"
+              onClick={() => openDay(next.event_date)}
+              className="mb-3 flex w-full items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-left transition-colors hover:border-primary/40"
+            >
+              <span className="text-[0.7rem] font-semibold uppercase tracking-wide text-faint">
+                A seguir
+              </span>
+              <span className="font-display text-sm font-semibold text-accent-foreground">
+                {timeLabel(next.start_time)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm text-foreground">{next.title}</span>
+              <span className="text-xs capitalize text-muted-foreground">
+                {next.event_date === today ? "hoje" : shortDay(next.event_date)}
+              </span>
+            </button>
+          )}
+          {monthNav}
+          <MonthGrid
+            iso={anchor}
+            selected={selected}
+            today={today}
+            eventsByDay={eventsByDay}
+            onSelect={openDay}
+          />
+          {todayEvents.length > 0 && (
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Hoje: {todayEvents.length} {plural(todayEvents.length, "compromisso", "compromissos")}{" "}
+              · toque num dia para ver tudo
+            </p>
+          )}
         </div>
       ) : view === "semana" ? (
-        <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-          <div>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-label="Semana anterior"
-                onClick={() => setAnchor((a) => addDays(a, -7))}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <p className="font-display text-sm font-semibold capitalize">{monthLabel}</p>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-label="Próxima semana"
-                onClick={() => setAnchor((a) => addDays(a, 7))}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {weekDays(anchor).map((iso) => {
-                const dayEvents = eventsByDay.get(iso) ?? [];
-                const d = fromIso(iso);
-                return (
-                  <button
-                    key={iso}
-                    type="button"
-                    onClick={() => setSelected(iso)}
-                    className={cn(
-                      "flex w-full items-start gap-4 rounded-lg border border-border p-3 text-left transition-colors hover:border-primary/40",
-                      iso === selected && "border-primary/60",
-                      iso === today && "bg-primary/5",
-                    )}
-                  >
-                    <div className="w-16 shrink-0">
-                      <p className="font-display text-sm font-semibold capitalize">
-                        {d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {d.getDate()} {MONTHS[d.getMonth()]?.slice(0, 3).toLowerCase()}
-                      </p>
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      {dayEvents.length === 0 ? (
-                        <p className="text-sm text-faint">Sem compromissos.</p>
-                      ) : (
-                        dayEvents.map((event) => (
-                          <p key={event.id} className="truncate text-sm">
-                            <span className="font-semibold text-accent-foreground">
-                              {event.start_time.slice(0, 5)}
-                            </span>{" "}
-                            {event.title}
-                          </p>
-                        ))
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label="Semana anterior"
+              onClick={() => setAnchor((a) => addDays(a, -7))}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <p className="font-display text-sm font-semibold capitalize">{monthLabel}</p>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label="Próxima semana"
+              onClick={() => setAnchor((a) => addDays(a, 7))}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
           </div>
-          <aside className="lg:border-l lg:border-border lg:pl-6">{dayPanel}</aside>
+          <div className="space-y-2">
+            {weekDays(anchor).map((iso) => {
+              const dayEvents = eventsByDay.get(iso) ?? [];
+              const d = fromIso(iso);
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  onClick={() => openDay(iso)}
+                  className={cn(
+                    "flex w-full items-start gap-4 rounded-lg border border-border p-3 text-left transition-colors hover:border-primary/40",
+                    iso === selected && "border-primary/60",
+                    iso === today && "bg-primary/5",
+                  )}
+                >
+                  <div className="w-16 shrink-0">
+                    <p className="font-display text-sm font-semibold capitalize">
+                      {d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {d.getDate()} {MONTHS[d.getMonth()]?.slice(0, 3).toLowerCase()}
+                    </p>
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    {dayEvents.length === 0 ? (
+                      <p className="text-sm text-faint">Sem compromissos.</p>
+                    ) : (
+                      dayEvents.map((event) => (
+                        <p key={event.id} className="truncate text-sm">
+                          <span className="font-semibold text-accent-foreground">
+                            {event.start_time.slice(0, 5)}
+                          </span>{" "}
+                          {event.title}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       ) : (
-        <div className="mx-auto max-w-xl">
+        <div className="mx-auto max-w-xl rounded-lg border border-border bg-card p-5">
           {selectedEvents.length === 0 && !draft ? (
             <EmptyState
               icon={<CalendarDays className="size-5" />}
@@ -339,10 +368,35 @@ export function AgendaPage() {
               onAction={() => startCreate(today)}
             />
           ) : (
-            <div className="rounded-lg border border-border bg-card p-5">{dayPanel}</div>
+            dayPanel
           )}
         </div>
       )}
+
+      <DaySheet
+        open={sheetOpen}
+        iso={selected}
+        events={selectedEvents}
+        conflicts={conflicts}
+        editing={draft !== null}
+        draft={draft}
+        pending={save.isPending || remove.isPending}
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) setDraft(null);
+        }}
+        onDraftChange={setDraft}
+        onStartEdit={(event) => setDraft(draftFromEvent(event))}
+        onStartCreate={() => startCreate(selected)}
+        onDuplicate={duplicate}
+        onSave={() => draft && persist(eventFromDraft(draft))}
+        onDelete={(id) => {
+          const event = events.find((e) => e.id === id) ?? null;
+          if (event) setPendingDelete(event);
+        }}
+        onRemoveOccurrence={removeOccurrence}
+        onCancel={() => setDraft(null)}
+      />
 
       <AlertDialog
         open={pendingDelete !== null}
@@ -378,4 +432,10 @@ export function AgendaPage() {
       </AlertDialog>
     </>
   );
+}
+
+/** "2026-09-26" → "sáb 26". Vazio se a data não estiver completa. */
+function shortDay(iso: string): string {
+  const d = fromIso(iso);
+  return d.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" }).replace(".", "");
 }

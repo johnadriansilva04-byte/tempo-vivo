@@ -1619,14 +1619,17 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
 }
+/* Altura fixa por dia: o mês inteiro cabe na tela, sem esticar a linha. */
 @utility calendar-day {
+  position: relative;
   display: flex;
-  min-height: 6.5rem;
+  height: 4.9rem;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
+  overflow: hidden;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 0.5rem;
+  padding: 0.35rem 0.4rem;
   text-align: left;
   background: var(--card);
   cursor: pointer;
@@ -1635,8 +1638,42 @@
     border-right: 0;
   }
   &:hover {
-    background: color-mix(in oklab, var(--primary) 6%, var(--card));
+    background: color-mix(in oklab, var(--primary) 7%, var(--card));
   }
+}
+@utility calendar-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+@utility calendar-day-count {
+  min-width: 1.1rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
+  padding: 0 0.3rem;
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent-foreground);
+}
+/* Faixa de densidade no pé da célula: mostra "cheio" sem escrever nada. */
+@utility calendar-density {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.5;
+}
+@utility calendar-day-d1 {
+  color: color-mix(in oklab, var(--primary) 45%, transparent);
+}
+@utility calendar-day-d2 {
+  color: color-mix(in oklab, var(--primary) 70%, transparent);
+}
+@utility calendar-day-d3 {
+  color: var(--primary);
 }
 @utility calendar-day-out {
   background: color-mix(in oklab, var(--muted) 55%, var(--card));
@@ -1649,8 +1686,8 @@
   background: color-mix(in oklab, var(--primary) 8%, var(--card));
   .calendar-day-number {
     display: grid;
-    height: 1.5rem;
-    width: 1.5rem;
+    height: 1.35rem;
+    width: 1.35rem;
     place-items: center;
     border-radius: 999px;
     background: var(--primary);
@@ -1662,7 +1699,7 @@
   box-shadow: inset 0 0 0 2px var(--primary);
 }
 @utility calendar-day-number {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--foreground);
 }
@@ -1670,18 +1707,18 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 @utility calendar-event {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.25rem;
   overflow: hidden;
-  border-radius: 0.25rem;
+  border-radius: 0.2rem;
   border-left: 2px solid var(--primary);
   background: color-mix(in oklab, var(--primary) 12%, transparent);
-  padding: 0.1rem 0.3rem;
-  font-size: 0.65rem;
-  line-height: 1.35;
+  padding: 0.05rem 0.25rem;
+  font-size: 0.6rem;
+  line-height: 1.3;
   color: var(--foreground);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1692,7 +1729,8 @@
   }
 }
 @utility calendar-more {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
+  font-weight: 600;
   color: var(--faint);
 }
 

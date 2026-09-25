@@ -2,15 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   conflictsFor,
+  dayDensity,
   dayLabel,
+  daysPhrase,
   eventsByDayInRange,
   fromIso,
   isValidTimeRange,
+  lastDayOfMonth,
+  lastDayOfYear,
   monthGrid,
   nextEventAt,
   occursOn,
   occurrencesInRange,
   recurrenceLabel,
+  recurrenceSentence,
+  shortIso,
   skipOccurrence,
   startOfWeek,
   toIso,
@@ -361,5 +367,78 @@ describe("conflictsFor", () => {
     ).toEqual(["dentista", "escala"]);
     // Terça: nada colide.
     expect(conflictsFor([escala, dentista], "2026-09-29")).toEqual([]);
+  });
+});
+
+describe("shortIso / limites", () => {
+  it("encurta a data", () => {
+    expect(shortIso("2026-12-31")).toBe("31/12");
+    expect(shortIso("")).toBe("");
+  });
+
+  it("acha o fim do mês e do ano", () => {
+    expect(lastDayOfMonth("2026-09-25")).toBe("2026-09-30");
+    expect(lastDayOfMonth("2026-02-10")).toBe("2026-02-28");
+    expect(lastDayOfMonth("2028-02-10")).toBe("2028-02-29");
+    expect(lastDayOfYear("2026-09-25")).toBe("2026-12-31");
+  });
+});
+
+describe("daysPhrase", () => {
+  it("usa intervalo para sequência contínua", () => {
+    expect(daysPhrase([0, 1, 2, 3, 4, 5, 6])).toBe("seg a dom");
+    expect(daysPhrase([1, 2, 3])).toBe("seg a qua");
+    expect(daysPhrase([1, 2, 3, 4, 5])).toBe("seg a sex");
+  });
+
+  it("usa e/lista quando não é contínuo", () => {
+    expect(daysPhrase([1, 3])).toBe("seg e qua");
+    expect(daysPhrase([1, 3, 5])).toBe("seg, qua, sex");
+  });
+
+  it("é vazio sem dias", () => {
+    expect(daysPhrase([])).toBe("");
+  });
+});
+
+describe("recurrenceSentence", () => {
+  it("descreve a escala da noite, o ano inteiro", () => {
+    expect(
+      recurrenceSentence({ days: [0, 1, 2, 3, 4, 5, 6], until: "2026-12-31" }, "2026-09-25"),
+    ).toBe("Seg a dom, todo o ano de 2026");
+  });
+
+  it("reconhece fim do mês e sem fim", () => {
+    expect(recurrenceSentence({ days: [1, 2, 3, 4, 5], until: "2026-09-30" }, "2026-09-25")).toBe(
+      "Seg a sex, até o fim do mês",
+    );
+    expect(recurrenceSentence({ days: [1, 2, 3, 4, 5], until: "" }, "2026-09-25")).toBe(
+      "Seg a sex, sem fim",
+    );
+  });
+
+  it("conta as folgas", () => {
+    expect(
+      recurrenceSentence(
+        { days: [0, 1, 2, 3, 4, 5, 6], until: "", skip: ["2026-09-25"] },
+        "2026-09-25",
+      ),
+    ).toBe("Seg a dom, sem fim · 1 folga");
+  });
+
+  it("é vazio sem repetição", () => {
+    expect(recurrenceSentence(null, "2026-09-25")).toBe("");
+    expect(recurrenceSentence({ days: [], until: "" }, "2026-09-25")).toBe("");
+  });
+});
+
+describe("dayDensity", () => {
+  it("cresce com a quantidade de compromissos", () => {
+    expect(dayDensity(0)).toBe(0);
+    expect(dayDensity(1)).toBe(1);
+    expect(dayDensity(2)).toBe(1);
+    expect(dayDensity(3)).toBe(2);
+    expect(dayDensity(5)).toBe(2);
+    expect(dayDensity(6)).toBe(3);
   });
 });

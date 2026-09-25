@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarClock, MapPin, Repeat } from "lucide-react";
+import { CalendarClock, MapPin, Repeat, Wand2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,8 @@ import {
   sameDays,
   type EventDraft,
 } from "@/components/agenda/draft";
-import { isValidTimeRange, recurrenceLabel } from "@/lib/calendar";
+import { SCALE_TEMPLATES, SCALE_WINDOWS, escalaPlan, type ScaleWindow } from "@/lib/escala";
+import { isValidTimeRange, recurrenceSentence, shortIso } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 
 /** "2026-09-25" → "sexta, 25 de setembro". Vazio se a data não estiver completa. */
@@ -20,13 +21,6 @@ function dateHint(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   const date = new Date(y!, (m ?? 1) - 1, d ?? 1);
   return date.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
-}
-
-/** "2026-12-31" → "31/12/2026". Vazio quando não há data. */
-function shortDate(iso: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
 }
 
 /** Formulário de compromisso. Sem lógica de dados: recebe, devolve e salva. */
@@ -61,6 +55,24 @@ export function EventForm({
     const has = draft.repeatDays.includes(day);
     set("repeatDays", has ? draft.repeatDays.filter((d) => d !== day) : [...draft.repeatDays, day]);
   };
+
+  /** Atalho de escala: preenche título, horário, dias e janela de uma vez. */
+  const applyScale = (templateId: string, window: ScaleWindow) => {
+    const template = SCALE_TEMPLATES.find((t) => t.id === templateId);
+    if (!template) return;
+    const plan = escalaPlan(template, draft.event_date, window);
+    onChange({
+      ...draft,
+      title: draft.title.trim() === "" ? template.title : draft.title,
+      start_time: template.start_time,
+      end_time: template.end_time,
+      repeatSkip: [],
+      ...plan,
+    });
+    setRepeatOpen(true);
+  };
+
+  const folgas = [...draft.repeatSkip].sort();
 
   return (
     <form
@@ -137,88 +149,159 @@ export function EventForm({
         title="Repetir"
         summary={
           repeating
-            ? `${recurrenceLabel({ days: draft.repeatDays })}${draft.repeatUntil ? ` até ${shortDate(draft.repeatUntil)}` : ""}`
+            ? recurrenceSentence(
+                { days: draft.repeatDays, until: draft.repeatUntil, skip: draft.repeatSkip },
+                draft.event_date,
+              )
             : "Uma vez, só neste dia"
         }
         open={repeatOpen}
         onOpenChange={setRepeatOpen}
       >
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-1.5">
-            {WEEKDAY_OPTIONS.map(([day, label]) => {
-              const active = draft.repeatDays.includes(day);
-              return (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Wand2 className="size-3.5" /> Escalas prontas
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {SCALE_TEMPLATES.map((template) => (
                 <button
-                  key={day}
+                  key={template.id}
                   type="button"
-                  aria-pressed={active}
-                  aria-label={label}
-                  onClick={() => toggleDay(day)}
-                  className={cn(
-                    "min-w-9 rounded-md border border-border px-2 py-1 text-xs font-medium transition-colors",
-                    active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:border-primary/40",
-                  )}
+                  title={template.hint}
+                  onClick={() => applyScale(template.id, "ano")}
+                  className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
                 >
-                  {label}
+                  {template.label}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            <p className="text-[0.7rem] text-faint">
+              Um toque preenche horário, dias e o ano inteiro. Ajuste depois, se quiser.
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            {REPEAT_PRESETS.map(([label, days]) => {
-              const active = sameDays(draft.repeatDays, days);
-              return (
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Dias da semana</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {WEEKDAY_OPTIONS.map(([day, label]) => {
+                const active = draft.repeatDays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    aria-pressed={active}
+                    aria-label={label}
+                    onClick={() => toggleDay(day)}
+                    className={cn(
+                      "min-w-9 rounded-md border border-border px-2 py-1 text-xs font-medium transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:border-primary/40",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {REPEAT_PRESETS.map(([label, days]) => {
+                const active = sameDays(draft.repeatDays, days);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => set("repeatDays", active ? [] : days)}
+                    className={cn(
+                      "rounded-md px-2 py-1 text-xs transition-colors",
+                      active
+                        ? "bg-secondary text-secondary-foreground"
+                        : "text-muted-foreground underline-offset-2 hover:underline",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              {repeating && (
                 <button
-                  key={label}
                   type="button"
-                  aria-pressed={active}
-                  onClick={() => set("repeatDays", active ? [] : days)}
-                  className={cn(
-                    "rounded-md px-2 py-1 text-xs transition-colors",
-                    active
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-muted-foreground underline-offset-2 hover:underline",
-                  )}
+                  onClick={() => {
+                    set("repeatDays", []);
+                    set("repeatSkip", []);
+                    set("repeatUntil", "");
+                  }}
+                  className="rounded-md px-2 py-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
                 >
-                  {label}
+                  Limpar
                 </button>
-              );
-            })}
-            {repeating && (
-              <button
-                type="button"
-                onClick={() => {
-                  set("repeatDays", []);
-                  set("repeatSkip", []);
-                }}
-                className="rounded-md px-2 py-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
-              >
-                Limpar
-              </button>
-            )}
+              )}
+            </div>
           </div>
 
           {repeating && (
-            <div className="space-y-1.5">
-              <Label htmlFor="ev-until" className="text-xs text-muted-foreground">
-                Repetir até (opcional)
-              </Label>
-              <Input
-                id="ev-until"
-                type="date"
-                min={draft.event_date}
-                value={draft.repeatUntil}
-                onChange={(e) => set("repeatUntil", e.target.value)}
-              />
-              {draft.repeatSkip.length > 0 && (
-                <p className="text-xs text-faint">
-                  {draft.repeatSkip.length} dia(s) de folga nesta série.
-                </p>
+            <>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Até quando</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {SCALE_WINDOWS.map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        const template =
+                          SCALE_TEMPLATES.find((t) => sameDays(t.days, draft.repeatDays)) ??
+                          SCALE_TEMPLATES[0]!;
+                        const plan = escalaPlan(template, draft.event_date, id);
+                        set("repeatUntil", plan.repeatUntil);
+                      }}
+                      className="rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <Input
+                  id="ev-until"
+                  type="date"
+                  aria-label="Repetir até"
+                  min={draft.event_date}
+                  value={draft.repeatUntil}
+                  onChange={(e) => set("repeatUntil", e.target.value)}
+                />
+              </div>
+
+              {folgas.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Folgas desta série</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {folgas.map((iso) => (
+                      <span
+                        key={iso}
+                        className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
+                      >
+                        {shortIso(iso)}
+                        <button
+                          type="button"
+                          aria-label={`Remover folga de ${shortIso(iso)}`}
+                          onClick={() =>
+                            set(
+                              "repeatSkip",
+                              draft.repeatSkip.filter((s) => s !== iso),
+                            )
+                          }
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </Disclosure>

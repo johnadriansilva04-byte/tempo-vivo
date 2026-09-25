@@ -15,6 +15,7 @@ export function DayPanel({
   editing,
   draft,
   pending,
+  showHeader = true,
   onDraftChange,
   onStartEdit,
   onStartCreate,
@@ -31,6 +32,8 @@ export function DayPanel({
   editing: boolean;
   draft: EventDraft | null;
   pending: boolean;
+  /** No painel lateral o título do dia já vive no cabeçalho da gaveta. */
+  showHeader?: boolean;
   onDraftChange: (draft: EventDraft) => void;
   onStartEdit: (event: AgendaEvent) => void;
   onStartCreate: () => void;
@@ -44,16 +47,11 @@ export function DayPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      {showHeader && (
         <h2 className="font-display text-base font-semibold capitalize text-foreground">
           {dayLabel(iso)}
         </h2>
-        {!editing && (
-          <Button size="sm" variant="outline" onClick={onStartCreate}>
-            <Plus className="size-3.5" /> Evento
-          </Button>
-        )}
-      </div>
+      )}
 
       {editing && draft && (
         <div className="rounded-lg border border-border bg-card p-4">
@@ -69,7 +67,7 @@ export function DayPanel({
       )}
 
       {ordered.length === 0 && !editing ? (
-        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
           Nenhum compromisso neste dia.
         </p>
       ) : (
@@ -148,6 +146,12 @@ export function DayPanel({
             </li>
           ))}
         </ul>
+      )}
+
+      {!editing && ordered.length > 0 && (
+        <Button size="sm" variant="outline" className="w-full" onClick={onStartCreate}>
+          <Plus className="size-3.5" /> Adicionar compromisso
+        </Button>
       )}
     </div>
   );
