@@ -1,10 +1,25 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
-import { useCareerChapters, useCreateCareerChapter } from "@/hooks/use-career-chapters";
+import {
+  useCareerChapters,
+  useCreateCareerChapter,
+  useDeleteCareerChapter,
+} from "@/hooks/use-career-chapters";
 import { isPlaceholderText, readableText } from "@/lib/placeholder";
 import type { CareerChapter } from "@/types/profile";
 
@@ -12,7 +27,9 @@ import type { CareerChapter } from "@/types/profile";
 export function ResumePage() {
   const { chapters, isLoading } = useCareerChapters();
   const create = useCreateCareerChapter();
+  const remove = useDeleteCareerChapter();
   const [open, setOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<CareerChapter | null>(null);
   const [draft, setDraft] = useState({ period: "", title: "", content: "" });
 
   const submit = () => {
@@ -21,7 +38,20 @@ export function ResumePage() {
       onSuccess: () => {
         setDraft({ period: "", title: "", content: "" });
         setOpen(false);
+        toast.success("Marco adicionado.");
       },
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar."),
+    });
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    remove.mutate(pendingDelete.id, {
+      onSuccess: () => {
+        setPendingDelete(null);
+        toast.success("Marco removido.");
+      },
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível remover."),
     });
   };
 
@@ -33,7 +63,9 @@ export function ResumePage() {
     <>
       <PageHeader
         title="Currículo"
-        detail="Linha do tempo da sua vida"
+        detail={
+          ordered.length > 0 ? `${ordered.length} marcos de vida` : "Linha do tempo da sua vida"
+        }
         action={
           <Button size="sm" onClick={() => setOpen(true)}>
             <Plus className="size-3.5" /> Marco
@@ -85,21 +117,56 @@ export function ResumePage() {
       ) : (
         <ol className="timeline max-w-2xl">
           {ordered.map((chapter) => (
-            <li className="timeline-entry" key={chapter.id}>
+            <li className="timeline-entry group" key={chapter.id}>
               <span className="timeline-dot" aria-hidden="true" />
-              <p className="timeline-year">
-                {isPlaceholderText(chapter.period) ? "" : chapter.period}
-              </p>
-              <p className="mt-0.5 text-sm font-medium text-foreground">
-                {readableText(chapter.title)}
-              </p>
-              {chapter.content.trim() !== "" && !isPlaceholderText(chapter.content) && (
-                <p className="mt-0.5 text-sm text-muted-foreground">{chapter.content}</p>
-              )}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="timeline-year">
+                    {isPlaceholderText(chapter.period) ? "" : chapter.period}
+                  </p>
+                  <p className="mt-0.5 text-sm font-medium text-foreground">
+                    {readableText(chapter.title)}
+                  </p>
+                  {chapter.content.trim() !== "" && !isPlaceholderText(chapter.content) && (
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {readableText(chapter.content)}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  aria-label={`Remover ${chapter.title}`}
+                  className="mt-1 shrink-0 opacity-60 transition-opacity hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                  onClick={() => setPendingDelete(chapter)}
+                >
+                  <X className="size-3.5 text-faint" />
+                </button>
+              </div>
             </li>
           ))}
         </ol>
       )}
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover “{pendingDelete?.title}”?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

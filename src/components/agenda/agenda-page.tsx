@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { getRouteApi } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +53,8 @@ const VIEWS: [View, string][] = [
   ["hoje", "Hoje"],
 ];
 
+const routeApi = getRouteApi("/agenda");
+
 function shiftMonth(iso: string, delta: number): string {
   const d = fromIso(iso);
   d.setMonth(d.getMonth() + delta, 1);
@@ -68,12 +71,21 @@ export function AgendaPage() {
   const remove = useDeleteAgendaEvent();
 
   const today = toIso(new Date());
+  const { dia } = routeApi.useSearch();
   const [view, setView] = useState<View>("mes");
-  const [anchor, setAnchor] = useState(today);
-  const [selected, setSelected] = useState(today);
+  const [anchor, setAnchor] = useState(dia ?? today);
+  const [selected, setSelected] = useState(dia ?? today);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [draft, setDraft] = useState<EventDraft | null>(null);
   const [pendingDelete, setPendingDelete] = useState<AgendaEvent | null>(null);
+
+  // Chegada com `?dia=`: pula direto para aquele dia e abre o painel.
+  useEffect(() => {
+    if (!dia) return;
+    setAnchor(dia);
+    setSelected(dia);
+    setSheetOpen(true);
+  }, [dia]);
 
   // Intervalo visível de cada visão — as repetições só são expandidas aqui.
   const range = useMemo<[string, string]>(() => {
@@ -158,6 +170,27 @@ export function AgendaPage() {
   };
 
   const monthLabel = `${MONTHS[fromIso(anchor).getMonth()]} ${fromIso(anchor).getFullYear()}`;
+  const isCurrentMonth = anchor.slice(0, 7) === today.slice(0, 7);
+  const weekDaysOfAnchor = weekDays(anchor);
+  const weekLabel = weekRangeLabel(weekDaysOfAnchor);
+  const isCurrentWeek = weekDaysOfAnchor.includes(today);
+
+  /** Volta o foco para hoje, em qualquer visão. */
+  const goToday = () => {
+    setSelected(today);
+    setAnchor(today);
+    setSheetOpen(false);
+  };
+
+  const switchView = (id: View) => {
+    setView(id);
+    if (id === "hoje") {
+      setSelected(today);
+      setAnchor(today);
+    } else if (id === "mes") {
+      setAnchor(selected);
+    }
+  };
 
   const dayPanel = (
     <DayPanel
@@ -196,7 +229,14 @@ export function AgendaPage() {
       >
         <ChevronLeft className="size-4" />
       </Button>
-      <p className="font-display text-sm font-semibold capitalize">{monthLabel}</p>
+      <div className="flex items-center gap-2">
+        <p className="font-display text-sm font-semibold capitalize">{monthLabel}</p>
+        {!isCurrentMonth && (
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={goToday}>
+            Hoje
+          </Button>
+        )}
+      </div>
       <Button
         variant="ghost"
         size="icon"
@@ -220,17 +260,14 @@ export function AgendaPage() {
         }
         action={
           <div className="flex items-center gap-2">
-            <div className="segmented hidden sm:flex" role="group" aria-label="Período da agenda">
+            <div className="segmented" role="group" aria-label="Período da agenda">
               {VIEWS.map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
                   className={cn(view === id && "selected")}
                   aria-pressed={view === id}
-                  onClick={() => {
-                    setView(id);
-                    if (id === "mes") setAnchor(selected);
-                  }}
+                  onClick={() => switchView(id)}
                 >
                   {label}
                 </button>
@@ -284,12 +321,18 @@ export function AgendaPage() {
             today={today}
             eventsByDay={eventsByDay}
             onSelect={openDay}
+            onMove={setSelected}
           />
           {todayEvents.length > 0 && (
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Hoje: {todayEvents.length} {plural(todayEvents.length, "compromisso", "compromissos")}{" "}
-              · toque num dia para ver tudo
-            </p>
+            <button
+              type="button"
+              onClick={() => openDay(today)}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              <span className="font-semibold text-foreground">Hoje</span>
+              {todayEvents.length} {plural(todayEvents.length, "compromisso", "compromissos")}
+              <span className="text-faint">· ver o dia</span>
+            </button>
           )}
         </div>
       ) : view === "semana" ? (
@@ -304,7 +347,14 @@ export function AgendaPage() {
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <p className="font-display text-sm font-semibold capitalize">{monthLabel}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-display text-sm font-semibold capitalize">{weekLabel}</p>
+              {!isCurrentWeek && (
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={goToday}>
+                  Hoje
+                </Button>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -316,7 +366,7 @@ export function AgendaPage() {
             </Button>
           </div>
           <div className="space-y-2">
-            {weekDays(anchor).map((iso) => {
+            {weekDaysOfAnchor.map((iso) => {
               const dayEvents = eventsByDay.get(iso) ?? [];
               const d = fromIso(iso);
               return (
@@ -438,4 +488,17 @@ export function AgendaPage() {
 function shortDay(iso: string): string {
   const d = fromIso(iso);
   return d.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric" }).replace(".", "");
+}
+
+/** "21 – 27 de setembro" — intervalo curto da semana visível. */
+function weekRangeLabel(days: string[]): string {
+  const first = days[0];
+  const last = days[days.length - 1];
+  if (!first || !last) return "";
+  const a = fromIso(first);
+  const b = fromIso(last);
+  const month = MONTHS[b.getMonth()]?.toLowerCase() ?? "";
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()} – ${b.getDate()} de ${month}`
+    : `${a.getDate()} de ${MONTHS[a.getMonth()]?.toLowerCase()} – ${b.getDate()} de ${month}`;
 }

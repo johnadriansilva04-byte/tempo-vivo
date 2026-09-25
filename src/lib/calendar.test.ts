@@ -12,6 +12,7 @@ import {
   lastDayOfYear,
   monthGrid,
   nextEventAt,
+  nextOccurrenceAt,
   occursOn,
   occurrencesInRange,
   recurrenceLabel,
@@ -141,6 +142,38 @@ describe("nextEventAt", () => {
 
   it("devolve null quando não há nada adiante", () => {
     expect(nextEventAt([], "2026-09-25", "10:00")).toBeNull();
+  });
+});
+
+describe("nextOccurrenceAt", () => {
+  // Trabalho recorrente: toda segunda e sexta, das 18:00 às 22:00.
+  const trabalho = {
+    event_date: "2026-09-21",
+    start_time: "18:00",
+    end_time: "22:00",
+    recurrence: { days: [1, 5], until: "" },
+  };
+
+  it("devolve o dia da próxima ocorrência, não o início da série", () => {
+    // Quinta 2026-09-24 às 10:00 → a próxima sexta é 2026-09-25.
+    expect(nextOccurrenceAt([trabalho], "2026-09-24", "10:00")).toEqual({
+      event: trabalho,
+      date: "2026-09-25",
+    });
+  });
+
+  it("depois da ocorrência de hoje, aponta para a da semana seguinte", () => {
+    // Sexta 2026-09-25 às 23:00 → a série volta na segunda 2026-09-28.
+    expect(nextOccurrenceAt([trabalho], "2026-09-25", "23:00")?.date).toBe("2026-09-28");
+  });
+
+  it("evento único devolve a própria data", () => {
+    const unico = { event_date: "2026-10-02", start_time: "09:00", end_time: "10:00" };
+    expect(nextOccurrenceAt([unico], "2026-09-25", "10:00")?.date).toBe("2026-10-02");
+  });
+
+  it("sem nada adiante devolve null", () => {
+    expect(nextOccurrenceAt([], "2026-09-25", "10:00")).toBeNull();
   });
 });
 

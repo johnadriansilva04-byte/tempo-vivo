@@ -82,6 +82,18 @@ Mutação de dados sempre via hooks React Query (`use-agenda-events.ts`,
 `browser_get_content` pode devolver um snapshot em cache — confirme reatividade
 com `browser_get_state` (lista de elementos) em vez de conteúdo.
 
+Navegação tem fonte única: `components/nav-links.ts`. Sidebar e paleta de comando
+(⌘K) leem de lá — destino novo entra nos dois de uma vez. Links de navegação no
+corpo das telas usam `<Link>` do TanStack (não `window.location.href`, que
+recarrega a página); `EmptyState` aceita `to` para isso. A Agenda lê `?dia=`
+(`routes/agenda.tsx`) para abrir um dia específico — o Dashboard liga o próximo
+compromisso direto nesse dia.
+
+Ações destrutivas pedem confirmação via `AlertDialog` e mostram a lixeira também
+em toque (não só no hover do desktop). `use-projects`/`use-career-chapters`
+expõem `useDelete*`; excluir um projeto é por `name` (identidade lógica
+`user_id,name`), e renomear remove o registro antigo depois de gravar o novo.
+
 `lib/life-story.ts` e `lib/placeholder.ts` NÃO são resquício narrativo: o
 primeiro gera a vida inicial do onboarding e define os quatro `CYCLES` usados em
 Planejamento; o segundo interpreta textos `[entre colchetes]` gravados por contas

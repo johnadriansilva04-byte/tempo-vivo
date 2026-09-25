@@ -235,6 +235,11 @@ export const localRepository = {
     save(db);
     return project;
   },
+  removeProject(name: string): void {
+    const db = load();
+    db.projects = db.projects.filter((p) => p.name !== name);
+    save(db);
+  },
 
   getMilestones(): Milestone[] {
     return load().milestones;

@@ -1,10 +1,21 @@
 import { useState } from "react";
-import { FolderKanban, Link2, Plus } from "lucide-react";
+import { FolderKanban, Link2, Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PageHeader, PageSkeleton, ProgressBar } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
-import { useProjects, useUpsertProject } from "@/hooks/use-projects";
+import { useDeleteProject, useProjects, useUpsertProject } from "@/hooks/use-projects";
 import { isPlaceholderText, readableText } from "@/lib/placeholder";
 import type { Project } from "@/types/profile";
 
@@ -15,38 +26,70 @@ const STATUS_TONE: Record<string, string> = {
   Planejado: "status-neutral",
 };
 
+const STATUSES: Project["status"][] = ["Planejado", "Em andamento", "Pesquisa", "Concluído"];
+
+const EMPTY_DRAFT = {
+  name: "",
+  description: "",
+  status: "Planejado" as Project["status"],
+  progress: 0,
+  objective: "",
+  link: "",
+};
+
 /** Projetos: um cartão por iniciativa, com status, progresso e link. */
 export function ProjectsPage() {
   const { projects, isLoading } = useProjects();
   const upsert = useUpsertProject();
+  const remove = useDeleteProject();
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState({
-    name: "",
-    description: "",
-    status: "Planejado" as Project["status"],
-    progress: 0,
-    objective: "",
-    link: "",
-  });
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
+  /** Nome original quando se edita um projeto — vazio ao criar. */
+  const [editingName, setEditingName] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
+
+  const startCreate = () => {
+    setDraft(EMPTY_DRAFT);
+    setEditingName("");
+    setOpen(true);
+  };
+
+  const startEdit = (project: Project) => {
+    setDraft({ ...project });
+    setEditingName(project.name);
+    setOpen(true);
+  };
+
+  const close = () => {
+    setOpen(false);
+    setDraft(EMPTY_DRAFT);
+    setEditingName("");
+  };
 
   const submit = () => {
     if (!draft.name.trim()) return;
-    upsert.mutate(
-      { ...draft, name: draft.name.trim() },
-      {
-        onSuccess: () => {
-          setDraft({
-            name: "",
-            description: "",
-            status: "Planejado",
-            progress: 0,
-            objective: "",
-            link: "",
-          });
-          setOpen(false);
-        },
+    const next = { ...draft, name: draft.name.trim() };
+    // Renomear é trocar a identidade lógica: remove o registro antigo antes.
+    const renamed = editingName !== "" && editingName !== next.name;
+    upsert.mutate(next, {
+      onSuccess: async () => {
+        if (renamed) await remove.mutateAsync(editingName);
+        close();
+        toast.success(editingName ? "Projeto atualizado." : "Projeto criado.");
       },
-    );
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar."),
+    });
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    remove.mutate(pendingDelete.name, {
+      onSuccess: () => {
+        setPendingDelete(null);
+        toast.success("Projeto excluído.");
+      },
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível excluir."),
+    });
   };
 
   if (isLoading) return <PageSkeleton lines={1} rows={2} />;
@@ -57,7 +100,7 @@ export function ProjectsPage() {
         title="Projetos"
         detail={projects.length > 0 ? `${projects.length} em curso` : undefined}
         action={
-          <Button size="sm" onClick={() => setOpen(true)}>
+          <Button size="sm" onClick={startCreate}>
             <Plus className="size-3.5" /> Projeto
           </Button>
         }
@@ -75,12 +118,13 @@ export function ProjectsPage() {
             <select
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={draft.status}
-              onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+              onChange={(e) => setDraft({ ...draft, status: e.target.value as Project["status"] })}
             >
-              <option value="Planejado">Planejado</option>
-              <option value="Em andamento">Em andamento</option>
-              <option value="Pesquisa">Pesquisa</option>
-              <option value="Concluído">Concluído</option>
+              {STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
             </select>
             <Input
               value={draft.link}
@@ -94,11 +138,33 @@ export function ProjectsPage() {
             placeholder="Descrição curta"
             className="mt-3"
           />
+          <div className="mt-3 flex items-center gap-3">
+            <label className="flex flex-1 items-center gap-3 text-xs text-muted-foreground">
+              Progresso
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={draft.progress}
+                onChange={(e) => setDraft({ ...draft, progress: Number(e.target.value) })}
+                className="flex-1 accent-primary"
+                aria-label="Progresso do projeto"
+              />
+              <span className="w-9 text-right font-semibold text-foreground">
+                {draft.progress}%
+              </span>
+            </label>
+          </div>
           <div className="mt-3 flex gap-2">
-            <Button size="sm" onClick={submit} disabled={!draft.name.trim() || upsert.isPending}>
-              Salvar
+            <Button
+              size="sm"
+              onClick={submit}
+              disabled={!draft.name.trim() || upsert.isPending || remove.isPending}
+            >
+              {editingName ? "Salvar alterações" : "Salvar"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+            <Button size="sm" variant="ghost" onClick={close}>
               Cancelar
             </Button>
           </div>
@@ -111,17 +177,39 @@ export function ProjectsPage() {
           title="Nenhum projeto ainda"
           description="Crie o primeiro para acompanhar o avanço aqui."
           actionLabel="Criar projeto"
-          onAction={() => setOpen(true)}
+          onAction={startCreate}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {projects.map((project) => (
-            <article className="project-card flex flex-col" key={project.name}>
+            <article className="project-card group flex flex-col" key={project.name}>
               <div className="flex items-center justify-between gap-3">
                 <span className={`status ${STATUS_TONE[project.status] ?? "status-neutral"}`}>
                   {project.status}
                 </span>
-                <span className="text-xs font-medium">{project.progress}%</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-medium">{project.progress}%</span>
+                  <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-8"
+                      aria-label={`Editar ${project.name}`}
+                      onClick={() => startEdit(project)}
+                    >
+                      <Pencil className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-8"
+                      aria-label={`Excluir ${project.name}`}
+                      onClick={() => setPendingDelete(project)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
               </div>
               <h2 className="mt-4 font-display text-lg font-semibold">
                 {isPlaceholderText(project.name) ? "" : project.name}
@@ -153,6 +241,27 @@ export function ProjectsPage() {
           ))}
         </div>
       )}
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir “{pendingDelete?.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

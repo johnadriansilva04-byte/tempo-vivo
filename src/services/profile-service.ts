@@ -288,6 +288,16 @@ export async function createCareerChapter(input: Omit<CareerChapter, "id">): Pro
   localRepository.upsertCareerChapter({ id: newId(), ...input });
 }
 
+export async function deleteCareerChapter(id: string): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("career_chapters").delete().eq("id", id).eq("user_id", r.uid);
+    if (error) throw error;
+    return;
+  }
+  localRepository.removeCareerChapter(id);
+}
+
 // ----------------------------------------------------------------- Projects
 
 function fromRemoteProject(row: Record<string, unknown>): Project {
@@ -335,6 +345,17 @@ export async function upsertProject(project: Project): Promise<void> {
     return;
   }
   localRepository.upsertProject(project);
+}
+
+/** Remove um projeto pela identidade lógica (user_id, name). */
+export async function deleteProject(name: string): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("projects").delete().eq("user_id", r.uid).eq("name", name);
+    if (error) throw error;
+    return;
+  }
+  localRepository.removeProject(name);
 }
 
 // --------------------------------------------------------------- Milestones

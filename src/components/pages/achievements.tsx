@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { Check, Plus, Trophy, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
 import { useCreateMilestone, useDeleteMilestone, useMilestones } from "@/hooks/use-milestones";
 import { isPlaceholderText, readableText } from "@/lib/placeholder";
+import type { Milestone } from "@/types/profile";
 
 /** Vitrine de conquistas: cartão, ano, título e categoria. */
 export function AchievementsPage() {
@@ -13,6 +25,7 @@ export function AchievementsPage() {
   const create = useCreateMilestone();
   const remove = useDeleteMilestone();
   const [open, setOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Milestone | null>(null);
   const [draft, setDraft] = useState({
     year: String(new Date().getFullYear()),
     title: "",
@@ -27,9 +40,22 @@ export function AchievementsPage() {
         onSuccess: () => {
           setDraft({ ...draft, title: "" });
           setOpen(false);
+          toast.success("Conquista registrada.");
         },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar."),
       },
     );
+  };
+
+  const confirmDelete = () => {
+    if (!pendingDelete?.id) return;
+    remove.mutate(pendingDelete.id, {
+      onSuccess: () => {
+        setPendingDelete(null);
+        toast.success("Conquista removida.");
+      },
+      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível remover."),
+    });
   };
 
   if (isLoading) return <PageSkeleton lines={1} rows={2} />;
@@ -111,8 +137,8 @@ export function AchievementsPage() {
                 <button
                   type="button"
                   aria-label={`Remover ${milestone.title}`}
-                  className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                  onClick={() => remove.mutate(milestone.id!)}
+                  className="opacity-60 transition-opacity hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+                  onClick={() => setPendingDelete(milestone)}
                 >
                   <X className="size-3.5 text-faint" />
                 </button>
@@ -121,6 +147,27 @@ export function AchievementsPage() {
           ))}
         </div>
       )}
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover “{pendingDelete?.title}”?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

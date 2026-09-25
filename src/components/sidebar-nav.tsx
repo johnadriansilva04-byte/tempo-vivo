@@ -1,21 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import {
-  Activity,
-  BookOpen,
-  CalendarDays,
-  CircleUserRound,
-  Command,
-  Flag,
-  FolderKanban,
-  Gamepad2,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Settings,
-  Trophy,
-  Users,
-  X,
-} from "lucide-react";
+import { Activity, Command, LogOut, Menu, X } from "lucide-react";
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useProfile } from "@/hooks/use-profile";
 import { signOut, useAuth } from "@/hooks/use-auth";
@@ -24,19 +8,7 @@ import { formatPhone } from "@/lib/identity";
 import { CommandPalette } from "@/components/command-palette";
 import { useCommandShortcut } from "@/hooks/use-command-shortcut";
 import { useOverlayBehavior } from "@/hooks/use-overlay-behavior";
-
-const links = [
-  ["/", "Hoje", LayoutDashboard],
-  ["/agenda", "Agenda", CalendarDays],
-  ["/curriculo", "Currículo", BookOpen],
-  ["/realizacoes", "Realizações", Trophy],
-  ["/projetos", "Projetos", FolderKanban],
-  ["/planejamento", "Planejamento", Flag],
-  ["/sobre", "Perfil público", CircleUserRound],
-  ["/rede", "Rede", Users],
-  ["/jogos", "Jogos", Gamepad2],
-  ["/configuracoes", "Configurações", Settings],
-] as const;
+import { NAV_LINKS } from "@/components/nav-links";
 
 export function SidebarNav({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -78,7 +50,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {links.map(([to, label, Icon]) => (
+          {NAV_LINKS.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}

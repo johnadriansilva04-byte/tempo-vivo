@@ -336,6 +336,18 @@ export function nextEventAt<T extends Timed>(
   nowIso: string,
   nowTime: string,
 ): T | null {
+  return nextOccurrenceAt(events, nowIso, nowTime)?.event ?? null;
+}
+
+/**
+ * Como `nextEventAt`, mas devolve também o dia em que o compromisso cai.
+ * Para um evento repetido o dia é a próxima ocorrência, não o início da série.
+ */
+export function nextOccurrenceAt<T extends Timed>(
+  events: T[],
+  nowIso: string,
+  nowTime: string,
+): { event: T; date: string } | null {
   const nowMin = minutesOf(nowTime);
   const horizon = addDays(nowIso, RECURRENCE_HORIZON_DAYS);
   const candidates: { date: string; event: T }[] = [];
@@ -359,7 +371,7 @@ export function nextEventAt<T extends Timed>(
   candidates.sort(
     (a, b) => a.date.localeCompare(b.date) || a.event.start_time.localeCompare(b.event.start_time),
   );
-  return candidates[0]?.event ?? null;
+  return candidates[0] ?? null;
 }
 
 /**

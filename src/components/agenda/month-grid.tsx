@@ -1,13 +1,23 @@
-import { WEEKDAYS, dayDensity, monthGrid } from "@/lib/calendar";
+import { useRef } from "react";
+import { WEEKDAYS, addDays, dayDensity, monthGrid } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 import type { AgendaEvent } from "@/types/profile";
 
 /** Quantos chips cabem sem esticar a linha — o resto vira "+N". */
 const CHIPS = 2;
 
+/** Deslocamento em dias para cada seta do teclado. */
+const ARROW_STEP: Record<string, number> = {
+  ArrowLeft: -1,
+  ArrowRight: 1,
+  ArrowUp: -7,
+  ArrowDown: 7,
+};
+
 /**
  * Calendário mensal compacto: altura fixa por dia, poucos chips e um contador.
  * O objetivo é o mês inteiro caber na tela — o detalhe abre no painel do dia.
+ * Setas do teclado percorrem os dias; Enter abre o dia em foco.
  */
 export function MonthGrid({
   iso,
@@ -15,6 +25,7 @@ export function MonthGrid({
   today,
   eventsByDay,
   onSelect,
+  onMove,
 }: {
   /** Qualquer dia do mês exibido. */
   iso: string;
@@ -22,8 +33,19 @@ export function MonthGrid({
   today: string;
   eventsByDay: Map<string, AgendaEvent[]>;
   onSelect: (iso: string) => void;
+  /** Navegação por teclado: move o foco sem abrir o painel. */
+  onMove?: (iso: string) => void;
 }) {
   const cells = monthGrid(iso);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  const move = (fromIso: string, delta: number) => {
+    const next = addDays(fromIso, delta);
+    (onMove ?? onSelect)(next);
+    requestAnimationFrame(() => {
+      gridRef.current?.querySelector<HTMLButtonElement>(`[data-iso="${next}"]`)?.focus();
+    });
+  };
 
   return (
     <div className="calendar">
@@ -32,7 +54,7 @@ export function MonthGrid({
           <span key={`${label}-${i}`}>{label}</span>
         ))}
       </div>
-      <div className="calendar-grid">
+      <div className="calendar-grid" ref={gridRef}>
         {cells.map((cell) => {
           const dayEvents = eventsByDay.get(cell.iso) ?? [];
           const isToday = cell.iso === today;
@@ -42,7 +64,15 @@ export function MonthGrid({
             <button
               key={cell.iso}
               type="button"
+              data-iso={cell.iso}
+              tabIndex={isSelected ? 0 : -1}
               onClick={() => onSelect(cell.iso)}
+              onKeyDown={(e) => {
+                const delta = ARROW_STEP[e.key];
+                if (delta === undefined) return;
+                e.preventDefault();
+                move(cell.iso, delta);
+              }}
               aria-current={isToday ? "date" : undefined}
               aria-label={`${cell.day}, ${dayEvents.length} compromisso${dayEvents.length === 1 ? "" : "s"}`}
               className={cn(

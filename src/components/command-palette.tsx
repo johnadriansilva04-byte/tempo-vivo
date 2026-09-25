@@ -1,16 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import {
-  BookOpen,
-  CalendarDays,
-  CircleUserRound,
-  Flag,
-  FolderKanban,
-  Gamepad2,
-  LayoutDashboard,
-  LogOut,
-  Settings,
-  Trophy,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -21,22 +10,12 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { signOut } from "@/hooks/use-auth";
+import { NAV_LINKS } from "@/components/nav-links";
 
 // ---------------------------------------------------------------------------
 // Paleta de comando (⌘K / Ctrl+K): navegar sem tirar as mãos do teclado.
+// Os destinos vêm da mesma lista da sidebar (`nav-links.ts`).
 // ---------------------------------------------------------------------------
-
-const NAV = [
-  ["/", "Hoje", LayoutDashboard],
-  ["/agenda", "Agenda", CalendarDays],
-  ["/curriculo", "Currículo", BookOpen],
-  ["/realizacoes", "Realizações", Trophy],
-  ["/projetos", "Projetos", FolderKanban],
-  ["/planejamento", "Planejamento", Flag],
-  ["/sobre", "Perfil público", CircleUserRound],
-  ["/jogos", "Jogos", Gamepad2],
-  ["/configuracoes", "Configurações", Settings],
-] as const;
 
 type Props = {
   open: boolean;
@@ -58,7 +37,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
         <CommandEmpty>Nada encontrado.</CommandEmpty>
 
         <CommandGroup heading="Ir para">
-          {NAV.map(([to, label, Icon]) => (
+          {NAV_LINKS.map(({ to, label, icon: Icon }) => (
             <CommandItem key={to} value={`${label} ${to}`} onSelect={() => go(to)}>
               <Icon className="size-4" />
               {label}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CalendarDays, Check, Link2, MapPin, Target, UserRound } from "lucide-react";
 import { ProgressBar } from "@/components/page-kit";
 import { PublicAgenda } from "@/components/public/public-agenda";
+import { focusForCurrentWeek } from "@/hooks/use-weekly-focus";
 import { isPlaceholderText, readableText } from "@/lib/placeholder";
 import { isRecurring, occurrencesInRange, toIso } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,7 @@ export function PublicProfileView({
   const timeline = [...chapters].sort((a, b) => yearOf(a.period) - yearOf(b.period));
   const running = projects.filter((p) => /andamento|iniciado|ativo/i.test(p.status));
   const year = new Date().getFullYear();
-  const weekFocus = focus.filter((f) => f.year === year);
+  const weekFocus = focusForCurrentWeek(focus);
 
   const upcoming = nextOccurrenceDate(agenda);
   const counts: [Tab, string, number][] = [

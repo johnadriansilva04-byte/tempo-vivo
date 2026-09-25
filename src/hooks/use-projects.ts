@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProjects, upsertProject } from "@/services/profile-service";
+import { deleteProject, getProjects, upsertProject } from "@/services/profile-service";
 import type { Project } from "@/types/profile";
 
 export function useProjects() {
@@ -11,6 +11,14 @@ export function useUpsertProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: upsertProject,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => deleteProject(name),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }

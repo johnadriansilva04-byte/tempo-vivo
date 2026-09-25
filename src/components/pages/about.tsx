@@ -96,7 +96,7 @@ export function AboutPage() {
           title="Complete seu perfil"
           description="Preencha seu nome em Configurações para gerar seu perfil público."
           actionLabel="Abrir Configurações"
-          onAction={() => (window.location.href = "/configuracoes")}
+          to="/configuracoes"
         />
       </>
     );
