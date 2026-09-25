@@ -20,6 +20,15 @@
 - Componentes grandes vivem em pastas com arquivos pequenos: `components/auth/`,
   `components/config/`, `components/pages/`. Cada pasta tem um arquivo de entrada
   que monta a tela e módulos burros ao redor (sem lógica de dados).
+- O primeiro capítulo vive em `components/onboarding/`: `copy.ts` (todo o texto),
+  `threshold.tsx`, `ritual-question.tsx`, `seal-preview.tsx`. O orquestrador é
+  `components/start-life-flow.tsx`, que decide qual tela mostrar e guarda as
+  respostas — os módulos não conhecem o passo anterior nem o próximo.
+- A copy do cadastro fica em `components/auth/copy.ts`; a validação dos três
+  blocos (identidade, acesso, retorno) fica em `lib/signup-progress.ts`, uma
+  função pura por bloco. Não replique essas regras dentro dos formulários.
+- Texto de UI tem tom de marketing: frases curtas, benefício antes do mecanismo,
+  sem jargão técnico e sem prometer o que o app não faz.
 - Verificação antes de commitar: `npx tsc --noEmit`, `npm run lint`, `npx vitest run`,
   `npm run build`.
 - UX não mostra tudo de uma vez: telas se organizam em blocos expansíveis usando
