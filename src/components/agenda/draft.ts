@@ -19,8 +19,11 @@ export function draftFromEvent(event: AgendaEvent): EventDraft {
   return { ...event };
 }
 
-/** Gera um evento novo a partir do rascunho. */
+/** Gera um evento novo a partir do rascunho. Sem data válida, lança. */
 export function eventFromDraft(draft: EventDraft): AgendaEvent {
+  if (draft.event_date.trim() === "") {
+    throw new Error("Todo compromisso precisa de uma data.");
+  }
   return {
     id: draft.id ?? newId(),
     title: draft.title.trim(),

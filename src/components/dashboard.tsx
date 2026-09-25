@@ -14,7 +14,7 @@ import { useAgendaEvents } from "@/hooks/use-agenda-events";
 import { useMilestones } from "@/hooks/use-milestones";
 import { useProjects } from "@/hooks/use-projects";
 import { useWeeklyFocus, focusForCurrentWeek } from "@/hooks/use-weekly-focus";
-import { dayLabel, toIso } from "@/lib/calendar";
+import { dayLabel, nextEventAt, toIso } from "@/lib/calendar";
 import { isPlaceholderText } from "@/lib/placeholder";
 import { plural } from "@/lib/utils";
 
@@ -26,10 +26,14 @@ export function DashboardPage() {
   const { focus } = useWeeklyFocus();
 
   const today = toIso(new Date());
-  const nextEvent = useMemo(
-    () => events.find((e) => e.event_date >= today) ?? null,
-    [events, today],
-  );
+  const nextEvent = useMemo(() => {
+    const now = new Date();
+    return nextEventAt(
+      events,
+      today,
+      `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+    );
+  }, [events, today]);
   const weekFocus = focusForCurrentWeek(focus);
   const mainProject = useMemo(
     () => [...projects].sort((a, b) => b.progress - a.progress)[0] ?? null,

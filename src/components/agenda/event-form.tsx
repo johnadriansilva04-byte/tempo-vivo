@@ -23,12 +23,14 @@ export function EventForm({
   const set = <K extends keyof EventDraft>(key: K, value: EventDraft[K]) =>
     onChange({ ...draft, [key]: value });
 
+  const canSave = draft.title.trim() !== "" && draft.event_date !== "";
+
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (draft.title.trim()) onSave();
+        if (canSave) onSave();
       }}
     >
       <div className="space-y-1.5">
@@ -52,6 +54,7 @@ export function EventForm({
           <Input
             id="ev-date"
             type="date"
+            required
             value={draft.event_date}
             onChange={(e) => set("event_date", e.target.value)}
           />
@@ -106,7 +109,7 @@ export function EventForm({
       </div>
 
       <div className="flex items-center gap-2 pt-1">
-        <Button type="submit" size="sm" disabled={!draft.title.trim() || pending}>
+        <Button type="submit" size="sm" disabled={!canSave || pending}>
           Salvar
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

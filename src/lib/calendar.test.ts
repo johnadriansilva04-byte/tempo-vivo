@@ -4,6 +4,7 @@ import {
   dayLabel,
   fromIso,
   monthGrid,
+  nextEventAt,
   startOfWeek,
   toIso,
   weekDays,
@@ -85,5 +86,47 @@ describe("monthGrid", () => {
 describe("dayLabel", () => {
   it("formata dia e mês em minúsculas", () => {
     expect(dayLabel("2026-09-25")).toBe("25 de setembro");
+  });
+});
+
+describe("nextEventAt", () => {
+  const ev = (event_date: string, start_time: string, end_time: string) => ({
+    event_date,
+    start_time,
+    end_time,
+  });
+
+  const today = [
+    ev("2026-09-25", "06:00", "14:00"),
+    ev("2026-09-25", "16:00", "17:00"),
+    ev("2026-09-25", "20:00", "22:00"),
+    ev("2026-09-26", "14:00", "15:00"),
+  ];
+
+  it("pula eventos de hoje cujo fim já passou", () => {
+    // 06:00–14:00 e 16:00–17:00 já terminaram às 17:30.
+    expect(nextEventAt(today, "2026-09-25", "17:30")?.start_time).toBe("20:00");
+  });
+
+  it("durante um evento em andamento, ele ainda é o próximo", () => {
+    expect(nextEventAt(today, "2026-09-25", "16:30")?.start_time).toBe("16:00");
+  });
+
+  it("quando o dia acabou, salta para o dia seguinte mais cedo", () => {
+    expect(nextEventAt(today, "2026-09-25", "23:50")?.event_date).toBe("2026-09-26");
+  });
+
+  it("ignora o passado e escolhe o mais cedo do próximo dia", () => {
+    expect(nextEventAt(today, "2026-09-27", "08:00")).toBeNull();
+  });
+
+  it("sem horário de fim, o evento termina ao começar", () => {
+    const semFim = [ev("2026-09-25", "16:00", "")];
+    expect(nextEventAt(semFim, "2026-09-25", "16:01")).toBeNull();
+    expect(nextEventAt(semFim, "2026-09-25", "15:59")).not.toBeNull();
+  });
+
+  it("devolve null quando não há nada adiante", () => {
+    expect(nextEventAt([], "2026-09-25", "10:00")).toBeNull();
   });
 });

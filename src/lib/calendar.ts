@@ -102,3 +102,43 @@ export function timeLabel(time: string): string {
 export function byStartTime<T extends { start_time: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.start_time.localeCompare(b.start_time));
 }
+
+/** "HH:mm" → minutos desde a meia-noite; valor inválido conta como 0. */
+export function minutesOf(time: string): number {
+  const [h, m] = time.slice(0, 5).split(":").map(Number);
+  if (!Number.isFinite(h)) return 0;
+  return (h ?? 0) * 60 + (Number.isFinite(m) ? (m ?? 0) : 0);
+}
+
+type Timed = { event_date: string; start_time: string; end_time: string };
+
+/**
+ * O compromisso que ainda está por vir, a partir de `nowIso`/`nowTime`.
+ *
+ * Regras, em ordem:
+ * 1. No dia de hoje, um evento só termina quando seu horário de fim passa —
+ *    durante ele, ainda é "o próximo". Sem fim, usa a hora de início.
+ * 2. Um evento de hoje cujo fim já passou não conta.
+ * 3. Dias futuros contam, com o evento mais cedo primeiro.
+ *
+ * Devolve `null` quando não há nada adiante.
+ */
+export function nextEventAt<T extends Timed>(
+  events: T[],
+  nowIso: string,
+  nowTime: string,
+): T | null {
+  const nowMin = minutesOf(nowTime);
+  // Ordena por DIA e depois por hora — ordenar só pela hora misturaria dias
+  // (um evento das 14:00 de amanhã viria antes do das 16:00 de hoje).
+  const ordered = [...events].sort(
+    (a, b) => a.event_date.localeCompare(b.event_date) || a.start_time.localeCompare(b.start_time),
+  );
+  const upcoming = ordered.filter((e) => {
+    if (e.event_date > nowIso) return true;
+    if (e.event_date < nowIso) return false;
+    const ends = e.end_time ? minutesOf(e.end_time) : minutesOf(e.start_time);
+    return ends >= nowMin;
+  });
+  return upcoming[0] ?? null;
+}
