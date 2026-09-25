@@ -61,13 +61,6 @@ export type SignupBlockId = keyof typeof SIGNUP_BLOCKS;
 
 export const BLOCK_SEQUENCE: SignupBlockId[] = ["identity", "access", "recovery"];
 
-/** Rótulo do botão que avança para o próximo bloco (vazio no último). */
-export const NEXT_BLOCK_LABEL: Record<SignupBlockId, string> = {
-  identity: "Ir para o acesso",
-  access: "Ir para a segurança",
-  recovery: "",
-};
-
 /** Rótulos e ajudas de campo. Curtos: o rótulo já diz o essencial. */
 export const FIELD_HINTS = {
   name: "Como você quer ser chamado",

@@ -23,7 +23,7 @@ export function useSignupDraft() {
   const [customQuestion, setCustomQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [openBlock, setOpenBlock] = useState<SignupBlockId | "">("identity");
+  const [step, setStep] = useState<SignupBlockId>("identity");
 
   /** Pergunta efetiva: a escolhida na lista ou a escrita à mão. */
   const chosenQuestion = customQuestion.trim() || question;
@@ -50,7 +50,7 @@ export function useSignupDraft() {
     setConfirm("");
     setCustomQuestion("");
     setAnswer("");
-    setOpenBlock("identity");
+    setStep("identity");
   };
 
   return {
@@ -73,8 +73,8 @@ export function useSignupDraft() {
     chosenQuestion,
     showPassword,
     setShowPassword,
-    openBlock,
-    setOpenBlock,
+    step,
+    setStep,
     progress,
     reset,
   };

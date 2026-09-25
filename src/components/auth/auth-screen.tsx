@@ -9,7 +9,7 @@ import {
 } from "@/hooks/use-auth";
 import { normalizePhone } from "@/lib/identity";
 import { AuthError } from "@/components/auth/form";
-import { BrandMark, PitchPanel } from "@/components/auth/pitch-panel";
+import { PitchCompact, PitchPanel } from "@/components/auth/pitch-panel";
 import { SignInForm } from "@/components/auth/signin-form";
 import { SignUpForm } from "@/components/auth/signup-form";
 import { RecoveryPanel } from "@/components/auth/recovery-panel";
@@ -22,6 +22,10 @@ type Mode = "entrar" | "criar" | "recuperar";
  * Porta de entrada do app. Três caminhos — criar, entrar, recuperar — e nenhum
  * outro. A tela só orquestra: o cadastro vive em `useSignupDraft`, o login e a
  * recuperação têm seu próprio componente, e a apresentação é `PitchPanel`.
+ *
+ * Em telas largas tudo cabe na primeira dobra: apresentação à esquerda, entrada
+ * à direita, sem rolagem. As abas ficam sempre no topo do cartão, então entrar e
+ * criar conta continuam a um clique mesmo no meio da recuperação.
  */
 export function AuthScreen() {
   const [mode, setMode] = useState<Mode>("criar");
@@ -144,14 +148,25 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+    <div className="grid min-h-screen lg:h-screen lg:min-h-0 lg:grid-cols-[1fr_1.15fr] lg:overflow-hidden">
       <PitchPanel />
 
-      <section className="flex items-center justify-center px-5 py-12 sm:px-10">
-        <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden">
-            <BrandMark />
+      <section className="flex min-h-0 items-center justify-center overflow-y-auto px-5 py-6 sm:px-8 lg:py-8">
+        <div className="flex w-full max-w-md flex-col" data-auth-card>
+          <div className="mb-5 lg:hidden">
+            <PitchCompact />
           </div>
+
+          <Tabs
+            value={mode === "recuperar" ? "entrar" : mode}
+            onValueChange={(v) => switchMode(v as Mode)}
+            className="mb-5"
+          >
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+              <TabsTrigger value="criar">Criar conta</TabsTrigger>
+              <TabsTrigger value="entrar">Entrar</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {mode === "recuperar" ? (
             <RecoveryPanel
@@ -173,34 +188,27 @@ export function AuthScreen() {
               onRestart={restartRecovery}
               onBackToLogin={() => switchMode("entrar")}
             />
+          ) : mode === "criar" ? (
+            <>
+              <SignUpForm draft={draft} pending={pending} onSubmit={() => void submitSignup()} />
+              {error && <AuthError message={error} />}
+            </>
           ) : (
             <>
-              <Tabs value={mode} onValueChange={(v) => switchMode(v as Mode)} className="mb-6">
-                <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-                  <TabsTrigger value="criar">Criar conta</TabsTrigger>
-                  <TabsTrigger value="entrar">Entrar</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              {mode === "criar" ? (
-                <SignUpForm draft={draft} pending={pending} onSubmit={() => void submitSignup()} />
-              ) : (
-                <SignInForm
-                  phone={draft.phone}
-                  password={password}
-                  showPassword={draft.showPassword}
-                  pending={pending}
-                  onPhone={draft.setPhone}
-                  onPassword={setPassword}
-                  onTogglePassword={() => draft.setShowPassword((v) => !v)}
-                  onSubmit={() => void submitSignin()}
-                  onForgot={() => {
-                    setRecoveryPhone(draft.phone);
-                    switchMode("recuperar");
-                  }}
-                />
-              )}
-
+              <SignInForm
+                phone={draft.phone}
+                password={password}
+                showPassword={draft.showPassword}
+                pending={pending}
+                onPhone={draft.setPhone}
+                onPassword={setPassword}
+                onTogglePassword={() => draft.setShowPassword((v) => !v)}
+                onSubmit={() => void submitSignin()}
+                onForgot={() => {
+                  setRecoveryPhone(draft.phone);
+                  switchMode("recuperar");
+                }}
+              />
               {error && <AuthError message={error} />}
             </>
           )}

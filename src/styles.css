@@ -353,6 +353,94 @@
   }
 }
 
+/* ---------------------------- Etapas da entrada --------------------------- */
+/* A trilha do cadastro em uma linha: os três passos ficam lado a lado, com o
+   resumo do que já foi preenchido. Só o passo atual abre os campos, num painel
+   abaixo — assim a altura da tela não cresce conforme a pessoa avança e a
+   página inteira cabe na primeira dobra. Em telas estreitas a trilha empilha. */
+@utility entry-steps {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  @media (min-width: 26rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@utility entry-step {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 22%, var(--border));
+  }
+}
+@utility entry-step-button {
+  display: flex;
+  width: 100%;
+  cursor: pointer;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 0;
+  background: none;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+}
+@utility entry-step-current {
+  border-color: color-mix(in oklab, var(--primary) 30%, var(--border));
+  background: color-mix(in oklab, var(--muted) 45%, var(--card));
+  .entry-step-index {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+}
+@utility entry-step-index {
+  display: grid;
+  height: 1.375rem;
+  width: 1.375rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--muted);
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+@utility entry-step-done {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+@utility entry-step-heading {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+@utility entry-step-title {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.1rem;
+  color: var(--foreground);
+}
+@utility entry-step-value {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.05rem;
+  color: var(--muted-foreground);
+}
+@utility entry-step-fields {
+  margin-top: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 0.875rem;
+}
+
 /* ------------------------------- Sidebar --------------------------------- */
 @utility sidebar {
   position: fixed;

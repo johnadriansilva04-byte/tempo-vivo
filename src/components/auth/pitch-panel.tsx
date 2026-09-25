@@ -47,3 +47,28 @@ export function PitchPanel() {
     </section>
   );
 }
+
+/**
+ * A mesma apresentação em telas estreitas: cabeçalho curto, a promessa e os
+ * pilares em uma linha cada. Nada é escondido — o painel completo volta a
+ * partir de `lg`, onde há largura para as duas colunas.
+ */
+export function PitchCompact() {
+  return (
+    <div className="reveal">
+      <BrandMark />
+      <h1 className="mt-3 font-display text-xl font-semibold leading-snug text-foreground">
+        {BRAND_PROMISE}
+      </h1>
+      <ul className="mt-3 space-y-1.5">
+        {BRAND_PILLARS.map((pillar) => (
+          <li key={pillar} className="flex gap-2 text-xs leading-5 text-muted-foreground">
+            <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-primary" />
+            {pillar}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-[0.6875rem] leading-4 text-faint">{PRIVACY_NOTE}</p>
+    </div>
+  );
+}
