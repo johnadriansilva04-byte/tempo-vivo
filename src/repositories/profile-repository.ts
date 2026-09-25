@@ -1,4 +1,5 @@
 import type {
+  AgendaEvent,
   CareerChapter,
   DailyLog,
   DailyLogStatus,
@@ -8,6 +9,7 @@ import type {
   WeeklyFocus,
 } from "@/types/profile";
 import {
+  agendaEvents,
   careerChapters,
   dailyLogs,
   lifePrologue,
@@ -53,6 +55,7 @@ type LocalDB = {
   career_chapters: CareerChapter[];
   projects: Project[];
   milestones: Milestone[];
+  agenda_events: AgendaEvent[];
   prologue: string;
 };
 
@@ -91,6 +94,7 @@ function seed(): LocalDB {
     career_chapters: careerChapters,
     projects,
     milestones,
+    agenda_events: agendaEvents,
     prologue: lifePrologue,
   };
 }
@@ -200,11 +204,38 @@ export const localRepository = {
   },
   upsertMilestone(milestone: Milestone): Milestone {
     const db = load();
-    const idx = db.milestones.findIndex((m) => m.title === milestone.title);
-    if (idx === -1) db.milestones.push(milestone);
-    else db.milestones[idx] = milestone;
+    const next: Milestone = { ...milestone, id: milestone.id ?? newId() };
+    const idx = db.milestones.findIndex((m) => m.id === next.id || m.title === next.title);
+    if (idx === -1) db.milestones.push(next);
+    else db.milestones[idx] = next;
     save(db);
-    return milestone;
+    return next;
+  },
+  removeMilestone(id: string): void {
+    const db = load();
+    db.milestones = db.milestones.filter((m) => m.id !== id);
+    save(db);
+  },
+
+  getAgendaEvents(): AgendaEvent[] {
+    return [...load().agenda_events].sort(
+      (a, b) =>
+        a.event_date.localeCompare(b.event_date) || a.start_time.localeCompare(b.start_time),
+    );
+  },
+  upsertAgendaEvent(event: AgendaEvent): AgendaEvent {
+    const db = load();
+    const next: AgendaEvent = { ...event, id: event.id || newId() };
+    const idx = db.agenda_events.findIndex((e) => e.id === next.id);
+    if (idx === -1) db.agenda_events.push(next);
+    else db.agenda_events[idx] = next;
+    save(db);
+    return next;
+  },
+  removeAgendaEvent(id: string): void {
+    const db = load();
+    db.agenda_events = db.agenda_events.filter((e) => e.id !== id);
+    save(db);
   },
 
   getPrologue(): string {

@@ -1,69 +1,155 @@
-import { FileText, Globe2, Heart, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Check, Copy, Eye, Link2, Share2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
-import { useProfile } from "@/hooks/use-profile";
-import { SmallFact } from "@/components/pages/shared";
+import { PublicProfileView } from "@/components/public/public-profile-view";
+import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
+import { useCareerChapters } from "@/hooks/use-career-chapters";
+import { useMilestones } from "@/hooks/use-milestones";
+import { useProjects } from "@/hooks/use-projects";
+import { handleFromName, isValidHandle, normalizeHandle } from "@/lib/handle";
+import { cn } from "@/lib/utils";
 
-// ------------------------------------------------------------------ AboutPage
-
+/** Sobre = perfil público: veja como os outros veem você e compartilhe o link. */
 export function AboutPage() {
   const { profile } = useProfile();
-  const isBlank = !profile || profile.name.trim() === "";
+  const update = useUpdateProfile();
+  const { milestones } = useMilestones();
+  const { projects } = useProjects();
+  const { chapters } = useCareerChapters();
+  const [copied, setCopied] = useState(false);
+  const [editingHandle, setEditingHandle] = useState(false);
+  const [handleDraft, setHandleDraft] = useState("");
+
+  if (!profile) {
+    return (
+      <div className="space-y-4">
+        <div className="skeleton h-8 w-40" />
+        <div className="skeleton h-64 rounded-lg" />
+      </div>
+    );
+  }
+
+  const handle = profile.handle.trim() || handleFromName(profile.name);
+  const publicUrl =
+    typeof window === "undefined"
+      ? `perfilvivo.com/@${handle}`
+      : `${window.location.origin}/@${handle}`;
+  const isBlank = profile.name.trim() === "";
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      toast.success("Link copiado.");
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o link.");
+    }
+  };
+
+  const share = async () => {
+    if (typeof navigator !== "undefined" && "share" in navigator) {
+      try {
+        await navigator.share({ title: profile.name || "Perfil Vivo", url: publicUrl });
+        return;
+      } catch {
+        /* cancelado: cai no copiar */
+      }
+    }
+    void copyLink();
+  };
+
+  const saveHandle = () => {
+    const clean = normalizeHandle(handleDraft);
+    if (!isValidHandle(clean)) {
+      toast.error("Use ao menos 2 letras ou números, sem espaços.");
+      return;
+    }
+    update.mutate({ handle: clean }, { onSuccess: () => setEditingHandle(false) });
+  };
+
+  if (isBlank) {
+    return (
+      <>
+        <PageHeader title="Sobre" detail="Perfil público" />
+        <EmptyState
+          icon={<Eye className="size-5" />}
+          title="Complete seu perfil"
+          description="Preencha seu nome em Configurações para gerar seu perfil público."
+          actionLabel="Abrir Configurações"
+          onAction={() => (window.location.href = "/configuracoes")}
+        />
+      </>
+    );
+  }
 
   return (
     <>
       <PageHeader
-        eyebrow="Quem sou"
-        title={isBlank ? "Sobre" : `Sobre ${profile.name.split(" ")[0]}`}
-        mark="VI"
-        description="A pessoa por trás dos registros, seus vínculos e o sentido que atravessa sua trajetória."
-        lede="Um perfil não é vitrine: é o retrato de quem está por trás dos registros."
-      />
-      <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-        <div>
-          {isBlank ? (
-            <EmptyState
-              icon={<FileText className="size-5" />}
-              title="Complete seu perfil"
-              description="Sua apresentação e família aparecerão aqui quando você preencher suas informações."
-              actionLabel="Abrir Configurações"
-              onAction={() => (window.location.href = "/configuracoes")}
-            />
-          ) : (
-            <>
-              {profile.bio.trim() !== "" ? (
-                <p className="font-display text-2xl leading-relaxed text-foreground">
-                  “{profile.bio}”
-                </p>
-              ) : (
-                <p className="text-sm leading-7 text-muted-foreground">
-                  Escreva sua bio em Configurações para apresentar sua trajetória aqui.
-                </p>
-              )}
-              <div className="mt-8 grid grid-cols-2 gap-4">
-                <SmallFact icon={MapPin} label="Vive em" value={profile.location || "—"} />
-                <SmallFact
-                  icon={Globe2}
-                  label="Nasceu em"
-                  value={profile.birth_date ? profile.birth_date.slice(0, 4) : "—"}
-                />
-              </div>
-            </>
-          )}
-        </div>
-        <div className="family-panel">
+        title="Perfil público"
+        detail="Como os outros veem você"
+        action={
           <div className="flex items-center gap-2">
-            <Heart className="size-4 text-accent-foreground" />
-            <h2 className="font-display text-lg font-semibold">Núcleo familiar</h2>
+            <Button size="sm" variant="outline" onClick={copyLink}>
+              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              Copiar link
+            </Button>
+            <Button size="sm" onClick={share}>
+              <Share2 className="size-3.5" /> Compartilhar
+            </Button>
           </div>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Edite seus vínculos em Configurações para vê-los aqui. Seus dados não são uma rede
-            social — são sua história.
-          </p>
-          <p className="mt-6 border-t border-border pt-4 text-xs leading-5 text-faint">
-            Vínculos preservados como parte da trajetória, não como conexões sociais.
-          </p>
-        </div>
+        }
+      />
+
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-3">
+        <Link2 className="size-4 shrink-0 text-accent-foreground" />
+        {editingHandle ? (
+          <div className="flex flex-1 items-center gap-2">
+            <span className="text-sm text-muted-foreground">perfilvivo.com/@</span>
+            <Input
+              autoFocus
+              value={handleDraft}
+              onChange={(e) => setHandleDraft(e.target.value)}
+              className="h-8 max-w-48"
+              onKeyDown={(e) => e.key === "Enter" && saveHandle()}
+            />
+            <Button size="sm" onClick={saveHandle} disabled={update.isPending}>
+              Salvar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditingHandle(false)}>
+              Cancelar
+            </Button>
+          </div>
+        ) : (
+          <>
+            <span className="truncate text-sm font-medium text-foreground">
+              perfilvivo.com/@{handle}
+            </span>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground underline underline-offset-4"
+              onClick={() => {
+                setHandleDraft(handle);
+                setEditingHandle(true);
+              }}
+            >
+              Editar
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className={cn("mx-auto max-w-3xl")}>
+        <PublicProfileView
+          profile={{ ...profile, handle }}
+          milestones={milestones}
+          projects={projects}
+          chapters={chapters}
+        />
       </div>
     </>
   );

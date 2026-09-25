@@ -1,4 +1,5 @@
 import type {
+  AgendaEvent,
   CareerChapter,
   DailyLog,
   Milestone,
@@ -24,9 +25,12 @@ export const profile: Profile = {
   target_lifespan: 100,
   avatar_url: null,
   cover_url: null,
+  handle: "",
 };
 
 export const dailyLogs: DailyLog[] = [];
+
+export const agendaEvents: AgendaEvent[] = [];
 
 export const weeklyFocus: WeeklyFocus[] = [];
 

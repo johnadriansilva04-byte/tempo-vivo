@@ -1,131 +1,122 @@
 import { useState } from "react";
-import { Plus, Trophy } from "lucide-react";
+import { Check, Plus, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
-import { StoryText } from "@/components/story-text";
-import { Disclosure } from "@/components/ui/disclosure";
-import { useCreateMilestone, useMilestones } from "@/hooks/use-milestones";
-import { isPlaceholderText } from "@/lib/placeholder";
-import { Field } from "@/components/pages/shared";
+import { useCreateMilestone, useDeleteMilestone, useMilestones } from "@/hooks/use-milestones";
+import { isPlaceholderText, readableText } from "@/lib/placeholder";
 
-// ------------------------------------------------------------ AchievementsPage
-
+/** Vitrine de conquistas: cartão, ano, título e categoria. */
 export function AchievementsPage() {
   const { milestones, isLoading } = useMilestones();
   const create = useCreateMilestone();
+  const remove = useDeleteMilestone();
+  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({
     year: String(new Date().getFullYear()),
     title: "",
-    description: "",
     category: "Vida",
   });
-  const [open, setOpen] = useState(false);
 
   const submit = () => {
     if (!draft.title.trim()) return;
-    create.mutate(draft, {
-      onSuccess: () => {
-        setDraft({ ...draft, title: "", description: "" });
-        setOpen(false);
+    create.mutate(
+      { ...draft, description: "" },
+      {
+        onSuccess: () => {
+          setDraft({ ...draft, title: "" });
+          setOpen(false);
+        },
       },
-    });
+    );
   };
 
-  if (isLoading) return <PageSkeleton lines={2} rows={2} />;
+  if (isLoading) return <PageSkeleton lines={1} rows={2} />;
+
+  const visible = milestones.filter((m) => !isPlaceholderText(m.title));
+  const ordered = [...visible].sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
 
   return (
     <>
       <PageHeader
-        eyebrow="Marcos preservados"
         title="Realizações"
-        mark="IV"
-        description="Uma linha do tempo do que mudou sua história — grandes conquistas e viradas silenciosas."
-        lede="O que você já atravessou é argumento: prova concreta de que consegue de novo."
+        detail={
+          ordered.length > 0
+            ? `${ordered.length} ${ordered.length === 1 ? "conquista" : "conquistas"}`
+            : undefined
+        }
         action={
           <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus className="size-3.5" /> Registrar marco
+            <Plus className="size-3.5" /> Conquista
           </Button>
         }
       />
 
-      <Disclosure
-        icon={Plus}
-        title="Registrar marco"
-        description="O que aconteceu, quando e em que área da vida."
-        summary={
-          draft.title.trim() ? `${draft.year} · ${draft.title}` : "Abra para preservar um marco."
-        }
-        open={open}
-        onOpenChange={setOpen}
-        className="mb-6"
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Ano">
+      {open && (
+        <div className="mb-6 rounded-lg border border-border bg-card p-4">
+          <div className="grid gap-3 sm:grid-cols-[6rem_1fr_10rem]">
             <Input
+              autoFocus
               value={draft.year}
               onChange={(e) => setDraft({ ...draft, year: e.target.value })}
+              placeholder="Ano"
+              inputMode="numeric"
             />
-          </Field>
-          <Field label="Categoria">
+            <Input
+              value={draft.title}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              placeholder="Ex.: Primeiro artigo científico"
+            />
             <Input
               value={draft.category}
               onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-              placeholder="Vida, Pesquisa…"
+              placeholder="Categoria"
             />
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Título">
-              <Input
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                placeholder="O que aconteceu"
-              />
-            </Field>
           </div>
-          <div className="sm:col-span-2">
-            <Field label="Descrição">
-              <Input
-                value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                placeholder="Como isso mudou sua história"
-              />
-            </Field>
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" onClick={submit} disabled={!draft.title.trim() || create.isPending}>
+              Salvar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
           </div>
         </div>
-        <Button
-          size="sm"
-          className="mt-4"
-          onClick={submit}
-          disabled={!draft.title.trim() || create.isPending}
-        >
-          Salvar marco
-        </Button>
-      </Disclosure>
-      {milestones.length === 0 ? (
+      )}
+
+      {ordered.length === 0 ? (
         <EmptyState
           icon={<Trophy className="size-5" />}
-          title="Nenhum marco preservado"
-          description="Registre o primeiro: uma conquista, virada ou aprendizado do seu percurso."
-          actionLabel="Registrar marco"
+          title="Nenhuma conquista ainda"
+          description="Registre a primeira para vê-la aqui."
+          actionLabel="Registrar conquista"
           onAction={() => setOpen(true)}
         />
       ) : (
-        <div className="achievement-list">
-          {milestones.map((m) => (
-            <article key={`${m.year}-${m.title}`}>
-              <div className="achievement-year">{isPlaceholderText(m.year) ? "" : m.year}</div>
-              <div className="achievement-dot" />
-              <div className="pb-10">
-                <span className="status status-neutral">{m.category}</span>
-                <h2 className="mt-3 font-display text-xl font-semibold">
-                  <StoryText text={m.title} />
-                </h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                  <StoryText text={m.description} />
+        <div className="achievement-grid">
+          {ordered.map((milestone) => (
+            <article className="achievement-card group" key={milestone.id ?? milestone.title}>
+              <span className="achievement-check">
+                <Check className="size-3.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-faint">{milestone.year}</p>
+                <p className="mt-0.5 text-sm font-semibold text-foreground">
+                  {readableText(milestone.title)}
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">{milestone.category}</p>
               </div>
+              {milestone.id && (
+                <button
+                  type="button"
+                  aria-label={`Remover ${milestone.title}`}
+                  className="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                  onClick={() => remove.mutate(milestone.id!)}
+                >
+                  <X className="size-3.5 text-faint" />
+                </button>
+              )}
             </article>
           ))}
         </div>

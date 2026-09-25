@@ -34,13 +34,7 @@ const PRACTICE_GROUNDS = [
 export function GamesPage() {
   return (
     <>
-      <PageHeader
-        eyebrow="Parceria Pracinha"
-        title="Jogos"
-        mark="VII"
-        description="A Cidadela do Pracinha abre uma pracinha de jogos, testes e estudo para descansar a cabeça e voltar à história com a mente afiada."
-        lede="Descanso também faz parte da obra. Jogar afia a mente que volta a registrar."
-      />
+      <PageHeader title="Jogos" detail="Parceria Pracinha" />
 
       <div className="games-stage">
         <div className="game-orbit">

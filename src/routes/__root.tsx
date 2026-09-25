@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -130,14 +131,21 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Perfil público abre em modo visitante: sem login, sem shell do app.
+  const isPublicProfile = pathname.startsWith("/@");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate>
-        <AppShell>
-          <Outlet />
-        </AppShell>
-      </AuthGate>
+      {isPublicProfile ? (
+        <Outlet />
+      ) : (
+        <AuthGate>
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        </AuthGate>
+      )}
     </QueryClientProvider>
   );
 }

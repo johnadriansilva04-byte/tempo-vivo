@@ -1,5 +1,6 @@
 import type { Account } from "@/types/auth";
 import type {
+  AgendaEvent,
   CareerChapter,
   DailyLog,
   Milestone,
@@ -8,6 +9,7 @@ import type {
   WeeklyFocus,
 } from "@/types/profile";
 import { newId } from "@/repositories/profile-repository";
+import { handleFromName } from "@/lib/handle";
 
 // ---------------------------------------------------------------------------
 // Gerador de "história inicial".
@@ -79,6 +81,7 @@ export type StarterLife = {
   profile: Partial<Profile>;
   prologue: string;
   dailyLog: DailyLog;
+  agendaEvent: AgendaEvent | null;
   focus: WeeklyFocus[];
   chapters: CareerChapter[];
   milestones: Milestone[];
@@ -165,6 +168,7 @@ export function buildStarterLife(
     name: account.name,
     birth_date: account.birth_date,
     role: "",
+    handle: handleFromName(account.name),
     // A resposta de origem é do dono: vira o "onde você vive" do perfil, em vez
     // de ficar só no prólogo e deixar a página Sobre em branco.
     location: answers.origin.trim(),
@@ -185,6 +189,7 @@ export function buildStarterLife(
         locked_at: null,
         created_at: new Date().toISOString(),
       },
+      agendaEvent: null,
       focus: [],
       chapters: [],
       milestones: [],
@@ -274,6 +279,7 @@ export function buildStarterLife(
       status: "Em andamento",
       progress: 0,
       objective: "[O que precisa estar pronto para eu considerar esta frente concluída.]",
+      link: "",
     },
     {
       name: "Registro diário por 30 dias",
@@ -281,13 +287,26 @@ export function buildStarterLife(
       status: "Planejado",
       progress: 0,
       objective: "30 dias consecutivos com resumo escrito.",
+      link: "",
     },
   ];
+
+  // O primeiro compromisso da agenda: a frente escolhida vira um bloco no dia.
+  const agendaEvent: AgendaEvent = {
+    id: newId(),
+    title: answers.focus.trim() || "Primeiro passo da frente escolhida",
+    event_date: todayIso(),
+    start_time: "09:00",
+    end_time: "10:00",
+    location: "",
+    notes: "",
+  };
 
   return {
     profile,
     prologue,
     dailyLog,
+    agendaEvent,
     focus: focusFor(cycle, answers.focus),
     chapters,
     milestones,

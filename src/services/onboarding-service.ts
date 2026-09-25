@@ -2,6 +2,7 @@ import {
   createCareerChapter,
   createMilestone,
   createWeeklyFocus,
+  saveAgendaEvent,
   setLifePrologue,
   updateProfile,
   upsertDailyLog,
@@ -30,6 +31,8 @@ export async function startLifeForAccount(
   if (life.prologue.trim() !== "") await setLifePrologue(life.prologue);
 
   await upsertDailyLog(life.dailyLog);
+
+  if (life.agendaEvent) await saveAgendaEvent(life.agendaEvent);
 
   for (const focus of life.focus) {
     await createWeeklyFocus({

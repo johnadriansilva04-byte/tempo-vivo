@@ -1587,3 +1587,242 @@
     height: 6.5rem;
   }
 }
+
+/* =========================================================================
+ * AGENDA — CALENDÁRIO
+ * A agenda mostra a vida, não a explica. Dias numerados, eventos dentro dos
+ * dias. Hoje fica destacado; a seleção usa a borda do acento.
+ * ========================================================================= */
+
+@utility calendar {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+}
+@utility calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  span {
+    padding: 0.5rem 0;
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--faint);
+  }
+}
+@utility calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+@utility calendar-day {
+  display: flex;
+  min-height: 6.5rem;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem;
+  text-align: left;
+  background: var(--card);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  &:nth-child(7n) {
+    border-right: 0;
+  }
+  &:hover {
+    background: color-mix(in oklab, var(--primary) 6%, var(--card));
+  }
+}
+@utility calendar-day-out {
+  background: color-mix(in oklab, var(--muted) 55%, var(--card));
+  .calendar-day-number {
+    color: var(--faint);
+    opacity: 0.6;
+  }
+}
+@utility calendar-day-today {
+  background: color-mix(in oklab, var(--primary) 8%, var(--card));
+  .calendar-day-number {
+    display: grid;
+    height: 1.5rem;
+    width: 1.5rem;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-weight: 700;
+  }
+}
+@utility calendar-day-selected {
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+@utility calendar-day-number {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+@utility calendar-day-events {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+@utility calendar-event {
+  display: flex;
+  gap: 0.3rem;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  border-left: 2px solid var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  padding: 0.1rem 0.3rem;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--foreground);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  b {
+    flex: none;
+    font-weight: 700;
+    color: var(--accent-foreground);
+  }
+}
+@utility calendar-more {
+  font-size: 0.62rem;
+  color: var(--faint);
+}
+
+/* Coluna do dia: horário em bloco, título, local. */
+@utility event-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem;
+  background: var(--card);
+}
+@utility event-time {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-foreground);
+}
+
+/* =========================================================================
+ * CURRÍCULO — LINHA DO TEMPO DA VIDA
+ * Ano à esquerda, ponto no trilho, poucas palavras à direita.
+ * ========================================================================= */
+
+@utility timeline {
+  position: relative;
+  padding-left: 1.5rem;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    left: 0.3rem;
+    width: 1px;
+    background: var(--border);
+  }
+}
+@utility timeline-entry {
+  position: relative;
+  padding-bottom: 1.75rem;
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+@utility timeline-year {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-foreground);
+}
+@utility timeline-dot {
+  position: absolute;
+  top: 0.35rem;
+  left: -1.5rem;
+  height: 0.7rem;
+  width: 0.7rem;
+  transform: translateX(-0.1rem);
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: var(--glow);
+}
+
+/* =========================================================================
+ * REALIZAÇÕES — VITRINE DE CONQUISTAS
+ * ========================================================================= */
+
+@utility achievement-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+@utility achievement-card {
+  display: flex;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  background: var(--card);
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease;
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+    transform: translateY(-2px);
+  }
+}
+@utility achievement-check {
+  display: grid;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+
+/* =========================================================================
+ * PERFIL PÚBLICO
+ * ========================================================================= */
+
+@utility public-hero {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+}
+@utility public-banner {
+  height: 7rem;
+  background:
+    radial-gradient(
+      120% 140% at 15% 0%,
+      color-mix(in oklab, var(--primary) 22%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--muted), var(--card));
+  background-size: cover;
+  background-position: center;
+}
+@utility visit-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  padding: 0.6rem 1rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}

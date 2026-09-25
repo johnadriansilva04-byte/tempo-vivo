@@ -8,6 +8,7 @@ import {
   newId,
 } from "@/repositories/profile-repository";
 import type {
+  AgendaEvent,
   CareerChapter,
   DailyLog,
   Milestone,
@@ -46,6 +47,7 @@ const EMPTY_PROFILE: Profile = {
   target_lifespan: 100,
   avatar_url: null,
   cover_url: null,
+  handle: "",
 };
 
 // ------------------------------------------------------------------ Profile
@@ -65,6 +67,7 @@ function fromRemoteProfile(row: ProfileRow): Profile {
     target_lifespan: Number(row["target_lifespan"] ?? 100),
     avatar_url: (row["avatar_url"] as string | null) ?? null,
     cover_url: (row["cover_url"] as string | null) ?? null,
+    handle: String(row["handle"] ?? ""),
   };
 }
 
@@ -90,6 +93,7 @@ export async function updateProfile(patch: Partial<Omit<Profile, "id">>): Promis
     if (patch.target_lifespan !== undefined) row["target_lifespan"] = patch.target_lifespan;
     if (patch.avatar_url !== undefined) row["avatar_url"] = patch.avatar_url;
     if (patch.cover_url !== undefined) row["cover_url"] = patch.cover_url;
+    if (patch.handle !== undefined) row["handle"] = patch.handle;
 
     // upsert: cria a linha no primeiro salvamento e atualiza depois (nunca no-op).
     const { data, error } = await r.db
@@ -290,6 +294,7 @@ function fromRemoteProject(row: Record<string, unknown>): Project {
     status: String(row["status"] ?? "Planejado"),
     progress: Number(row["progress"] ?? 0),
     objective: String(row["objective"] ?? ""),
+    link: String(row["link"] ?? ""),
   };
 }
 
@@ -319,6 +324,7 @@ export async function upsertProject(project: Project): Promise<void> {
         status: project.status,
         progress: project.progress,
         objective: project.objective,
+        link: project.link,
       } as never,
       { onConflict: "user_id,name" },
     );
@@ -332,6 +338,7 @@ export async function upsertProject(project: Project): Promise<void> {
 
 function fromRemoteMilestone(row: Record<string, unknown>): Milestone {
   return {
+    id: String(row["id"]),
     year: String(row["year"] ?? ""),
     title: String(row["title"] ?? ""),
     description: String(row["description"] ?? ""),
@@ -346,7 +353,7 @@ export async function getMilestones(): Promise<Milestone[]> {
       .from("milestones")
       .select("*")
       .eq("user_id", r.uid)
-      .order("created_at", { ascending: true });
+      .order("year", { ascending: true });
     if (error) throw error;
     return (data ?? []).map((row) => fromRemoteMilestone(row as Record<string, unknown>));
   }
@@ -370,6 +377,135 @@ export async function createMilestone(item: Milestone): Promise<void> {
     return;
   }
   localRepository.upsertMilestone(item);
+}
+
+export async function deleteMilestone(id: string): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("milestones").delete().eq("id", id).eq("user_id", r.uid);
+    if (error) throw error;
+    return;
+  }
+  localRepository.removeMilestone(id);
+}
+
+// ------------------------------------------------------------- AgendaEvents
+
+function fromRemoteEvent(row: Record<string, unknown>): AgendaEvent {
+  return {
+    id: String(row["id"]),
+    title: String(row["title"] ?? ""),
+    event_date: String(row["event_date"] ?? "").slice(0, 10),
+    start_time: String(row["start_time"] ?? "09:00").slice(0, 5),
+    end_time: String(row["end_time"] ?? "").slice(0, 5),
+    location: String(row["location"] ?? ""),
+    notes: String(row["notes"] ?? ""),
+  };
+}
+
+export async function getAgendaEvents(): Promise<AgendaEvent[]> {
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("agenda_events")
+      .select("*")
+      .eq("user_id", r.uid)
+      .order("event_date", { ascending: true })
+      .order("start_time", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => fromRemoteEvent(row as Record<string, unknown>));
+  }
+  return localRepository.getAgendaEvents();
+}
+
+export async function saveAgendaEvent(event: AgendaEvent): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("agenda_events").upsert(
+      {
+        id: event.id || newId(),
+        user_id: r.uid,
+        title: event.title,
+        event_date: event.event_date,
+        start_time: event.start_time,
+        end_time: event.end_time,
+        location: event.location,
+        notes: event.notes,
+      } as never,
+      { onConflict: "id" },
+    );
+    if (error) throw error;
+    return;
+  }
+  localRepository.upsertAgendaEvent(event);
+}
+
+export async function deleteAgendaEvent(id: string): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db.from("agenda_events").delete().eq("id", id).eq("user_id", r.uid);
+    if (error) throw error;
+    return;
+  }
+  localRepository.removeAgendaEvent(id);
+}
+
+// ----------------------------------------------------------- Public profile
+
+export type PublicProfile = {
+  handle: string;
+  profile: Profile;
+  milestones: Milestone[];
+  projects: Project[];
+  chapters: CareerChapter[];
+};
+
+/**
+ * Perfil público: os dados que o dono expôs, sem expor a conta.
+ * Em modo local, confere se o pedido é do próprio dono (mesmo handle).
+ */
+export async function getPublicProfile(handle: string): Promise<PublicProfile | null> {
+  const clean = handle.replace(/^@/, "").trim().toLowerCase();
+  if (!clean) return null;
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("public_profiles")
+      .select("*")
+      .eq("handle", clean)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    const row = data as Record<string, unknown>;
+    const p = fromRemoteProfile({
+      ...(row["profile_data"] as Record<string, unknown>),
+      id: row["id"],
+      handle: row["handle"],
+    });
+    return {
+      handle: clean,
+      profile: p,
+      milestones: ((row["milestones"] as unknown[]) ?? []).map((m) =>
+        fromRemoteMilestone(m as Record<string, unknown>),
+      ),
+      projects: ((row["projects"] as unknown[]) ?? []).map((p2) =>
+        fromRemoteProject(p2 as Record<string, unknown>),
+      ),
+      chapters: ((row["chapters"] as unknown[]) ?? []).map((c) =>
+        fromRemoteChapter(c as Record<string, unknown>),
+      ),
+    };
+  }
+
+  const own = localRepository.getProfile();
+  if (own.handle.trim().toLowerCase() !== clean) return null;
+  return {
+    handle: clean,
+    profile: own,
+    milestones: localRepository.getMilestones(),
+    projects: localRepository.getProjects(),
+    chapters: localRepository.getCareerChapters(),
+  };
 }
 
 // ------------------------------------------------------------------ Prologue

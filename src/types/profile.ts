@@ -37,8 +37,28 @@ export type Project = {
   status: string;
   progress: number;
   objective: string;
+  /** Link externo do projeto (repositório, site, documento). */
+  link: string;
 };
-export type Milestone = { year: string; title: string; description: string; category: string };
+
+export type Milestone = {
+  id?: string;
+  year: string;
+  title: string;
+  description: string;
+  category: string;
+};
+
+/** Compromisso da agenda: algo com data e hora para fazer. */
+export type AgendaEvent = {
+  id: string;
+  title: string;
+  event_date: string; // ISO date (yyyy-mm-dd)
+  start_time: string; // HH:mm
+  end_time: string; // HH:mm
+  location: string;
+  notes: string;
+};
 
 export type Profile = {
   id?: string;
@@ -51,6 +71,8 @@ export type Profile = {
   target_lifespan: number; // default 100
   avatar_url: string | null;
   cover_url: string | null;
+  /** Identificador público para perfilvivo.com/@handle. */
+  handle: string;
 };
 
 /** Compat: entradas antigas da agenda derivam de DailyLog quando necessário. */

@@ -1,192 +1,111 @@
 import { useState } from "react";
-import { Award, BriefcaseBusiness, GraduationCap, Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, PageSkeleton } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
-import { Disclosure } from "@/components/ui/disclosure";
 import { useCareerChapters, useCreateCareerChapter } from "@/hooks/use-career-chapters";
-import { Field } from "@/components/pages/shared";
-import { TimelineSection } from "@/components/pages/shared";
+import { isPlaceholderText, readableText } from "@/lib/placeholder";
+import type { CareerChapter } from "@/types/profile";
 
-const TYPE_LABEL: Record<string, string> = {
-  EXPERIENCE: "Experiência",
-  EDUCATION: "Formação",
-  PRODUCTION: "Produção",
-  CERTIFICATE: "Certificado",
-};
-
-// ---------------------------------------------------------------- Currículo Vivo
-
+/** Linha do tempo da vida: ano, acontecimento e, se houver, uma linha de contexto. */
 export function ResumePage() {
   const { chapters, isLoading } = useCareerChapters();
   const create = useCreateCareerChapter();
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState({
-    title: "",
-    period: "",
-    document_type: "EXPERIENCE",
-    content: "",
-  });
-
-  const byType = (t: string) => chapters.filter((c) => c.document_type === t);
-  const experiences = byType("EXPERIENCE");
-  const education = byType("EDUCATION");
-  const productions = byType("PRODUCTION");
-  const certificates = byType("CERTIFICATE");
-  // Tipos que o dono criar sem se encaixar nas seções acima não somem da página.
-  const otherTypes = chapters.filter(
-    (c) =>
-      !["EXPERIENCE", "EDUCATION", "PRODUCTION", "CERTIFICATE", "PROLOGUE"].includes(
-        c.document_type,
-      ),
-  );
+  const [draft, setDraft] = useState({ period: "", title: "", content: "" });
 
   const submit = () => {
     if (!draft.title.trim()) return;
-    create.mutate(draft as Parameters<typeof create.mutate>[0], {
+    create.mutate({ ...draft, document_type: "LIFE" } as Omit<CareerChapter, "id">, {
       onSuccess: () => {
-        setDraft({ title: "", period: "", document_type: "EXPERIENCE", content: "" });
+        setDraft({ period: "", title: "", content: "" });
         setOpen(false);
       },
     });
   };
 
-  if (isLoading) return <PageSkeleton lines={2} rows={2} />;
+  if (isLoading) return <PageSkeleton lines={1} rows={2} />;
+
+  const ordered = [...chapters].sort((a, b) => yearOf(a.period) - yearOf(b.period));
 
   return (
     <>
       <PageHeader
-        eyebrow="Trajetória profissional"
-        title="Currículo vivo"
-        mark="II"
-        description="Formação e experiências apresentadas como partes de uma história humana, prontas para compartilhar."
-        lede="Currículo não é lista de cargos: é a prova de que algo em você mudou a cada etapa."
+        title="Currículo"
+        detail="Linha do tempo da sua vida"
         action={
           <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus className="size-3.5" /> Adicionar capítulo
+            <Plus className="size-3.5" /> Marco
           </Button>
         }
       />
 
-      <Disclosure
-        icon={Plus}
-        title="Adicionar capítulo"
-        description="Título, período e tipo — experiência, formação, produção ou certificado."
-        summary={
-          draft.title.trim()
-            ? `${TYPE_LABEL[draft.document_type] ?? "Registro"} · ${draft.title}`
-            : "Abra para escrever o próximo capítulo da sua trajetória."
-        }
-        open={open}
-        onOpenChange={setOpen}
-        className="mb-6"
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Título">
+      {open && (
+        <div className="mb-6 rounded-lg border border-border bg-card p-4">
+          <div className="grid gap-3 sm:grid-cols-[6rem_1fr]">
+            <Input
+              autoFocus
+              value={draft.period}
+              onChange={(e) => setDraft({ ...draft, period: e.target.value })}
+              placeholder="Ano"
+              inputMode="numeric"
+            />
             <Input
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              placeholder="Cargo, formação ou produção"
+              placeholder="O que aconteceu (ex.: Início da pesquisa científica)"
             />
-          </Field>
-          <Field label="Período">
-            <Input
-              value={draft.period}
-              onChange={(e) => setDraft({ ...draft, period: e.target.value })}
-              placeholder="Ex.: 2022 — hoje"
-            />
-          </Field>
-          <Field label="Tipo">
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              value={draft.document_type}
-              onChange={(e) => setDraft({ ...draft, document_type: e.target.value })}
-            >
-              <option value="EXPERIENCE">Experiência</option>
-              <option value="EDUCATION">Formação</option>
-              <option value="PRODUCTION">Produção</option>
-              <option value="CERTIFICATE">Certificado</option>
-            </select>
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Conteúdo">
-              <Textarea
-                value={draft.content}
-                onChange={(e) => setDraft({ ...draft, content: e.target.value })}
-                placeholder="Breve descrição"
-                rows={2}
-              />
-            </Field>
+          </div>
+          <Input
+            value={draft.content}
+            onChange={(e) => setDraft({ ...draft, content: e.target.value })}
+            placeholder="Uma linha de contexto (opcional)"
+            className="mt-3"
+          />
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" onClick={submit} disabled={!draft.title.trim() || create.isPending}>
+              Salvar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
           </div>
         </div>
-        <Button
-          size="sm"
-          className="mt-4"
-          onClick={submit}
-          disabled={!draft.title.trim() || create.isPending}
-        >
-          Salvar capítulo
-        </Button>
-      </Disclosure>
+      )}
 
-      {chapters.length === 0 ? (
+      {ordered.length === 0 ? (
         <EmptyState
-          icon={<BriefcaseBusiness className="size-5" />}
-          title="Seu currículo vivo está vazio"
-          description="Adicione experiências, formações e produções acima. Tudo fica salvo e aparece aqui — nada é inventado."
-          actionLabel="Adicionar o primeiro capítulo"
+          icon={<Plus className="size-5" />}
+          title="Sua linha do tempo está vazia"
+          description="Comece pelo começo: o ano em que você nasceu."
+          actionLabel="Adicionar o primeiro marco"
           onAction={() => setOpen(true)}
         />
       ) : (
-        <div className="reveal grid gap-9 lg:grid-cols-[1fr_280px]">
-          <div className="space-y-9">
-            {experiences.length > 0 && (
-              <TimelineSection
-                icon={BriefcaseBusiness}
-                title="Experiência"
-                rows={experiences.map((c) => [c.period, c.title, c.content])}
-              />
-            )}
-            {education.length > 0 && (
-              <TimelineSection
-                icon={GraduationCap}
-                title="Formação"
-                rows={education.map((c) => [c.period, c.title, c.content])}
-              />
-            )}
-            {productions.length > 0 && (
-              <TimelineSection
-                icon={Sparkles}
-                title="Produção"
-                rows={productions.map((c) => [c.period, c.title, c.content])}
-              />
-            )}
-            {certificates.length > 0 && (
-              <TimelineSection
-                icon={Award}
-                title="Certificados"
-                rows={certificates.map((c) => [c.period, c.title, c.content])}
-              />
-            )}
-            {otherTypes.length > 0 && (
-              <TimelineSection
-                icon={BriefcaseBusiness}
-                title="Outros registros"
-                rows={otherTypes.map((c) => [c.period, c.title, c.content])}
-              />
-            )}
-          </div>
-          <aside className="space-y-7">
-            {chapters.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Preencha seu histórico para montar sua página.
+        <ol className="timeline max-w-2xl">
+          {ordered.map((chapter) => (
+            <li className="timeline-entry" key={chapter.id}>
+              <span className="timeline-dot" aria-hidden="true" />
+              <p className="timeline-year">
+                {isPlaceholderText(chapter.period) ? "" : chapter.period}
               </p>
-            )}
-          </aside>
-        </div>
+              <p className="mt-0.5 text-sm font-medium text-foreground">
+                {readableText(chapter.title)}
+              </p>
+              {chapter.content.trim() !== "" && !isPlaceholderText(chapter.content) && (
+                <p className="mt-0.5 text-sm text-muted-foreground">{chapter.content}</p>
+              )}
+            </li>
+          ))}
+        </ol>
       )}
     </>
   );
+}
+
+/** Ano numérico para ordenar; sem número vai para o fim. */
+function yearOf(period: string): number {
+  const match = period.match(/\d{4}/);
+  return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
 }

@@ -1,154 +1,153 @@
 import { useState } from "react";
-import { FolderKanban, Plus } from "lucide-react";
+import { FolderKanban, Link2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, PageSkeleton, ProgressBar } from "@/components/page-kit";
 import { EmptyState } from "@/components/empty-state";
-import { StoryText } from "@/components/story-text";
-import { Disclosure } from "@/components/ui/disclosure";
 import { useProjects, useUpsertProject } from "@/hooks/use-projects";
+import { isPlaceholderText, readableText } from "@/lib/placeholder";
 import type { Project } from "@/types/profile";
-import { Field } from "@/components/pages/shared";
 
-// --------------------------------------------------------------- ProjectsPage
+const STATUS_TONE: Record<string, string> = {
+  Concluído: "status-open",
+  "Em andamento": "status-review",
+  Pesquisa: "status-review",
+  Planejado: "status-neutral",
+};
 
+/** Projetos: um cartão por iniciativa, com status, progresso e link. */
 export function ProjectsPage() {
   const { projects, isLoading } = useProjects();
   const upsert = useUpsertProject();
+  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState({
     name: "",
     description: "",
-    objective: "",
     status: "Planejado" as Project["status"],
+    progress: 0,
+    objective: "",
+    link: "",
   });
-  const [open, setOpen] = useState(false);
-
-  const startNew = () => {
-    setDraft({ name: "", description: "", objective: "", status: "Planejado" });
-    setOpen(true);
-  };
 
   const submit = () => {
     if (!draft.name.trim()) return;
     upsert.mutate(
-      { ...draft, name: draft.name.trim(), progress: 0 },
+      { ...draft, name: draft.name.trim() },
       {
         onSuccess: () => {
-          setDraft({ name: "", description: "", objective: "", status: "Planejado" });
+          setDraft({
+            name: "",
+            description: "",
+            status: "Planejado",
+            progress: 0,
+            objective: "",
+            link: "",
+          });
           setOpen(false);
         },
       },
     );
   };
 
-  if (isLoading) return <PageSkeleton lines={2} rows={2} />;
+  if (isLoading) return <PageSkeleton lines={1} rows={2} />;
 
   return (
     <>
       <PageHeader
-        eyebrow="Trabalho em movimento"
         title="Projetos"
-        mark="V"
-        description="Iniciativas que conectam curiosidade, propósito e impacto ao longo do tempo."
-        lede="Projeto é intenção com prazo. Aqui ela sai do papel e ganha dono, objetivo e avanço."
+        detail={projects.length > 0 ? `${projects.length} em curso` : undefined}
         action={
-          <Button size="sm" onClick={startNew}>
-            <Plus className="size-3.5" /> Novo projeto
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus className="size-3.5" /> Projeto
           </Button>
         }
       />
 
-      {/* O formulário nasce fechado: só ocupa a tela quando você decide criar. */}
-      <Disclosure
-        icon={Plus}
-        title="Novo projeto"
-        description="Nome, status, descrição e objetivo — nada além do que move o trabalho."
-        summary={draft.name.trim() ? draft.name : "Abra para descrever o próximo projeto."}
-        open={open}
-        onOpenChange={setOpen}
-        className="mb-6"
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Nome">
+      {open && (
+        <div className="mb-6 rounded-lg border border-border bg-card p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Input
+              autoFocus
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               placeholder="Nome do projeto"
             />
-          </Field>
-          <Field label="Status">
             <select
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={draft.status}
-              onChange={(e) => setDraft({ ...draft, status: e.target.value as Project["status"] })}
+              onChange={(e) => setDraft({ ...draft, status: e.target.value })}
             >
               <option value="Planejado">Planejado</option>
               <option value="Em andamento">Em andamento</option>
               <option value="Pesquisa">Pesquisa</option>
               <option value="Concluído">Concluído</option>
             </select>
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Descrição">
-              <Input
-                value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                placeholder="Em poucas palavras"
-              />
-            </Field>
+            <Input
+              value={draft.link}
+              onChange={(e) => setDraft({ ...draft, link: e.target.value })}
+              placeholder="Link (https://…)"
+            />
           </div>
-          <div className="sm:col-span-2">
-            <Field label="Objetivo">
-              <Input
-                value={draft.objective}
-                onChange={(e) => setDraft({ ...draft, objective: e.target.value })}
-                placeholder="O que você quer alcançar"
-              />
-            </Field>
+          <Input
+            value={draft.description}
+            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            placeholder="Descrição curta"
+            className="mt-3"
+          />
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" onClick={submit} disabled={!draft.name.trim() || upsert.isPending}>
+              Salvar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
           </div>
         </div>
-        <Button
-          size="sm"
-          className="mt-4"
-          onClick={submit}
-          disabled={!draft.name.trim() || upsert.isPending}
-        >
-          Salvar projeto
-        </Button>
-      </Disclosure>
+      )}
 
       {projects.length === 0 ? (
         <EmptyState
           icon={<FolderKanban className="size-5" />}
-          title="Nada aqui ainda"
-          description="Seus projetos aparecerão aqui. Crie um acima para começar — tudo fica salvo."
-          actionLabel="Criar o primeiro projeto"
-          onAction={startNew}
+          title="Nenhum projeto ainda"
+          description="Crie o primeiro para acompanhar o avanço aqui."
+          actionLabel="Criar projeto"
+          onAction={() => setOpen(true)}
         />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {projects.map((p) => (
-            <article className="project-card" key={p.name}>
-              <div className="flex justify-between">
-                <span className="status status-neutral">{p.status}</span>
-                <span className="text-xs font-medium">{p.progress}%</span>
+          {projects.map((project) => (
+            <article className="project-card flex flex-col" key={project.name}>
+              <div className="flex items-center justify-between gap-3">
+                <span className={`status ${STATUS_TONE[project.status] ?? "status-neutral"}`}>
+                  {project.status}
+                </span>
+                <span className="text-xs font-medium">{project.progress}%</span>
               </div>
-              <h2 className="mt-6 font-display text-xl font-semibold">
-                <StoryText text={p.name} />
+              <h2 className="mt-4 font-display text-lg font-semibold">
+                {isPlaceholderText(project.name) ? "" : project.name}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                <StoryText text={p.description} />
-              </p>
-              {p.objective.trim() !== "" && (
-                <>
-                  <p className="mt-5 text-xs text-faint">Objetivo</p>
-                  <p className="mt-1 text-sm">
-                    <StoryText text={p.objective} />
-                  </p>
-                </>
+              {project.description.trim() !== "" && (
+                <p className="mt-1.5 text-sm text-muted-foreground">
+                  {readableText(project.description)}
+                </p>
               )}
-              <div className="mt-6">
-                <ProgressBar value={p.progress} />
+              <div className="mt-4">
+                <ProgressBar value={project.progress} />
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                {project.link.trim() !== "" ? (
+                  <a
+                    href={project.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-foreground"
+                  >
+                    <Link2 className="size-3.5" />
+                    Abrir projeto
+                  </a>
+                ) : (
+                  <span className="text-xs text-faint">Sem link</span>
+                )}
               </div>
             </article>
           ))}

@@ -12,11 +12,10 @@ import {
   LogOut,
   Menu,
   Settings,
-  Sunrise,
   Trophy,
   X,
 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { useProfile } from "@/hooks/use-profile";
 import { signOut, useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -24,19 +23,15 @@ import { formatPhone } from "@/lib/identity";
 import { CommandPalette } from "@/components/command-palette";
 import { useCommandShortcut } from "@/hooks/use-command-shortcut";
 import { useOverlayBehavior } from "@/hooks/use-overlay-behavior";
-import { DailyRitual } from "@/components/daily-ritual";
-import { useDailyLogs } from "@/hooks/use-daily-logs";
-import { openRitual, setRitualOpen, useRitual } from "@/store/ritual-store";
-import type { RitualPhase } from "@/store/ritual-store";
 
 const links = [
-  ["/", "Dashboard", LayoutDashboard],
+  ["/", "Hoje", LayoutDashboard],
   ["/agenda", "Agenda", CalendarDays],
   ["/curriculo", "Currículo", BookOpen],
-  ["/planejamento", "Planejamento", Flag],
   ["/realizacoes", "Realizações", Trophy],
   ["/projetos", "Projetos", FolderKanban],
-  ["/sobre", "Sobre", CircleUserRound],
+  ["/planejamento", "Planejamento", Flag],
+  ["/sobre", "Perfil público", CircleUserRound],
   ["/jogos", "Jogos", Gamepad2],
   ["/configuracoes", "Configurações", Settings],
 ] as const;
@@ -47,19 +42,11 @@ export function SidebarNav({ children }: { children: ReactNode }) {
   const sidebarRef = useRef<HTMLElement>(null);
   const { profile } = useProfile();
   const { account } = useAuth();
-  const { logs } = useDailyLogs();
-  const ritual = useRitual();
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   useCommandShortcut(openPalette);
   const closeMenu = useCallback(() => setOpen(false), []);
   useOverlayBehavior(open, closeMenu, sidebarRef);
-
-  // O registro de hoje alimenta o ritual (fase sugerida e conteúdo existente).
-  const todayLog = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return logs.find((l) => l.log_date === today);
-  }, [logs]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -86,26 +73,6 @@ export function SidebarNav({ children }: { children: ReactNode }) {
           >
             <X />
           </Button>
-        </div>
-
-        {/* Atalho do ritual: o gesto mais repetido do app, sempre a um clique. */}
-        <div className="px-3 pt-3">
-          <button
-            type="button"
-            onClick={() => {
-              closeMenu();
-              openRitual(
-                todayLog?.planned_text.trim() && !todayLog.summary_text.trim() ? "noite" : "manha",
-              );
-            }}
-            className="nav-item w-full justify-between bg-sidebar-accent/60 text-sidebar-accent-foreground"
-          >
-            <span className="flex items-center gap-2.5">
-              <Sunrise className="size-[17px]" />
-              <span>Ritual do dia</span>
-            </span>
-            <span className="live-dot" />
-          </button>
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
@@ -196,17 +163,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <CommandPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        onRitual={(phase: RitualPhase) => openRitual(phase)}
-      />
-      <DailyRitual
-        open={ritual.open}
-        onOpenChange={setRitualOpen}
-        log={todayLog}
-        initialPhase={ritual.phase}
-      />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );
 }

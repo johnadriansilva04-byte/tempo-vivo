@@ -46,3 +46,38 @@
   `src/**/*.test.ts` — não há jsdom/testing-library. Comportamento de componente
   (React) é validado no navegador, não em teste unitário; se for adicionar testes
   de UI, é preciso trazer a infra de DOM primeiro.
+
+## Arquitetura das ferramentas (mostrar > explicar)
+
+Mapa fixo das telas — não volte a embrulhar estas páginas em narrativa:
+
+- **Agenda = calendário real** (`components/agenda/`): grade mensal, alternância
+  Mês/Semana/Hoje, painel do dia com CRUD de compromisso. A lógica pura da grade
+  mora em `lib/calendar.ts` (datas locais `yyyy-mm-dd`, sem fuso; testes em
+  `lib/calendar.test.ts`).
+- **Currículo = linha do tempo da vida** (`components/pages/resume.tsx`): ano +
+  acontecimento + uma linha de contexto. Sem blocos longos.
+- **Realizações = vitrine de conquistas** (`components/pages/achievements.tsx`):
+  cartões simples, só ano/título/categoria.
+- **Projetos** (`components/pages/projects.tsx`): cartão com nome, status,
+  progresso, link e "Abrir projeto".
+- **Hoje/Dashboard** (`components/dashboard.tsx`): próximo compromisso, projeto
+  principal, meta da semana, última realização e um resumo numérico. Sem capítulos.
+- **Perfil público** (`components/public/`): compartilhável em `/@{handle}`. O
+  handle é derivado do nome por `lib/handle.ts` (slug ASCII, testes em
+  `lib/handle.test.ts`) e a rota `routes/@{$handle}.tsx` abre em modo visitante —
+  `routes/__root.tsx` pula o `AuthGate`/`AppShell` quando o path começa com `/@`.
+  No Supabase, a view `public_profiles` (migration `20260926000000_*`) expõe
+  apenas os campos públicos e agrega milestones/projects/chapters.
+
+Mutação de dados sempre via hooks React Query (`use-agenda-events.ts`,
+`use-projects.ts`, `use-milestones.ts`, ...) com `invalidateQueries` no
+`onSuccess`; a lista atualiza sozinha. Ao validar no navegador, cuidado:
+`browser_get_content` pode devolver um snapshot em cache — confirme reatividade
+com `browser_get_state` (lista de elementos) em vez de conteúdo.
+
+`lib/life-story.ts` e `lib/placeholder.ts` NÃO são resquício narrativo: o
+primeiro gera a vida inicial do onboarding e define os quatro `CYCLES` usados em
+Planejamento; o segundo interpreta textos `[entre colchetes]` gravados por contas
+antigas. Não remova nenhum dos dois sem substituir quem os importa.
+

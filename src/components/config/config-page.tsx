@@ -126,11 +126,8 @@ export function ConfigPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Ajustes"
         title="Configurações"
-        mark="VIII"
-        description="Defina quem é você no Perfil Vivo. Todos os dados ficam salvos — no seu banco quando Supabase está configurado, ou localmente até lá."
-        lede="Antes de contar a história, é preciso decidir de onde ela parte. É o que se ajusta aqui."
+        detail="Seu perfil e sua conta"
         action={
           <Button size="sm" onClick={save} disabled={update.isPending}>
             <Save className="size-3.5" /> Salvar

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createMilestone, getMilestones } from "@/services/profile-service";
+import { createMilestone, deleteMilestone, getMilestones } from "@/services/profile-service";
 import type { Milestone } from "@/types/profile";
 
 export function useMilestones() {
@@ -11,6 +11,14 @@ export function useCreateMilestone() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createMilestone,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["milestones"] }),
+  });
+}
+
+export function useDeleteMilestone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteMilestone(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["milestones"] }),
   });
 }
