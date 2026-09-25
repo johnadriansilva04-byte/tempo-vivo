@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, Eye, Link2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,10 @@ import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { useCareerChapters } from "@/hooks/use-career-chapters";
 import { useMilestones } from "@/hooks/use-milestones";
 import { useProjects } from "@/hooks/use-projects";
-import { handleFromName, isValidHandle, normalizeHandle } from "@/lib/handle";
+import { useAgendaEvents } from "@/hooks/use-agenda-events";
+import { useWeeklyFocus } from "@/hooks/use-weekly-focus";
+import { handleFromName, isValidHandle, normalizeHandle, resolveHandle } from "@/lib/handle";
+import { ensurePublicHandle, publishToNetwork } from "@/services/profile-service";
 import { cn } from "@/lib/utils";
 
 /** Sobre = perfil público: veja como os outros veem você e compartilhe o link. */
@@ -20,9 +23,21 @@ export function AboutPage() {
   const { milestones } = useMilestones();
   const { projects } = useProjects();
   const { chapters } = useCareerChapters();
+  const { events } = useAgendaEvents();
+  const { focus } = useWeeklyFocus();
   const [copied, setCopied] = useState(false);
   const [editingHandle, setEditingHandle] = useState(false);
   const [handleDraft, setHandleDraft] = useState("");
+
+  // O link só existe se o handle existir: cria a partir do nome quando vazio.
+  useEffect(() => {
+    if (profile && profile.name.trim() !== "") void ensurePublicHandle();
+  }, [profile]);
+
+  // Mantém o diretório da rede (/rede) em dia com o que foi publicado aqui.
+  useEffect(() => {
+    if (profile?.name.trim()) void publishToNetwork();
+  }, [profile, milestones, projects, chapters, events, focus]);
 
   if (!profile) {
     return (
@@ -33,7 +48,7 @@ export function AboutPage() {
     );
   }
 
-  const handle = profile.handle.trim() || handleFromName(profile.name);
+  const handle = resolveHandle(profile) || handleFromName(profile.name);
   const publicUrl =
     typeof window === "undefined"
       ? `perfilvivo.com/@${handle}`
@@ -149,6 +164,9 @@ export function AboutPage() {
           milestones={milestones}
           projects={projects}
           chapters={chapters}
+          agenda={events}
+          focus={focus}
+          onShare={share}
         />
       </div>
     </>

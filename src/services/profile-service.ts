@@ -1,5 +1,7 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { stripAppPrompts } from "@/lib/life-story";
+import { normalizeHandle, resolveHandle, sameHandle } from "@/lib/handle";
+import { toIso } from "@/lib/calendar";
 import { currentAccount } from "@/store/auth-store";
 import {
   computeStatus,
@@ -494,54 +496,205 @@ export type PublicProfile = {
   milestones: Milestone[];
   projects: Project[];
   chapters: CareerChapter[];
+  /** Agenda pública: compromissos do dono, já com as repetições declaradas. */
+  agenda: AgendaEvent[];
+  /** Foco declarado (metas da semana). */
+  focus: WeeklyFocus[];
 };
+
+/** Resumo de um perfil para o diretório da rede (/rede). */
+export type PublicProfileSummary = {
+  handle: string;
+  name: string;
+  role: string;
+  location: string;
+  initials: string;
+  avatar_url: string | null;
+  /** Total de itens públicos — conquistas + projetos + marcos. */
+  items: number;
+  /** Próximo compromisso (yyyy-mm-dd) ou null. */
+  next_event: string | null;
+};
+
+function summaryOf(entry: {
+  handle: string;
+  profile: Profile;
+  milestones: Milestone[];
+  projects: Project[];
+  chapters: CareerChapter[];
+  agenda: AgendaEvent[];
+}): PublicProfileSummary {
+  const today = toIso(new Date());
+  const dates = entry.agenda
+    .map((e) => e.event_date)
+    .filter((d) => d !== "")
+    .sort();
+  const upcoming = dates.find((d) => d >= today) ?? dates[0] ?? null;
+  return {
+    handle: entry.handle,
+    name: entry.profile.name,
+    role: entry.profile.role,
+    location: entry.profile.location,
+    initials: entry.profile.initials,
+    avatar_url: entry.profile.avatar_url,
+    items: entry.milestones.length + entry.projects.length + entry.chapters.length,
+    next_event: upcoming,
+  };
+}
+
+/**
+ * Handle público do dono, criado a partir do nome quando ainda não existe.
+ * É o que faz o link perfilvivo.com/@nome funcionar sem o dono configurar nada.
+ */
+export async function ensurePublicHandle(): Promise<string> {
+  const profile = await getProfile();
+  const desired = resolveHandle(profile);
+  if (!desired) return "";
+  if (normalizeHandle(profile.handle) === desired) return desired;
+  await updateProfile({ handle: desired });
+  return desired;
+}
+
+/** Perfis visíveis para o visitante, na rede. */
+export async function listPublicProfiles(): Promise<PublicProfileSummary[]> {
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db.from("public_profiles").select("*");
+    if (error) throw error;
+    return (data ?? [])
+      .map((row) => {
+        const record = row as Record<string, unknown>;
+        return summaryOf({
+          handle: String(record["handle"] ?? ""),
+          profile: fromRemoteProfile({
+            ...(record["profile_data"] as Record<string, unknown>),
+            id: record["id"],
+            handle: record["handle"],
+          }),
+          milestones: ((record["milestones"] as unknown[]) ?? []).map((m) =>
+            fromRemoteMilestone(m as Record<string, unknown>),
+          ),
+          projects: ((record["projects"] as unknown[]) ?? []).map((p) =>
+            fromRemoteProject(p as Record<string, unknown>),
+          ),
+          chapters: ((record["chapters"] as unknown[]) ?? []).map((c) =>
+            fromRemoteChapter(c as Record<string, unknown>),
+          ),
+          agenda: ((record["agenda"] as unknown[]) ?? []).map((a) =>
+            fromRemoteEvent(a as Record<string, unknown>),
+          ),
+        });
+      })
+      .filter((s) => s.handle !== "" && s.name.trim() !== "")
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }
+  return localRepository
+    .listNetwork()
+    .map((entry) => summaryOf({ ...entry, agenda: entry.agenda_events }));
+}
 
 /**
  * Perfil público: os dados que o dono expôs, sem expor a conta.
- * Em modo local, confere se o pedido é do próprio dono (mesmo handle).
+ * O handle guardado é uma foto do nome — a busca tolera os dois formatos, então
+ * compartilhar o link nunca cai em "não encontrado" só por falta de cadastro.
  */
 export async function getPublicProfile(handle: string): Promise<PublicProfile | null> {
-  const clean = handle.replace(/^@/, "").trim().toLowerCase();
+  const clean = normalizeHandle(handle);
   if (!clean) return null;
   const r = remote();
+
   if (r) {
-    const { data, error } = await r.db
+    // 1. Handle gravado. 2. Handle derivado do nome (contas antigas).
+    const byHandle = await r.db
       .from("public_profiles")
       .select("*")
       .eq("handle", clean)
       .maybeSingle();
-    if (error) throw error;
-    if (!data) return null;
-    const row = data as Record<string, unknown>;
-    const p = fromRemoteProfile({
-      ...(row["profile_data"] as Record<string, unknown>),
-      id: row["id"],
-      handle: row["handle"],
-    });
+    if (byHandle.error) throw byHandle.error;
+    let row = (byHandle.data as Record<string, unknown> | null) ?? null;
+    if (!row) {
+      const all = await r.db.from("public_profiles").select("*");
+      if (all.error) throw all.error;
+      row =
+        ((all.data ?? []) as Record<string, unknown>[]).find(
+          (candidate) => normalizeHandle(String(candidate["handle"] ?? "")) === clean,
+        ) ?? null;
+    }
+    if (!row) return null;
     return {
       handle: clean,
-      profile: p,
+      profile: fromRemoteProfile({
+        ...(row["profile_data"] as Record<string, unknown>),
+        id: row["id"],
+        handle: row["handle"],
+      }),
       milestones: ((row["milestones"] as unknown[]) ?? []).map((m) =>
         fromRemoteMilestone(m as Record<string, unknown>),
       ),
-      projects: ((row["projects"] as unknown[]) ?? []).map((p2) =>
-        fromRemoteProject(p2 as Record<string, unknown>),
+      projects: ((row["projects"] as unknown[]) ?? []).map((p) =>
+        fromRemoteProject(p as Record<string, unknown>),
       ),
       chapters: ((row["chapters"] as unknown[]) ?? []).map((c) =>
         fromRemoteChapter(c as Record<string, unknown>),
       ),
+      agenda: ((row["agenda"] as unknown[]) ?? []).map((a) =>
+        fromRemoteEvent(a as Record<string, unknown>),
+      ),
+      focus: ((row["focus"] as unknown[]) ?? []).map((f) =>
+        fromRemoteFocus(f as Record<string, unknown>),
+      ),
+    };
+  }
+
+  // 1. Diretório local (perfis publicados). 2. O próprio dono.
+  const entry = localRepository.findNetworkEntry(clean);
+  if (entry) {
+    return {
+      handle: clean,
+      profile: entry.profile,
+      milestones: entry.milestones,
+      projects: entry.projects,
+      chapters: entry.chapters,
+      agenda: entry.agenda_events,
+      focus: entry.weekly_focus,
     };
   }
 
   const own = localRepository.getProfile();
-  if (own.handle.trim().toLowerCase() !== clean) return null;
+  if (!sameHandle(resolveHandle(own), clean)) return null;
   return {
     handle: clean,
     profile: own,
     milestones: localRepository.getMilestones(),
     projects: localRepository.getProjects(),
     chapters: localRepository.getCareerChapters(),
+    agenda: localRepository.getAgendaEvents(),
+    focus: localRepository.getWeeklyFocus(),
   };
+}
+
+/**
+ * Espelha o perfil atual no diretório da rede (modo local). Com Supabase quem
+ * publica é a view `public_profiles`; aqui só espelhamos para /rede funcionar.
+ */
+export async function publishToNetwork(): Promise<void> {
+  if (remote()) return;
+  const entry = localRepository.getProfile();
+  const handle = resolveHandle(entry);
+  if (!handle || entry.name.trim() === "") {
+    if (handle) localRepository.unpublishFromNetwork(handle);
+    return;
+  }
+  localRepository.publishToNetwork({
+    handle,
+    slug: handle,
+    profile: { ...entry, handle, initials: initialsOf(entry.name) },
+    milestones: localRepository.getMilestones(),
+    projects: localRepository.getProjects(),
+    chapters: localRepository.getCareerChapters(),
+    weekly_focus: localRepository.getWeeklyFocus(),
+    agenda_events: localRepository.getAgendaEvents(),
+  });
 }
 
 // ------------------------------------------------------------------ Prologue

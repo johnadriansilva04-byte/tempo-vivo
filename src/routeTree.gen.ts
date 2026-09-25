@@ -18,6 +18,7 @@ import { Route as JogosRouteImport } from './routes/jogos'
 import { Route as PlanejamentoRouteImport } from './routes/planejamento'
 import { Route as ProjetosRouteImport } from './routes/projetos'
 import { Route as RealizacoesRouteImport } from './routes/realizacoes'
+import { Route as RedeRouteImport } from './routes/rede'
 import { Route as SobreRouteImport } from './routes/sobre'
 
 const IndexRoute = IndexRouteImport.update({
@@ -65,6 +66,11 @@ const RealizacoesRoute = RealizacoesRouteImport.update({
   path: '/realizacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RedeRoute = RedeRouteImport.update({
+  id: '/rede',
+  path: '/rede',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
   path: '/sobre',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/planejamento': typeof PlanejamentoRoute
   '/projetos': typeof ProjetosRoute
   '/realizacoes': typeof RealizacoesRoute
+  '/rede': typeof RedeRoute
   '/sobre': typeof SobreRoute
 }
 export interface FileRoutesByTo {
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/planejamento': typeof PlanejamentoRoute
   '/projetos': typeof ProjetosRoute
   '/realizacoes': typeof RealizacoesRoute
+  '/rede': typeof RedeRoute
   '/sobre': typeof SobreRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/planejamento': typeof PlanejamentoRoute
   '/projetos': typeof ProjetosRoute
   '/realizacoes': typeof RealizacoesRoute
+  '/rede': typeof RedeRoute
   '/sobre': typeof SobreRoute
 }
 export interface FileRouteTypes {
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/planejamento'
     | '/projetos'
     | '/realizacoes'
+    | '/rede'
     | '/sobre'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/planejamento'
     | '/projetos'
     | '/realizacoes'
+    | '/rede'
     | '/sobre'
   id:
     | '__root__'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/planejamento'
     | '/projetos'
     | '/realizacoes'
+    | '/rede'
     | '/sobre'
   fileRoutesById: FileRoutesById
 }
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   PlanejamentoRoute: typeof PlanejamentoRoute
   ProjetosRoute: typeof ProjetosRoute
   RealizacoesRoute: typeof RealizacoesRoute
+  RedeRoute: typeof RedeRoute
   SobreRoute: typeof SobreRoute
 }
 
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RealizacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/rede': {
+      id: '/rede'
+      path: '/rede'
+      fullPath: '/rede'
+      preLoaderRoute: typeof RedeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sobre': {
       id: '/sobre'
       path: '/sobre'
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanejamentoRoute: PlanejamentoRoute,
   ProjetosRoute: ProjetosRoute,
   RealizacoesRoute: RealizacoesRoute,
+  RedeRoute: RedeRoute,
   SobreRoute: SobreRoute,
 }
 export const routeTree = rootRouteImport

@@ -13,6 +13,7 @@ import {
   Menu,
   Settings,
   Trophy,
+  Users,
   X,
 } from "lucide-react";
 import { useCallback, useRef, useState, type ReactNode } from "react";
@@ -32,6 +33,7 @@ const links = [
   ["/projetos", "Projetos", FolderKanban],
   ["/planejamento", "Planejamento", Flag],
   ["/sobre", "Perfil público", CircleUserRound],
+  ["/rede", "Rede", Users],
   ["/jogos", "Jogos", Gamepad2],
   ["/configuracoes", "Configurações", Settings],
 ] as const;

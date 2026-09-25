@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/app-shell";
 import { AuthGate } from "../components/auth-gate";
+import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -132,12 +133,12 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Perfil público abre em modo visitante: sem login, sem shell do app.
-  const isPublicProfile = pathname.startsWith("/@");
+  // Perfil público e rede abrem em modo visitante: sem login, sem shell do app.
+  const isVisitor = pathname.startsWith("/@") || pathname === "/rede";
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isPublicProfile ? (
+      {isVisitor ? (
         <Outlet />
       ) : (
         <AuthGate>
@@ -146,6 +147,7 @@ function RootComponent() {
           </AppShell>
         </AuthGate>
       )}
+      <Toaster />
     </QueryClientProvider>
   );
 }

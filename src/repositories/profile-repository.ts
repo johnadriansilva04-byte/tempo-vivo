@@ -18,6 +18,7 @@ import {
   projects,
   weeklyFocus,
 } from "@/mock/profile";
+import { normalizeHandle } from "@/lib/handle";
 
 // ---------------------------------------------------------------------------
 // Repositório local persistente (localStorage) — começa VAZIO.
@@ -58,6 +59,42 @@ type LocalDB = {
   agenda_events: AgendaEvent[];
   prologue: string;
 };
+
+/** Diretório local de perfis públicos. Sem Supabase não há RLS: cada perfil
+ *  publicado grava uma cópia aqui para que /rede e /@handle possam encontrá-lo. */
+type NetworkDB = Record<string, NetworkEntry>;
+
+export type NetworkEntry = {
+  handle: string;
+  slug: string;
+  profile: Profile;
+  milestones: Milestone[];
+  projects: Project[];
+  chapters: CareerChapter[];
+  weekly_focus: WeeklyFocus[];
+  agenda_events: AgendaEvent[];
+};
+
+const NETWORK_KEY = "perfil-vivo:network:v1";
+
+function readNetwork(): NetworkDB {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(NETWORK_KEY);
+    return raw ? (JSON.parse(raw) as NetworkDB) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeNetwork(db: NetworkDB): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(NETWORK_KEY, JSON.stringify(db));
+  } catch {
+    /* storage indisponível */
+  }
+}
 
 export function initialsOf(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean);
@@ -246,5 +283,41 @@ export const localRepository = {
     db.prologue = text;
     save(db);
     return text;
+  },
+
+  // ------------------------------------------------------------- rede local
+
+  /** Publica (ou atualiza) o perfil atual no diretório da rede. */
+  publishToNetwork(entry: NetworkEntry): void {
+    const db = readNetwork();
+    db[entry.slug] = entry;
+    writeNetwork(db);
+  },
+
+  /** Remove o perfil atual do diretório da rede. */
+  unpublishFromNetwork(slug: string): void {
+    const db = readNetwork();
+    delete db[slug];
+    writeNetwork(db);
+  },
+
+  /** Todos os perfis publicados, em ordem alfabética pelo nome. */
+  listNetwork(): NetworkEntry[] {
+    return Object.values(readNetwork())
+      .filter((e) => e && e.handle !== "" && e.profile?.name?.trim() !== "")
+      .sort((a, b) => a.profile.name.localeCompare(b.profile.name, "pt-BR"));
+  },
+
+  /** Perfil público por handle ou slug (tolerante a @, caixa e acentos). */
+  findNetworkEntry(handle: string): NetworkEntry | null {
+    const clean = normalizeHandle(handle);
+    if (!clean) return null;
+    const db = readNetwork();
+    if (db[clean]) return db[clean];
+    return (
+      Object.values(db).find(
+        (e) => normalizeHandle(e.handle) === clean || normalizeHandle(e.slug) === clean,
+      ) ?? null
+    );
   },
 };

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { deaccent, handleFromName, isValidHandle, normalizeHandle } from "@/lib/handle";
+import {
+  deaccent,
+  handleFromName,
+  isValidHandle,
+  normalizeHandle,
+  resolveHandle,
+  sameHandle,
+} from "@/lib/handle";
 
 describe("handleFromName", () => {
   it("cria um slug simples", () => {
@@ -50,5 +57,41 @@ describe("isValidHandle", () => {
 describe("deaccent", () => {
   it("mantém texto sem acento intacto", () => {
     expect(deaccent("hello")).toBe("hello");
+  });
+});
+
+describe("resolveHandle", () => {
+  it("prefere o handle guardado", () => {
+    expect(resolveHandle({ handle: "john-adrian", name: "João Adrián" })).toBe("john-adrian");
+  });
+
+  it("deriva do nome quando o handle está vazio", () => {
+    expect(resolveHandle({ handle: "", name: "João Adrián" })).toBe("joao-adrian");
+    expect(resolveHandle({ name: "Ana Teste" })).toBe("ana-teste");
+  });
+
+  it("normaliza o handle guardado (com @ e maiúsculas)", () => {
+    expect(resolveHandle({ handle: "@John-Adrian", name: "Outro" })).toBe("john-adrian");
+  });
+
+  it("devolve vazio quando não há nome nem handle útil", () => {
+    expect(resolveHandle({ name: "" })).toBe("");
+    expect(resolveHandle({ handle: "!!!" })).toBe("");
+  });
+});
+
+describe("sameHandle", () => {
+  it("ignora @, caixa e acentos", () => {
+    expect(sameHandle("@João-Adrian", "joao-adrian")).toBe(true);
+    expect(sameHandle("Ana Costa", "ana-costa")).toBe(true);
+  });
+
+  it("não considera vazios equivalentes", () => {
+    expect(sameHandle("", "")).toBe(false);
+    expect(sameHandle("!!!", "!!!")).toBe(false);
+  });
+
+  it("recusa handles diferentes", () => {
+    expect(sameHandle("ana", "bruno")).toBe(false);
   });
 });

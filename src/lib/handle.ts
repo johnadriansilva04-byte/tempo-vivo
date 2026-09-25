@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // Identificador público do perfil (perfilvivo.com/@handle).
 //
-// Derivado do nome em tempo de exibição — nunca guardado como fonte de verdade.
+// Guardado no perfil, mas derivado do nome quando ainda está vazio — assim o
+// link funciona sem configuração e nunca cai em "não encontrado".
 // Regra única: minúsculas, sem acentos, só letras/números/hífen.
 // ---------------------------------------------------------------------------
 
@@ -31,4 +32,19 @@ export function normalizeHandle(value: string): string {
 /** Handle válido para a URL pública? */
 export function isValidHandle(value: string): boolean {
   return /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value);
+}
+
+/**
+ * Handle efetivo de um perfil: o guardado quando existe, senão o derivado do
+ * nome. O `handle` guardado é só uma foto — o nome continua sendo a verdade.
+ */
+export function resolveHandle(person: { handle?: string; name?: string }): string {
+  const stored = normalizeHandle(person.handle ?? "");
+  if (stored) return stored;
+  return handleFromName(person.name ?? "");
+}
+
+/** Dois handles apontam para o mesmo perfil? Tolerante a @, caixa e acentos. */
+export function sameHandle(a: string, b: string): boolean {
+  return normalizeHandle(a) !== "" && normalizeHandle(a) === normalizeHandle(b);
 }
