@@ -57,16 +57,16 @@ export function RecoveryPanel({
       </div>
       <h2 className="mt-4 font-display text-2xl font-semibold text-foreground">
         {step === "telefone" && "Vamos achar sua conta"}
-        {step === "resposta" && "Responda sua pergunta"}
+        {step === "resposta" && "Só você sabe responder"}
         {step === "nova-senha" && "Escolha a nova senha"}
       </h2>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         {step === "telefone" &&
-          "Informe o telefone cadastrado. A pergunta secreta que você escolheu vai aparecer em seguida."}
+          "Informe seu telefone. A pergunta que você escolheu aparece em seguida."}
         {step === "resposta" &&
-          "Não precisa acertar maiúsculas, acentos ou espaços — só o conteúdo."}
+          "Sem e-mail, sem espera. Não importa maiúscula, acento ou espaço — só o conteúdo."}
         {step === "nova-senha" &&
-          "Sua identidade foi confirmada. Defina uma senha nova para voltar à sua história."}
+          "Você é você. Defina a nova senha e volte direto para a sua história."}
       </p>
 
       <div className="mt-5 flex items-center gap-1.5">
