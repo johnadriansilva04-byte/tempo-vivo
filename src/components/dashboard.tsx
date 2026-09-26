@@ -110,8 +110,8 @@ export function DashboardPage() {
             Próximo compromisso
           </h2>
           {next ? (
-            <Link to="/agenda" search={{ dia: next.date }} className="tile-next">
-              <span className="tile-next-time">{timeLabel(next.event.start_time)}</span>
+            <Link to="/agenda" search={{ dia: next.date }} className="dash-next">
+              <span className="dash-next-time">{timeLabel(next.event.start_time)}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-foreground">
                   {readableText(next.event.title)}
@@ -142,10 +142,10 @@ export function DashboardPage() {
                 {todayEvents.length} {plural(todayEvents.length, "compromisso", "compromissos")}
               </span>
             </h2>
-            <ul className="tile-list">
+            <ul className="dash-list">
               {todayEvents.slice(0, 5).map((event) => (
                 <li key={event.id}>
-                  <span className="tile-hour">{timeLabel(event.start_time)}</span>
+                  <span className="dash-hour">{timeLabel(event.start_time)}</span>
                   <Link
                     to="/agenda"
                     search={{ dia: today }}
@@ -247,7 +247,7 @@ export function DashboardPage() {
         </section>
       </div>
 
-      <div className="tile-stats mt-4">
+      <div className="dash-stats mt-4">
         <div className="tile-stat">
           <p className="tile-stat-value">{projects.length}</p>
           <p className="tile-stat-label">{plural(projects.length, "projeto", "projetos")}</p>

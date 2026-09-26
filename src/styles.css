@@ -1776,6 +1776,7 @@
 }
 @utility timeline-entry {
   position: relative;
+  min-width: 0;
   padding-bottom: 1.75rem;
   &:last-child {
     padding-bottom: 0;
@@ -1811,6 +1812,7 @@
 }
 @utility achievement-card {
   display: flex;
+  min-width: 0;
   gap: 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -2139,6 +2141,21 @@
   display: grid;
   gap: 1rem;
 }
+@utility tile-hero {
+  display: grid;
+  gap: 0.85rem;
+}
+@utility tile-name {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--foreground);
+}
 @utility tile-head {
   display: flex;
   flex-wrap: wrap;
@@ -2167,6 +2184,10 @@
   gap: 0.4rem;
 }
 @utility tile-bio {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   border-left: 2px solid color-mix(in oklab, var(--primary) 45%, transparent);
   padding-left: 0.75rem;
   font-size: 0.85rem;
@@ -2203,6 +2224,7 @@
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
 }
 @utility tile-panel {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.85rem 1rem;
@@ -2221,6 +2243,12 @@
   font-weight: 600;
   color: var(--foreground);
 }
+@utility tile-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 @utility tile-count {
   margin-left: auto;
   border-radius: 999px;
@@ -2236,9 +2264,11 @@
 }
 @utility tile-list {
   display: grid;
+  min-width: 0;
   gap: 0.45rem;
   li {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 0.6rem;
   }
@@ -2276,6 +2306,7 @@
 }
 @utility tile-projects {
   display: grid;
+  min-width: 0;
   gap: 0.6rem;
 }
 @utility tile-progress {
@@ -2286,19 +2317,14 @@
 }
 @utility tile-timeline {
   display: grid;
+  min-width: 0;
   gap: 0.4rem;
   li {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 0.6rem;
   }
-}
-@utility tile-foot {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.72rem;
-  color: var(--faint);
 }
 
 /* ------------------------------------------- pedido de reunião (visitante) */
@@ -2494,7 +2520,7 @@
 
 /* ----------------------------------------------- peças compartilhadas ------ */
 
-@utility tile-next {
+@utility dash-next {
   display: flex;
   align-items: center;
   gap: 0.85rem;
@@ -2507,14 +2533,14 @@
     border-color: color-mix(in oklab, var(--primary) 50%, var(--border));
   }
 }
-@utility tile-next-time {
+@utility dash-next-time {
   flex: none;
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--accent-foreground);
 }
-@utility tile-list {
+@utility dash-list {
   display: grid;
   gap: 0.4rem;
   li {
@@ -2523,14 +2549,14 @@
     gap: 0.6rem;
   }
 }
-@utility tile-hour {
+@utility dash-hour {
   flex: none;
   font-family: var(--font-display);
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--accent-foreground);
 }
-@utility tile-stats {
+@utility dash-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;

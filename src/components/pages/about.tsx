@@ -166,8 +166,6 @@ export function AboutPage() {
           chapters={chapters}
           agenda={events}
           focus={focus}
-          onShare={share}
-          onCopy={copyLink}
         />
       </div>
     </>

@@ -128,7 +128,7 @@ export function AchievementsPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-faint">{milestone.year}</p>
-                <p className="mt-0.5 text-sm font-semibold text-foreground">
+                <p className="tile-clamp mt-0.5 text-sm font-semibold text-foreground">
                   {readableText(milestone.title)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{milestone.category}</p>

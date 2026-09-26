@@ -266,8 +266,8 @@ export function buildStarterLife(
     },
     {
       year: String(thisYear + 1),
-      title: answers.intention.trim() || "[A virada que estou construindo agora]",
-      description: `Dentro de ${cycle.name}: ${cycle.intent}.`,
+      title: "A virada que estou construindo",
+      description: answers.intention.trim() || "[A virada que estou construindo agora]",
       category: cycle.name,
     },
   ];

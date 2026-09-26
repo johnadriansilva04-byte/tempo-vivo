@@ -87,6 +87,23 @@ describe("buildStarterLife — preset guided", () => {
     expect(life.focus[0]?.title).toBe("Terminar o primeiro capítulo");
   });
 
+  it("nunca usa a intenção como título de conquista", () => {
+    // Regressão: a intenção (um parágrafo) virou título e estourou o card na
+    // vitrine pública. Título é rótulo curto; a intenção vai para a descrição.
+    const intention =
+      "Quero investigar, por meio de evidências empíricas, se a negligência estatal é realmente um conjunto de erros isolados.";
+    const life = buildStarterLife(account(), "guided", {
+      ...EMPTY_ANSWERS,
+      intention,
+    });
+    const titles = life.milestones.map((m) => m.title);
+    expect(titles).not.toContain(intention);
+    for (const title of titles) {
+      expect(title.length).toBeLessThan(60);
+    }
+    expect(life.milestones.some((m) => m.description === intention)).toBe(true);
+  });
+
   it("marca os capítulos como convites entre colchetes, não como fatos", () => {
     const life = buildStarterLife(account(), "guided", EMPTY_ANSWERS);
     expect(life.chapters.length).toBeGreaterThan(0);

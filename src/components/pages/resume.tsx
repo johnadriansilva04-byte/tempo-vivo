@@ -124,7 +124,7 @@ export function ResumePage() {
                   <p className="timeline-year">
                     {isPlaceholderText(chapter.period) ? "" : chapter.period}
                   </p>
-                  <p className="mt-0.5 text-sm font-medium text-foreground">
+                  <p className="tile-clamp mt-0.5 text-sm font-medium text-foreground">
                     {readableText(chapter.title)}
                   </p>
                   {chapter.content.trim() !== "" && !isPlaceholderText(chapter.content) && (

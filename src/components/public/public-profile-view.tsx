@@ -1,4 +1,4 @@
-import { CalendarDays, Check, Clock, Link2, MapPin, Target } from "lucide-react";
+import { CalendarDays, Check, Clock, Link2, Target } from "lucide-react";
 import { ProgressBar } from "@/components/page-kit";
 import { PublicMeetingForm } from "@/components/public/public-meeting-form";
 import { focusForCurrentWeek } from "@/hooks/use-weekly-focus";
@@ -45,7 +45,11 @@ export function PublicProfileView({
   onCopy?: () => void;
 }) {
   const achievements = milestones.filter((m) => !isPlaceholderText(m.title));
-  const timeline = [...chapters].sort((a, b) => yearOf(a.period) - yearOf(b.period));
+  // Só o contexto entre colchetes denuncia convite não preenchido. Título sem
+  // contexto é entrada real do dono, porque o contexto é opcional no formulário.
+  const timeline = chapters
+    .filter((c) => !isPlaceholderText(c.content))
+    .sort((a, b) => yearOf(a.period) - yearOf(b.period));
   const upcoming = upcomingEvents(agenda, 3);
   const weekFocus = focusForCurrentWeek(focus);
   const running = projects.filter((p) => /andamento|iniciado|ativo/i.test(p.status));
@@ -55,49 +59,55 @@ export function PublicProfileView({
 
   return (
     <div className="tile-page">
-      <header className="tile-head">
-        <div className="avatar-main tile-avatar">
-          {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="size-full rounded-full object-cover" />
-          ) : (
-            profile.initials
-          )}
-        </div>
-
-        <div className="tile-identity">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-xl font-semibold text-foreground">{profile.name}</h1>
-            {live && <span className="status status-neutral">visão pública</span>}
+      <section className="tile-panel tile-hero">
+        <div className="tile-head">
+          <div className="avatar-main tile-avatar">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="size-full rounded-full object-cover"
+              />
+            ) : (
+              profile.initials
+            )}
           </div>
-          <p className="tile-sub">
-            {[profile.role, profile.location].filter((v) => v.trim() !== "").join(" · ")}
-          </p>
+
+          <div className="tile-identity">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="tile-name">{profile.name}</h1>
+              {live && <span className="status status-neutral">visão pública</span>}
+            </div>
+            <p className="tile-sub">
+              {[profile.role, profile.location].filter((v) => v.trim() !== "").join(" · ")}
+            </p>
+          </div>
+
+          <div className="tile-actions">
+            {onCopy && (
+              <button type="button" className="public-share" onClick={onCopy}>
+                <Link2 className="size-3.5" />
+                Copiar link
+              </button>
+            )}
+            {onShare && (
+              <button type="button" className="public-share" onClick={onShare}>
+                <Link2 className="size-3.5" />
+                Compartilhar
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="tile-actions">
-          {onCopy && (
-            <button type="button" className="public-share" onClick={onCopy}>
-              <Link2 className="size-3.5" />
-              Copiar link
-            </button>
-          )}
-          {onShare && (
-            <button type="button" className="public-share" onClick={onShare}>
-              <Link2 className="size-3.5" />
-              Compartilhar
-            </button>
-          )}
+        {profile.bio.trim() !== "" && <p className="tile-bio">{readableText(profile.bio)}</p>}
+
+        <div className="tile-stats">
+          <Stat value={agenda.length} label="compromissos" />
+          <Stat value={achievements.length} label="conquistas" />
+          <Stat value={projects.length} label="projetos" />
+          <Stat value={timeline.length} label="marcos" />
         </div>
-      </header>
-
-      {profile.bio.trim() !== "" && <p className="tile-bio">{readableText(profile.bio)}</p>}
-
-      <div className="tile-stats">
-        <Stat value={agenda.length} label="compromissos" />
-        <Stat value={achievements.length} label="conquistas" />
-        <Stat value={projects.length} label="projetos" />
-        <Stat value={timeline.length} label="marcos" />
-      </div>
+      </section>
 
       <div className="tile-grid">
         <section className="tile-panel">
@@ -143,7 +153,7 @@ export function PublicProfileView({
                   <span className="tile-check">
                     <Check className="size-3" />
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  <span className="tile-clamp min-w-0 flex-1 text-sm font-medium">
                     {readableText(milestone.title)}
                   </span>
                   <span className="tile-year">{milestone.year}</span>
@@ -166,7 +176,7 @@ export function PublicProfileView({
               {projects.slice(0, 3).map((project) => (
                 <li key={project.name}>
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-sm font-semibold">{project.name}</span>
+                    <span className="tile-clamp text-sm font-semibold">{project.name}</span>
                     <span className="tile-progress">{project.progress}%</span>
                   </div>
                   <div className="mt-1.5">
@@ -190,7 +200,7 @@ export function PublicProfileView({
               {timeline.slice(0, 5).map((chapter) => (
                 <li key={chapter.id}>
                   <span className="tile-year">{chapter.period}</span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  <span className="tile-clamp min-w-0 flex-1 text-sm font-medium">
                     {readableText(chapter.title)}
                   </span>
                 </li>
@@ -225,13 +235,6 @@ export function PublicProfileView({
           <PublicMeetingForm handle={profile.handle} availability={availability} events={agenda} />
         )}
       </div>
-
-      {profile.location.trim() !== "" && (
-        <p className="tile-foot">
-          <MapPin className="size-3" />
-          {profile.location}
-        </p>
-      )}
     </div>
   );
 }
