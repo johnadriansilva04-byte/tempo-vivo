@@ -28,6 +28,11 @@ export function PublicProfilePage({ handle }: { handle: string }) {
         /* cancelado: cai no copiar */
       }
     }
+    copyLink();
+  };
+
+  const copyLink = async () => {
+    const url = typeof window === "undefined" ? "" : window.location.href;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("Link copiado.");
@@ -60,7 +65,7 @@ export function PublicProfilePage({ handle }: { handle: string }) {
         </Button>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5 py-8 sm:px-8">
+      <main className="mx-auto max-w-5xl px-5 py-6 sm:px-8">
         {query.isLoading ? (
           <PageSkeleton lines={2} rows={2} />
         ) : !query.data ? (
@@ -86,6 +91,7 @@ export function PublicProfilePage({ handle }: { handle: string }) {
             focus={query.data.focus}
             live
             onShare={share}
+            onCopy={copyLink}
           />
         )}
       </main>

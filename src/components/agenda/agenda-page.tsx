@@ -18,6 +18,7 @@ import { EmptyState } from "@/components/empty-state";
 import { DaySheet } from "@/components/agenda/day-sheet";
 import { DayPanel } from "@/components/agenda/day-panel";
 import { MonthGrid } from "@/components/agenda/month-grid";
+import { MeetingRequestsPanel } from "@/components/agenda/meeting-requests-panel";
 import {
   draftFromEvent,
   emptyEventDraft,
@@ -45,12 +46,13 @@ import {
 import { cn, plural } from "@/lib/utils";
 import type { AgendaEvent } from "@/types/profile";
 
-type View = "mes" | "semana" | "hoje";
+type View = "mes" | "semana" | "hoje" | "pedidos";
 
 const VIEWS: [View, string][] = [
   ["mes", "Mês"],
   ["semana", "Semana"],
   ["hoje", "Hoje"],
+  ["pedidos", "Pedidos"],
 ];
 
 const routeApi = getRouteApi("/agenda");
@@ -406,6 +408,15 @@ export function AgendaPage() {
               );
             })}
           </div>
+        </div>
+      ) : view === "pedidos" ? (
+        <div className="mx-auto max-w-2xl">
+          <MeetingRequestsPanel
+            onAccepted={(date) => {
+              setAnchor(date);
+              setSelected(date);
+            }}
+          />
         </div>
       ) : (
         <div className="mx-auto max-w-xl rounded-lg border border-border bg-card p-5">

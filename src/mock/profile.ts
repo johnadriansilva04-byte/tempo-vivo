@@ -7,6 +7,7 @@ import type {
   Project,
   WeeklyFocus,
 } from "@/types/profile";
+import { DEFAULT_AVAILABILITY } from "@/types/profile";
 
 // ---------------------------------------------------------------------------
 // Seeds vazios — o app começa limpo. Nenhuma informação fictícia é exibida.
@@ -26,6 +27,7 @@ export const profile: Profile = {
   avatar_url: null,
   cover_url: null,
   handle: "",
+  availability: DEFAULT_AVAILABILITY,
 };
 
 export const dailyLogs: DailyLog[] = [];

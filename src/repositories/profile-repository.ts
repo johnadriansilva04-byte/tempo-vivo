@@ -3,6 +3,7 @@ import type {
   CareerChapter,
   DailyLog,
   DailyLogStatus,
+  MeetingRequest,
   Milestone,
   Profile,
   Project,
@@ -18,7 +19,7 @@ import {
   projects,
   weeklyFocus,
 } from "@/mock/profile";
-import { normalizeHandle } from "@/lib/handle";
+import { normalizeHandle, sameHandle as sameHandleLoose } from "@/lib/handle";
 
 // ---------------------------------------------------------------------------
 // Repositório local persistente (localStorage) — começa VAZIO.
@@ -57,6 +58,7 @@ type LocalDB = {
   projects: Project[];
   milestones: Milestone[];
   agenda_events: AgendaEvent[];
+  meeting_requests: MeetingRequest[];
   prologue: string;
 };
 
@@ -132,6 +134,7 @@ function seed(): LocalDB {
     projects,
     milestones,
     agenda_events: agendaEvents,
+    meeting_requests: [],
     prologue: lifePrologue,
   };
 }
@@ -149,7 +152,10 @@ function load(): LocalDB {
     const parsed = JSON.parse(raw) as LocalDB;
     // Reavalia travas de 24h a cada leitura (o tempo passa mesmo sem uso).
     parsed.daily_logs = (parsed.daily_logs ?? []).map((l) => ({ ...l, status: computeStatus(l) }));
-    return { ...seed(), ...parsed };
+    const base = seed();
+    // Contas antigas não têm campos novos (ex.: disponibilidade); o padrão cobre.
+    parsed.profile = { ...base.profile, ...parsed.profile };
+    return { ...base, ...parsed };
   } catch {
     return seed();
   }
@@ -277,6 +283,30 @@ export const localRepository = {
   removeAgendaEvent(id: string): void {
     const db = load();
     db.agenda_events = db.agenda_events.filter((e) => e.id !== id);
+    save(db);
+  },
+
+  // ------------------------------------------------- pedidos de reunião
+
+  /** Pedidos recebidos pelo dono, mais recentes primeiro. */
+  getMeetingRequests(): MeetingRequest[] {
+    return [...load().meeting_requests].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  },
+  /** Pedidos enviados a um handle (usado no modo local para o visitante). */
+  getMeetingRequestsFor(handle: string): MeetingRequest[] {
+    return load().meeting_requests.filter((m) => sameHandleLoose(m.host_handle, handle));
+  },
+  upsertMeetingRequest(request: MeetingRequest): MeetingRequest {
+    const db = load();
+    const idx = db.meeting_requests.findIndex((m) => m.id === request.id);
+    if (idx === -1) db.meeting_requests.push(request);
+    else db.meeting_requests[idx] = request;
+    save(db);
+    return request;
+  },
+  removeMeetingRequest(id: string): void {
+    const db = load();
+    db.meeting_requests = db.meeting_requests.filter((m) => m.id !== id);
     save(db);
   },
 

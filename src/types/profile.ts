@@ -88,6 +88,50 @@ export type Profile = {
   cover_url: string | null;
   /** Identificador público para perfilvivo.com/@handle. */
   handle: string;
+  /** Como o visitante pode pedir uma reunião. */
+  availability: MeetingAvailability;
+};
+
+/** Disponibilidade pública para reuniões: quais dias e horários o dono abre. */
+export type MeetingAvailability = {
+  /** Dias da semana abertos (0=domingo). */
+  days: number[];
+  /** Horários oferecidos, em HH:mm. */
+  slots: string[];
+  /** Duração informativa de cada reunião, em minutos. */
+  duration_min: number;
+  /** Recado curto mostrado a quem vai pedir a reunião. */
+  note: string;
+  /** Fechado = o perfil não aceita pedidos no momento. */
+  enabled: boolean;
+};
+
+export type MeetingStatus = "PENDING" | "CONFIRMED" | "DECLINED";
+
+/**
+ * Pedido de reunião feito por um visitante no perfil público.
+ * Nasce PENDING; o dono aceita (vira compromisso na agenda) ou recusa.
+ */
+export type MeetingRequest = {
+  id: string;
+  host_handle: string;
+  requester_name: string;
+  requester_phone: string;
+  subject: string;
+  location: string;
+  notes: string;
+  meeting_date: string; // yyyy-mm-dd
+  meeting_time: string; // HH:mm
+  status: MeetingStatus;
+  created_at: string;
+};
+
+export const DEFAULT_AVAILABILITY: MeetingAvailability = {
+  days: [1, 3, 5],
+  slots: ["09:00", "10:00", "14:00", "15:00", "16:00"],
+  duration_min: 30,
+  note: "",
+  enabled: true,
 };
 
 /** Compat: entradas antigas da agenda derivam de DailyLog quando necessário. */

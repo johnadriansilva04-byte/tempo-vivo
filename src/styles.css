@@ -2127,3 +2127,415 @@
   color: var(--accent-foreground);
 }
 
+
+
+/* =========================================================================
+ * PERFIL PÚBLICO COMPACTO
+ * Uma tela: identidade, números, painéis e o pedido de reunião. Sem abas,
+ * sem capítulos, sem calendário para rolar. Mostrar antes de explicar.
+ * ========================================================================= */
+
+@utility tile-page {
+  display: grid;
+  gap: 1rem;
+}
+@utility tile-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+@utility tile-avatar {
+  margin-top: 0;
+  height: 3.5rem;
+  width: 3.5rem;
+  flex: none;
+  border-width: 2px;
+}
+@utility tile-identity {
+  min-width: 0;
+  flex: 1;
+}
+@utility tile-sub {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+@utility tile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+@utility tile-bio {
+  border-left: 2px solid color-mix(in oklab, var(--primary) 45%, transparent);
+  padding-left: 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+@utility tile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  background: var(--card);
+}
+@utility tile-stat {
+  text-align: center;
+}
+@utility tile-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--foreground);
+}
+@utility tile-stat-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+@utility tile-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+@utility tile-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  background: var(--card);
+}
+@utility tile-panel-wide {
+  grid-column: 1 / -1;
+}
+@utility tile-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+@utility tile-count {
+  margin-left: auto;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
+  padding: 0.05rem 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--accent-foreground);
+}
+@utility tile-empty {
+  font-size: 0.78rem;
+  color: var(--muted-foreground);
+}
+@utility tile-list {
+  display: grid;
+  gap: 0.45rem;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+}
+@utility tile-date {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: calc(var(--radius) - 4px);
+  background: var(--muted);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.6rem;
+  color: var(--muted-foreground);
+  b {
+    font-size: 0.7rem;
+    color: var(--foreground);
+  }
+}
+@utility tile-check {
+  display: grid;
+  height: 1.15rem;
+  width: 1.15rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  color: var(--accent-foreground);
+}
+@utility tile-year {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+@utility tile-projects {
+  display: grid;
+  gap: 0.6rem;
+}
+@utility tile-progress {
+  flex: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+@utility tile-timeline {
+  display: grid;
+  gap: 0.4rem;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+}
+@utility tile-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--faint);
+}
+
+/* ------------------------------------------- pedido de reunião (visitante) */
+
+@utility meet-form {
+  display: grid;
+  gap: 0.7rem;
+  align-content: start;
+  border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  background: color-mix(in oklab, var(--primary) 5%, var(--card));
+}
+@utility meet-form-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent-foreground);
+}
+@utility meet-days {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+}
+@utility meet-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+@utility meet-date {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0.3rem 0.5rem;
+  background: var(--card);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+  b {
+    font-size: 0.75rem;
+    color: var(--foreground);
+  }
+  span {
+    font-size: 0.6rem;
+    color: var(--muted-foreground);
+  }
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+  }
+  &.selected {
+    border-color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 14%, transparent);
+  }
+}
+@utility meet-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+@utility meet-slot {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--card);
+  cursor: pointer;
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+  }
+  &.selected {
+    border-color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 16%, transparent);
+    color: var(--accent-foreground);
+  }
+}
+@utility meet-fields {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+@utility meet-input {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--foreground);
+  background: var(--card);
+  &::placeholder {
+    color: var(--faint);
+  }
+  &:focus-visible {
+    border-color: var(--primary);
+    outline: none;
+  }
+}
+@utility meet-input-wide {
+  grid-column: 1 / -1;
+}
+@utility meet-done {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  background: color-mix(in oklab, var(--primary) 8%, var(--card));
+}
+@utility meet-done-icon {
+  display: grid;
+  height: 1.75rem;
+  width: 1.75rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+
+/* ---------------------------------------- pedidos de reunião (dono) -------- */
+
+@utility meet-admin {
+  display: grid;
+  gap: 1rem;
+}
+@utility meet-admin-group {
+  display: grid;
+  gap: 0.5rem;
+}
+@utility meet-admin-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+@utility meet-admin-count {
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  padding: 0.05rem 0.4rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent-foreground);
+}
+@utility meet-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
+  background: var(--card);
+}
+@utility meet-card-done {
+  opacity: 0.85;
+}
+@utility meet-card-when {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: calc(var(--radius) - 4px);
+  background: color-mix(in oklab, var(--primary) 10%, var(--muted));
+  padding: 0.25rem 0.5rem;
+  b {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--foreground);
+  }
+  span {
+    font-size: 0.65rem;
+    color: var(--muted-foreground);
+  }
+}
+@utility meet-card-weekday {
+  text-transform: capitalize;
+}
+@utility meet-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+
+/* ----------------------------------------------- peças compartilhadas ------ */
+
+@utility tile-next {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 28%, var(--border));
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0.7rem 0.9rem;
+  background: color-mix(in oklab, var(--primary) 6%, var(--card));
+  transition: border-color 0.15s ease;
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 50%, var(--border));
+  }
+}
+@utility tile-next-time {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-foreground);
+}
+@utility tile-list {
+  display: grid;
+  gap: 0.4rem;
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+}
+@utility tile-hour {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-foreground);
+}
+@utility tile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  background: var(--card);
+}

@@ -13,12 +13,16 @@ import type {
   AgendaEvent,
   CareerChapter,
   DailyLog,
+  MeetingAvailability,
+  MeetingRequest,
   Milestone,
   Profile,
   Project,
   Recurrence,
   WeeklyFocus,
 } from "@/types/profile";
+import { DEFAULT_AVAILABILITY } from "@/types/profile";
+import { eventFromMeeting } from "@/lib/meetings";
 
 // ---------------------------------------------------------------------------
 // Fonte única de verdade para toda a UI.
@@ -40,6 +44,17 @@ function remote(): { db: NonNullable<typeof supabase>; uid: string } | null {
   return { db: supabase, uid };
 }
 
+/**
+ * Cliente para leitura pública: existe sempre que o Supabase está configurado,
+ * com ou sem sessão. Quem limita o que um visitante enxerga é a RLS
+ * (`public_profiles` + políticas de leitura pública), não o login — exigir
+ * sessão aqui era o que fazia o link compartilhado cair em "não encontrado"
+ * em qualquer navegador que não fosse o do dono.
+ */
+function publicClient(): NonNullable<typeof supabase> | null {
+  return isSupabaseConfigured && supabase ? supabase : null;
+}
+
 const EMPTY_PROFILE: Profile = {
   name: "",
   role: "",
@@ -51,7 +66,23 @@ const EMPTY_PROFILE: Profile = {
   avatar_url: null,
   cover_url: null,
   handle: "",
+  availability: DEFAULT_AVAILABILITY,
 };
+
+/** Disponibilidade vinda do banco (jsonb) ou do padrão. */
+function fromRemoteAvailability(raw: unknown): MeetingAvailability {
+  if (!raw || typeof raw !== "object") return DEFAULT_AVAILABILITY;
+  const row = raw as Record<string, unknown>;
+  const days = Array.isArray(row["days"]) ? row["days"].map(Number) : DEFAULT_AVAILABILITY.days;
+  const slots = Array.isArray(row["slots"]) ? row["slots"].map(String) : DEFAULT_AVAILABILITY.slots;
+  return {
+    days: days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6),
+    slots,
+    duration_min: Number(row["duration_min"] ?? DEFAULT_AVAILABILITY.duration_min),
+    note: String(row["note"] ?? ""),
+    enabled: row["enabled"] === undefined ? true : Boolean(row["enabled"]),
+  };
+}
 
 // ------------------------------------------------------------------ Profile
 
@@ -71,6 +102,7 @@ function fromRemoteProfile(row: ProfileRow): Profile {
     avatar_url: (row["avatar_url"] as string | null) ?? null,
     cover_url: (row["cover_url"] as string | null) ?? null,
     handle: String(row["handle"] ?? ""),
+    availability: fromRemoteAvailability(row["availability"]),
   };
 }
 
@@ -97,6 +129,7 @@ export async function updateProfile(patch: Partial<Omit<Profile, "id">>): Promis
     if (patch.avatar_url !== undefined) row["avatar_url"] = patch.avatar_url;
     if (patch.cover_url !== undefined) row["cover_url"] = patch.cover_url;
     if (patch.handle !== undefined) row["handle"] = patch.handle;
+    if (patch.availability !== undefined) row["availability"] = patch.availability;
 
     // upsert: cria a linha no primeiro salvamento e atualiza depois (nunca no-op).
     const { data, error } = await r.db
@@ -578,9 +611,9 @@ export async function ensurePublicHandle(): Promise<string> {
 
 /** Perfis visíveis para o visitante, na rede. */
 export async function listPublicProfiles(): Promise<PublicProfileSummary[]> {
-  const r = remote();
-  if (r) {
-    const { data, error } = await r.db.from("public_profiles").select("*");
+  const db = publicClient();
+  if (db) {
+    const { data, error } = await db.from("public_profiles").select("*");
     if (error) throw error;
     return (data ?? [])
       .map((row) => {
@@ -622,19 +655,15 @@ export async function listPublicProfiles(): Promise<PublicProfileSummary[]> {
 export async function getPublicProfile(handle: string): Promise<PublicProfile | null> {
   const clean = normalizeHandle(handle);
   if (!clean) return null;
-  const r = remote();
+  const db = publicClient();
 
-  if (r) {
+  if (db) {
     // 1. Handle gravado. 2. Handle derivado do nome (contas antigas).
-    const byHandle = await r.db
-      .from("public_profiles")
-      .select("*")
-      .eq("handle", clean)
-      .maybeSingle();
+    const byHandle = await db.from("public_profiles").select("*").eq("handle", clean).maybeSingle();
     if (byHandle.error) throw byHandle.error;
     let row = (byHandle.data as Record<string, unknown> | null) ?? null;
     if (!row) {
-      const all = await r.db.from("public_profiles").select("*");
+      const all = await db.from("public_profiles").select("*");
       if (all.error) throw all.error;
       row =
         ((all.data ?? []) as Record<string, unknown>[]).find(
@@ -768,4 +797,121 @@ export async function setLifePrologue(text: string): Promise<void> {
     return;
   }
   localRepository.setPrologue(clean);
+}
+
+// ------------------------------------------------------- reuniões públicas
+
+function fromRemoteMeeting(row: Record<string, unknown>): MeetingRequest {
+  return {
+    id: String(row["id"]),
+    host_handle: String(row["host_handle"] ?? ""),
+    requester_name: String(row["requester_name"] ?? ""),
+    requester_phone: String(row["requester_phone"] ?? ""),
+    subject: String(row["subject"] ?? ""),
+    location: String(row["location"] ?? ""),
+    notes: String(row["notes"] ?? ""),
+    meeting_date: String(row["meeting_date"] ?? "").slice(0, 10),
+    meeting_time: String(row["meeting_time"] ?? "").slice(0, 5),
+    status: (row["status"] as MeetingRequest["status"]) ?? "PENDING",
+    created_at: String(row["created_at"] ?? new Date().toISOString()),
+  };
+}
+
+/** Pedidos recebidos pelo dono (aba Solicitações da Agenda). */
+export async function listMeetingRequests(): Promise<MeetingRequest[]> {
+  const r = remote();
+  if (r) {
+    const { data, error } = await r.db
+      .from("meeting_requests")
+      .select("*")
+      .eq("host_id", r.uid)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => fromRemoteMeeting(row as Record<string, unknown>));
+  }
+  return localRepository.getMeetingRequests();
+}
+
+/**
+ * Visitante pede uma reunião. Não exige login: quem escreve é o visitante, o
+ * pedido nasce pendente e só o dono decide. Com Supabase a RLS libera INSERT
+ * anônimo para o handle que abriu disponibilidade.
+ */
+export async function requestMeeting(
+  input: Omit<MeetingRequest, "id" | "status" | "created_at">,
+): Promise<MeetingRequest> {
+  const request: MeetingRequest = {
+    ...input,
+    id: newId(),
+    status: "PENDING",
+    created_at: new Date().toISOString(),
+  };
+  const db = publicClient();
+  if (db) {
+    const { data, error } = await db
+      .from("meeting_requests")
+      .insert({
+        id: request.id,
+        host_handle: request.host_handle,
+        requester_name: request.requester_name,
+        requester_phone: request.requester_phone,
+        subject: request.subject,
+        location: request.location,
+        notes: request.notes,
+        meeting_date: request.meeting_date,
+        meeting_time: request.meeting_time,
+        status: request.status,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return fromRemoteMeeting(data as Record<string, unknown>);
+  }
+  return localRepository.upsertMeetingRequest(request);
+}
+
+/** Aceita: marca como confirmada e cria o compromisso na agenda do dono. */
+export async function acceptMeeting(request: MeetingRequest): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db
+      .from("meeting_requests")
+      .update({ status: "CONFIRMED" })
+      .eq("id", request.id)
+      .eq("host_id", r.uid);
+    if (error) throw error;
+    await saveAgendaEvent(eventFromMeeting(request));
+    return;
+  }
+  localRepository.upsertMeetingRequest({ ...request, status: "CONFIRMED" });
+  localRepository.upsertAgendaEvent(eventFromMeeting(request));
+}
+
+/** Recusa: só muda o status. Nada entra na agenda. */
+export async function declineMeeting(request: MeetingRequest): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db
+      .from("meeting_requests")
+      .update({ status: "DECLINED" })
+      .eq("id", request.id)
+      .eq("host_id", r.uid);
+    if (error) throw error;
+    return;
+  }
+  localRepository.upsertMeetingRequest({ ...request, status: "DECLINED" });
+}
+
+export async function removeMeetingRequest(id: string): Promise<void> {
+  const r = remote();
+  if (r) {
+    const { error } = await r.db
+      .from("meeting_requests")
+      .delete()
+      .eq("id", id)
+      .eq("host_id", r.uid);
+    if (error) throw error;
+    return;
+  }
+  localRepository.removeMeetingRequest(id);
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computeStatus, initialsOf, newId } from "@/repositories/profile-repository";
+import {
+  computeStatus,
+  initialsOf,
+  localRepository,
+  newId,
+} from "@/repositories/profile-repository";
+import { DEFAULT_AVAILABILITY } from "@/types/profile";
 
 // computeStatus lê o relógio real (Date.now()); os fixtures são relativos a ele.
 const HOUR = 3_600_000;
@@ -79,5 +85,35 @@ describe("initialsOf (repositório)", () => {
   it("espelha a regra de iniciais do app", () => {
     expect(initialsOf("Helena Duarte")).toBe("HD");
     expect(initialsOf("")).toBe("?");
+  });
+});
+
+describe("load — perfis salvos antes de campos novos", () => {
+  it("preenche a disponibilidade ausente com o padrão, sem perder o resto", () => {
+    const store = new Map<string, string>();
+    const fakeWindow = {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+      },
+    };
+    const original = (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = fakeWindow;
+    try {
+      store.set(
+        "perfil-vivo:db:v3:anonymous",
+        JSON.stringify({
+          profile: { id: "u1", name: "Conta Antiga", role: "Pesquisadora" },
+          daily_logs: [],
+        }),
+      );
+      const profile = localRepository.getProfile();
+      expect(profile.name).toBe("Conta Antiga");
+      expect(profile.role).toBe("Pesquisadora");
+      expect(profile.availability).toEqual(DEFAULT_AVAILABILITY);
+    } finally {
+      (globalThis as { window?: unknown }).window = original;
+    }
   });
 });

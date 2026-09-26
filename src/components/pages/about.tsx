@@ -167,6 +167,7 @@ export function AboutPage() {
           agenda={events}
           focus={focus}
           onShare={share}
+          onCopy={copyLink}
         />
       </div>
     </>
