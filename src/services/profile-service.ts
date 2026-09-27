@@ -73,6 +73,7 @@ async function fetchProfileRemote(): Promise<Profile> {
     target_lifespan: Number(data["target_lifespan"] ?? 100),
     avatar_url: (data["avatar_url"] as string | null) ?? null,
     cover_url: (data["cover_url"] as string | null) ?? null,
+    phone: String(data["phone"] ?? ""),
   };
 }
 
@@ -110,6 +111,7 @@ export async function updateProfile(patch: Partial<Omit<Profile, "id">>): Promis
       row["target_lifespan"] = normalized.target_lifespan;
     if (normalized.avatar_url !== undefined) row["avatar_url"] = normalized.avatar_url;
     if (normalized.cover_url !== undefined) row["cover_url"] = normalized.cover_url;
+    if (normalized.phone !== undefined) row["phone"] = normalized.phone;
     const { error } = await db.from("profiles").update(row).eq("id", userId);
     if (error) throw error;
     return fetchProfileRemote();

@@ -1,255 +1,160 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   Sparkles, 
   ArrowRight, 
-  Calendar, 
-  Target, 
-  Award, 
+  ChevronDown,
+  User,
+  Phone,
+  Calendar,
+  Target,
   Brain,
-  CheckCircle2,
+  Award,
+  Shield,
   Zap,
-  BookOpen,
-  Rocket
+  CheckCircle2
 } from "lucide-react";
+import { useState } from "react";
 
 export function WelcomePage() {
+  const [showAbout, setShowAbout] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(false);
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="max-w-4xl w-full space-y-8">
-        {/* Hero Section */}
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30">
-            <Sparkles className="h-4 w-4 text-purple-500" />
-            <span className="text-sm font-medium text-purple-500">Bem-vindo ao Perfil Vivo</span>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8">
+      <div className="max-w-2xl w-full space-y-6">
+        {/* Hero Compact */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30">
+            <Sparkles className="h-3 w-3 text-purple-500" />
+            <span className="text-xs font-medium text-purple-500">Perfil Vivo</span>
           </div>
-          <h1 className="font-display text-5xl font-bold">
-            Sua jornada começa aqui
+          <h1 className="font-display text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Sua Vida, Sua História
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Transforme sua vida diária em uma trajetória significativa. 
+          <p className="text-lg text-muted-foreground max-w-lg mx-auto">
+            Transforme cada dia em uma página da sua trajetória. 
             Registre, analise e evolua com inteligência local.
           </p>
         </div>
 
-        {/* Quick Start Actions */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Link to="/agenda">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Calendar className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Começar Agora</CardTitle>
-                    <CardDescription>Registre seu primeiro dia</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full">
-                  <Rocket className="mr-2 h-4 w-4" />
-                  Criar Registro
-                </Button>
-              </CardContent>
-            </Card>
+        {/* CTA Principal */}
+        <div className="grid gap-3 md:grid-cols-2">
+          <Link to="/sobre" className="block">
+            <Button variant="outline" size="lg" className="w-full">
+              <User className="mr-2 h-5 w-5" />
+              Criar Perfil
+            </Button>
           </Link>
-
-          <Link to="/projetos">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/10">
-                    <Target className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Criar Projeto</CardTitle>
-                    <CardDescription>Defina seus objetivos</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Target className="mr-2 h-4 w-4" />
-                  Novo Projeto
-                </Button>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to="/planejamento">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-orange-500/10">
-                    <Zap className="h-5 w-5 text-orange-500" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Planejar Semana</CardTitle>
-                    <CardDescription>Metas e foco semanal</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Button variant="outline" className="w-full">
-                  <Zap className="mr-2 h-4 w-4" />
-                  Planejar
-                </Button>
-              </CardContent>
-            </Card>
+          <Link to="/agenda" className="block">
+            <Button size="lg" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+              <Calendar className="mr-2 h-5 w-5" />
+              Criar Registro
+            </Button>
           </Link>
         </div>
 
-        {/* Features Overview */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-purple-500" />
-                Inteligência Local
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Análise de Sentimento</p>
-                  <p className="text-xs text-muted-foreground">Entenda suas emoções diárias</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Predição de Produtividade</p>
-                  <p className="text-xs text-muted-foreground">Preveja seus melhores dias</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Recomendações da IA</p>
-                  <p className="text-xs text-muted-foreground">Sugestões personalizadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Expansíveis */}
+        <div className="space-y-2">
+          <Collapsible open={showAbout} onOpenChange={setShowAbout}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between">
+                <span className="text-sm font-medium">O que é Perfil Vivo?</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <Card className="mt-2">
+                <CardContent className="pt-4 space-y-3">
+                  <p className="text-sm leading-6">
+                    <strong className="text-purple-500">Perfil Vivo</strong> é um companion pessoal que transforma sua vida diária em uma trajetória significativa. 
+                    Cada dia é uma página da sua história, registrada, analisada e evoluída com inteligência local.
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    <span>100% self-hosted</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    <span>Zero custo</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    <span>Máxima privacidade</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-yellow-500" />
-                Gamificação
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Sistema de Streaks</p>
-                  <p className="text-xs text-muted-foreground">Mantenha a consistência</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Conquistas e Badges</p>
-                  <p className="text-xs text-muted-foreground">Celebre seu progresso</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">XP e Níveis</p>
-                  <p className="text-xs text-muted-foreground">Evolua continuamente</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Collapsible open={showFeatures} onOpenChange={setShowFeatures}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between">
+                <span className="text-sm font-medium">Features</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <Card className="mt-2">
+                <CardContent className="pt-4 grid gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-500/10">
+                      <Brain className="h-4 w-4 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Inteligência Local</p>
+                      <p className="text-xs text-muted-foreground">Sentimento, predição e recomendações</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-yellow-500/10">
+                      <Award className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Gamificação</p>
+                      <p className="text-xs text-muted-foreground">Streaks, conquistas e XP</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <Shield className="h-4 w-4 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">100% Privado</p>
+                      <p className="text-xs text-muted-foreground">Dados nunca saem do seu dispositivo</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Zap className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Offline-First</p>
+                      <p className="text-xs text-muted-foreground">Funciona sem internet</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
-        {/* Instructions */}
-        <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/20">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">🚀 Como Começar em 3 Passos</h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                    1
-                  </div>
-                  <div>
-                    <p className="font-medium">Vá para a Agenda</p>
-                    <p className="text-sm text-muted-foreground">Registre suas intenções para hoje</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                    2
-                  </div>
-                  <div>
-                    <p className="font-medium">Ao final do dia, atualize</p>
-                    <p className="text-sm text-muted-foreground">Registre o que executou e faça um resumo</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                    3
-                  </div>
-                  <div>
-                    <p className="font-medium">Acompanhe sua evolução</p>
-                    <p className="text-sm text-muted-foreground">Veja analytics, sentiment e recomendações</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Link to="/agenda">
-                  <Button size="lg">
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Começar Jornada
-                  </Button>
-                </Link>
-                <Link to="/intelligence-dashboard">
-                  <Button size="lg" variant="outline">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Ver Inteligência
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Info Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="text-3xl">100%</div>
-                <p className="text-sm text-muted-foreground">Self-Hosted</p>
-                <p className="text-xs text-faint">Zero custo, máxima privacidade</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="text-3xl">26</div>
-                <p className="text-sm text-muted-foreground">Features</p>
-                <p className="text-xs text-faint">Sistemas locais completos</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="text-3xl">∞</div>
-                <p className="text-sm text-muted-foreground">Offline-First</p>
-                <p className="text-xs text-faint">Funciona sem internet</p>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Quick Stats */}
+        <div className="flex justify-center gap-6 pt-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-500">26</div>
+            <p className="text-xs text-muted-foreground">Features</p>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-500">100%</div>
+            <p className="text-xs text-muted-foreground">Local</p>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-500">R$0</div>
+            <p className="text-xs text-muted-foreground">Custo</p>
+          </div>
         </div>
       </div>
     </div>

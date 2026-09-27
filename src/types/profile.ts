@@ -51,6 +51,7 @@ export type Profile = {
   target_lifespan: number; // default 100
   avatar_url: string | null;
   cover_url: string | null;
+  phone: string;
 };
 
 /** Compat: entradas antigas da agenda derivam de DailyLog quando necessário. */

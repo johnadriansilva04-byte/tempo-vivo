@@ -1,15 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AboutPage } from "@/components/pages";
+import { CreateProfilePage } from "@/components/create-profile-page";
+
 export const Route = createFileRoute("/sobre")({
   head: () => ({
     meta: [
-      { title: "Sobre — Perfil Vivo" },
-      { name: "description", content: "Biografia, objetivos e núcleo familiar da sua trajetória." },
-      { property: "og:title", content: "Sobre — Perfil Vivo" },
-      { property: "og:description", content: "A pessoa, sua história e seus vínculos essenciais." },
+      { title: "Criar Perfil — Perfil Vivo" },
+      { name: "description", content: "Crie seu perfil para começar sua jornada no Perfil Vivo." },
+      { property: "og:title", content: "Criar Perfil — Perfil Vivo" },
+      { property: "og:description", content: "Transforme sua vida diária em uma trajetória significativa." },
       { property: "og:type", content: "profile" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: AboutPage,
+  component: CreateProfile,
 });
+
+function CreateProfile() {
+  return <CreateProfilePage />;
+}
