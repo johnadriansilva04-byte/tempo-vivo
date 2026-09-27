@@ -4,7 +4,7 @@ import { setUserIdCache } from "@/services/profile-service";
 
 export type AuthUser = {
   id: string;
-  email: string;
+  phone: string;
   name?: string;
   avatar_url?: string;
 };
@@ -34,7 +34,7 @@ export function useAuth() {
       return {
         user: {
           id: session.user.id,
-          email: session.user.email || "",
+          phone: session.user.phone || "",
           name: session.user.user_metadata?.name,
           avatar_url: session.user.user_metadata?.avatar_url,
         },
@@ -59,8 +59,12 @@ export function useSignIn() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+    mutationFn: async ({ phone, password }: { phone: string; password: string }) => {
       if (!supabase) throw new Error("Supabase não configurado");
+      
+      // Convert phone to email format for Supabase compatibility
+      const cleanPhone = phone.replace(/\D/g, '');
+      const email = `${cleanPhone}@tempovivo.local`;
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -72,7 +76,7 @@ export function useSignIn() {
       return {
         user: {
           id: data.user.id,
-          email: data.user.email || "",
+          phone: phone,
           name: data.user.user_metadata?.name,
           avatar_url: data.user.user_metadata?.avatar_url,
         },
@@ -91,22 +95,27 @@ export function useSignUp() {
   
   return useMutation({
     mutationFn: async ({ 
-      email, 
+      phone, 
       password, 
       name 
     }: { 
-      email: string; 
+      phone: string; 
       password: string; 
       name?: string;
     }) => {
       if (!supabase) throw new Error("Supabase não configurado");
+      
+      // Convert phone to email format for Supabase compatibility
+      const cleanPhone = phone.replace(/\D/g, '');
+      const email = `${cleanPhone}@tempovivo.local`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: name || email.split('@')[0],
+            name: name || phone,
+            phone: phone,
           },
         },
       });
@@ -114,14 +123,14 @@ export function useSignUp() {
       if (error) throw error;
       
       if (!data.session) {
-        // Email confirmation required
+        // Phone confirmation required
         return null;
       }
       
       return {
         user: {
           id: data.user.id,
-          email: data.user.email || "",
+          phone: phone,
           name: data.user.user_metadata?.name,
           avatar_url: data.user.user_metadata?.avatar_url,
         },
@@ -170,7 +179,7 @@ export function useUpdateProfile() {
       
       return {
         id: data.user.id,
-        email: data.user.email || "",
+        phone: data.user.user_metadata?.phone || "",
         name: data.user.user_metadata?.name,
         avatar_url: data.user.user_metadata?.avatar_url,
       } as AuthUser;
@@ -186,8 +195,12 @@ export function useUpdateProfile() {
 
 export function useResetPassword() {
   return useMutation({
-    mutationFn: async (email: string) => {
+    mutationFn: async (phone: string) => {
       if (!supabase) throw new Error("Supabase não configurado");
+      
+      // Convert phone to email format for Supabase compatibility
+      const cleanPhone = phone.replace(/\D/g, '');
+      const email = `${cleanPhone}@tempovivo.local`;
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,

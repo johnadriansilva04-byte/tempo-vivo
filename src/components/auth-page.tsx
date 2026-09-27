@@ -15,8 +15,8 @@ export function AuthPage() {
   const signIn = useSignIn();
   const signUp = useSignUp();
   
-  const [signInData, setSignInData] = useState({ email: "", password: "" });
-  const [signUpData, setSignUpData] = useState({ email: "", password: "", name: "" });
+  const [signInData, setSignInData] = useState({ phone: "", password: "" });
+  const [signUpData, setSignUpData] = useState({ phone: "", password: "", name: "" });
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -48,7 +48,7 @@ export function AuthPage() {
       if (result) {
         navigate({ to: "/" });
       } else {
-        setSuccessMessage("Verifique seu email para confirmar a conta");
+        setSuccessMessage("Verifique seu telefone para confirmar a conta");
       }
     } catch (err: any) {
       setError(err.message || "Erro ao criar conta");
@@ -93,13 +93,13 @@ export function AuthPage() {
                   )}
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-phone">Telefone</Label>
                     <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={signInData.email}
-                      onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                      id="signin-phone"
+                      type="tel"
+                      placeholder="(11) 99999-9999"
+                      value={signInData.phone}
+                      onChange={(e) => setSignInData({ ...signInData, phone: e.target.value })}
                       required
                     />
                   </div>
@@ -168,13 +168,13 @@ export function AuthPage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-phone">Telefone</Label>
                     <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={signUpData.email}
-                      onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="(11) 99999-9999"
+                      value={signUpData.phone}
+                      onChange={(e) => setSignUpData({ ...signUpData, phone: e.target.value })}
                       required
                     />
                   </div>
