@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useProfile } from "@/hooks/use-profile";
-import { useAuth, useSignOut } from "@/hooks/use-auth";
+import { useAuth, signOut } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 const links = [
@@ -45,8 +45,7 @@ const links = [
 export function SidebarNav({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const { profile } = useProfile();
-  const { user } = useAuth();
-  const signOut = useSignOut();
+  const { account } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,7 +89,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
             <div className="avatar-small">{profile?.initials ?? "··"}</div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-sidebar-foreground">
-                {profile?.name ?? user?.email ?? "Carregando…"}
+                {profile?.name ?? account?.name ?? "Carregando…"}
               </p>
               <p className="text-[11px] text-muted-foreground">Perfil privado</p>
             </div>
@@ -99,8 +98,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
               size="icon"
               className="h-7 w-7"
               aria-label="Sair"
-              onClick={() => signOut.mutate()}
-              disabled={signOut.isPending}
+              onClick={() => signOut()}
             >
               <LogOut className="size-3.5" />
             </Button>
