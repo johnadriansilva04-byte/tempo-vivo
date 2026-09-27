@@ -16,24 +16,24 @@ export default defineConfig({
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
+          manualChunks: (id) => {
             // Split vendor chunks for better caching
-            'react-vendor': ['react', 'react-dom'],
-            'tanstack-vendor': ['@tanstack/react-query', '@tanstack/react-router', '@tanstack/react-start'],
-            'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
-            'charts-vendor': ['recharts'],
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@tanstack/react-query') || id.includes('@tanstack/react-router') || id.includes('@tanstack/react-start')) {
+              return 'tanstack-vendor';
+            }
+            if (id.includes('@radix-ui/react-dialog') || id.includes('@radix-ui/react-dropdown-menu') || id.includes('@radix-ui/react-tabs')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('recharts')) {
+              return 'charts-vendor';
+            }
           },
         },
       },
       chunkSizeWarningLimit: 1000,
-      // Enable tree shaking
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-        },
-      },
     },
     // Optimize dependencies
     optimizeDeps: {
