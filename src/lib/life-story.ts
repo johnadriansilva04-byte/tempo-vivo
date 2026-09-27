@@ -1,6 +1,5 @@
 import type { Account } from "@/types/auth";
 import type {
-  AgendaEvent,
   CareerChapter,
   DailyLog,
   Milestone,
@@ -81,7 +80,6 @@ export type StarterLife = {
   profile: Partial<Profile>;
   prologue: string;
   dailyLog: DailyLog;
-  agendaEvent: AgendaEvent | null;
   focus: WeeklyFocus[];
   chapters: CareerChapter[];
   milestones: Milestone[];
@@ -189,7 +187,6 @@ export function buildStarterLife(
         locked_at: null,
         created_at: new Date().toISOString(),
       },
-      agendaEvent: null,
       focus: [],
       chapters: [],
       milestones: [],
@@ -291,22 +288,10 @@ export function buildStarterLife(
     },
   ];
 
-  // O primeiro compromisso da agenda: a frente escolhida vira um bloco no dia.
-  const agendaEvent: AgendaEvent = {
-    id: newId(),
-    title: answers.focus.trim() || "Primeiro passo da frente escolhida",
-    event_date: todayIso(),
-    start_time: "09:00",
-    end_time: "10:00",
-    location: "",
-    notes: "",
-  };
-
   return {
     profile,
     prologue,
     dailyLog,
-    agendaEvent,
     focus: focusFor(cycle, answers.focus),
     chapters,
     milestones,
