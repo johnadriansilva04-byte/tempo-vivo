@@ -90,7 +90,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
             <div className="avatar-small">{profile?.initials ?? "··"}</div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-sidebar-foreground">
-                {profile?.name ?? user?.phone ?? "Carregando…"}
+                {profile?.name ?? user?.email ?? "Carregando…"}
               </p>
               <p className="text-[11px] text-muted-foreground">Perfil privado</p>
             </div>
