@@ -5,8 +5,12 @@ import { Input } from "@/components/ui/input";
 import { LifetimeTracker } from "@/components/lifetime-tracker";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 
-/** Cabeçalho do perfil: avatar, nome, cargo, banner personalizável e o donut de finitude. */
-export function ProfileHeader() {
+/**
+ * Cabeçalho do perfil: avatar, nome, cargo e banner personalizável.
+ * `compact` deixa-o baixo o bastante para caber na primeira dobra — o donut
+ * de finitude (Memento Mori) vai para uma seção expansível do dashboard.
+ */
+export function ProfileHeader({ compact = false }: { compact?: boolean }) {
   const { profile } = useProfile();
   const updateProfile = useUpdateProfile();
   const [editing, setEditing] = useState(false);
@@ -18,7 +22,9 @@ export function ProfileHeader() {
 
   if (!profile) {
     return (
-      <div className="h-44 animate-pulse rounded-lg border border-border bg-card" />
+      <div
+        className={`animate-pulse rounded-lg border border-border bg-card ${compact ? "h-24" : "h-44"}`}
+      />
     );
   }
 
@@ -46,7 +52,10 @@ export function ProfileHeader() {
   };
 
   return (
-    <section className="profile-header">
+    <section
+      className="profile-header"
+      data-compact={compact ? "true" : undefined}
+    >
       {profile.cover_url ? (
         <div
           className="profile-banner"
@@ -217,7 +226,7 @@ export function ProfileHeader() {
           </div>
         </div>
 
-        <LifetimeTracker />
+        {!compact && <LifetimeTracker />}
       </div>
     </section>
   );

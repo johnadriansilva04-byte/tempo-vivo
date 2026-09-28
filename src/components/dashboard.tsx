@@ -1,12 +1,15 @@
 import {
+  Activity,
   ArrowRight,
   CalendarDays,
   Check,
   Clock3,
   Copy,
   ExternalLink,
+  Hourglass,
   FolderKanban,
   Inbox,
+  LayoutGrid,
   Link2,
   Sparkles,
   Trophy,
@@ -17,12 +20,13 @@ import { toast } from "sonner";
 import { ConsistencyHeatmap } from "@/components/consistency-heatmap";
 import { DayGreeting } from "@/components/day-greeting";
 import { EmptyState } from "@/components/empty-state";
+import { ExpandingSection } from "@/components/expanding-section";
 import { GamificationPanel } from "@/components/gamification-panel";
 import { ProfileCompleteness } from "@/components/profile-completeness";
 import { ProfileHeader } from "@/components/profile-header";
+import { LifetimeTracker } from "@/components/lifetime-tracker";
 import { DayAgenda } from "@/components/schedule-kit";
-import { Metric, ProgressBar, Section } from "@/components/page-kit";
-import { Button } from "@/components/ui/button";
+import { Metric, ProgressBar } from "@/components/page-kit";
 import { useDailyLogs } from "@/hooks/use-daily-logs";
 import { useMilestones } from "@/hooks/use-milestones";
 import { useProjects } from "@/hooks/use-projects";
@@ -76,6 +80,11 @@ function NextCommitment({
   );
 }
 
+/**
+ * Dashboard enxuto: o essencial na tela (saudação, próximo compromisso,
+ * hoje/amanhã) e todo o resto em seções que expandem no lugar — sem poluir
+ * e sem rolar a página.
+ */
 export function DashboardPage() {
   const { profile } = useProfile();
   const { logs } = useDailyLogs();
@@ -128,7 +137,7 @@ export function DashboardPage() {
 
   const activeProjects = projects
     .filter((p) => p.status !== "Concluído")
-    .slice(0, 2);
+    .slice(0, 4);
   const latestMilestone = milestones[0];
   const availableWeekdays = rules
     .filter((r) => r.is_available)
@@ -142,6 +151,7 @@ export function DashboardPage() {
   const acceptedMeetings = requests.filter(
     (r) => r.status === "ACCEPTED",
   ).length;
+  const doneProjects = projects.filter((p) => p.status === "Concluído").length;
 
   const publicSlug = (profile?.slug ?? "").trim();
   const publicUrl =
@@ -161,16 +171,40 @@ export function DashboardPage() {
     }
   };
 
+  // Linhas-resumo das seções expansíveis (estado em uma frase, sem poluir).
+  const agendaSummary =
+    upcoming.length > 0
+      ? `${upcoming.length} compromisso(s) nos próximos dias`
+      : "Sua rotina recorrente aparece aqui";
+  const projectsSummary =
+    activeProjects.length > 0
+      ? activeProjects.map((p) => p.name).join(" · ")
+      : "Nenhum projeto em movimento";
+  const milestoneSummary = latestMilestone
+    ? `${latestMilestone.year} · ${latestMilestone.title}`
+    : "Nada registrado ainda";
+  const numbersSummary = `${logs.length} dias · ${milestones.length} realizações · ${doneProjects} projetos concluídos`;
+  const availabilitySummary =
+    pendingMeetings > 0
+      ? `${availableWeekdays.length} dia(s) aberto(s) · ${pendingMeetings} pedido(s) aguardando`
+      : availableWeekdays.length > 0
+        ? `${availableWeekdays.length} dia(s) aberto(s) para reuniões`
+        : "Abra dias e horários para receber pedidos";
+  const publicLinkSummary = publicUrl
+    ? `perfilvivo.com/u/${publicSlug}`
+    : "Defina seu nome de link";
+
   return (
     <>
-      <ProfileHeader />
+      <ProfileHeader compact />
 
-      <div className="mt-8">
+      <div className="mt-6">
         <DayGreeting />
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1.45fr_0.85fr]">
-        <div className="space-y-9">
+      <div className="mt-2 grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
+        {/* Coluna esquerda — o essencial do dia */}
+        <div className="space-y-5">
           {next && next.occurrence ? (
             <NextCommitment
               label={next.label}
@@ -208,22 +242,36 @@ export function DashboardPage() {
             />
           </div>
 
-          <Section
+          {/* Um toque no essencial numérico — o resto se expande abaixo */}
+          <div className="grid grid-cols-3 gap-3 border-t border-border pt-5">
+            <Metric value={String(logs.length)} label="Dias registrados" />
+            <Metric
+              value={String(commitments.filter((c) => c.is_active).length)}
+              label="Compromissos fixos"
+            />
+            <Metric value={String(milestones.length)} label="Realizações" />
+          </div>
+        </div>
+
+        {/* Coluna direita — seções que se expandem no lugar */}
+        <div className="space-y-2.5">
+          <ExpandingSection
             title="Próximas atividades"
-            detail="O que sua rotina já reserva nos próximos dias"
-            action={
-              <Link
-                to="/agenda"
-                className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
-              >
-                Ver agenda completa →
-              </Link>
-            }
+            icon={<CalendarDays className="size-4" />}
+            summary={agendaSummary}
+            description="O que sua rotina já reserva nos próximos 7 dias"
           >
             {upcoming.length === 0 ? (
               <p className="text-sm text-faint">
                 Sua rotina recorrente aparece aqui assim que você criar
-                compromissos.
+                compromissos na{" "}
+                <Link
+                  to="/agenda"
+                  className="font-medium text-primary underline underline-offset-2"
+                >
+                  Agenda
+                </Link>
+                .
               </p>
             ) : (
               <div className="divide-y divide-border rounded-lg border border-border bg-card">
@@ -250,19 +298,13 @@ export function DashboardPage() {
                 ))}
               </div>
             )}
-          </Section>
+          </ExpandingSection>
 
-          <Section
+          <ExpandingSection
             title="Projetos ativos"
-            detail="O que está em movimento agora"
-            action={
-              <Link
-                to="/projetos"
-                className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
-              >
-                Todos os projetos →
-              </Link>
-            }
+            icon={<FolderKanban className="size-4" />}
+            summary={projectsSummary}
+            description="O que está em movimento agora"
           >
             {activeProjects.length === 0 ? (
               <EmptyState
@@ -300,19 +342,13 @@ export function DashboardPage() {
                 ))}
               </div>
             )}
-          </Section>
+          </ExpandingSection>
 
-          <Section
+          <ExpandingSection
             title="Última realização"
-            detail="O que você já concretizou"
-            action={
-              <Link
-                to="/realizacoes"
-                className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
-              >
-                Realizações →
-              </Link>
-            }
+            icon={<Trophy className="size-4" />}
+            summary={milestoneSummary}
+            description="O que você já concretizou"
           >
             {latestMilestone ? (
               <div className="quiet-panel">
@@ -330,21 +366,56 @@ export function DashboardPage() {
             ) : (
               <p className="flex items-center gap-2 text-sm text-faint">
                 <Sparkles className="size-3.5" />
-                Nenhuma realização registrada ainda.
+                Nenhuma realização registrada ainda — comece em{" "}
+                <Link
+                  to="/realizacoes"
+                  className="font-medium text-primary underline underline-offset-2"
+                >
+                  Realizações
+                </Link>
+                .
               </p>
             )}
-          </Section>
-        </div>
+          </ExpandingSection>
 
-        <div className="space-y-9">
-          {/* Link público — a janela do mundo */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-faint">
-              <Link2 className="size-3.5" /> Seu link público
+          <ExpandingSection
+            title="Em números"
+            icon={<LayoutGrid className="size-4" />}
+            summary={numbersSummary}
+            description="A trajetória inteira em seis medidas"
+          >
+            <div className="grid grid-cols-2 gap-x-4 gap-y-7">
+              <Metric value={String(logs.length)} label="Dias registrados" />
+              <Metric
+                value={String(commitments.filter((c) => c.is_active).length)}
+                label="Compromissos fixos"
+              />
+              <Metric value={String(milestones.length)} label="Realizações" />
+              <Metric
+                value={String(doneProjects)}
+                label="Projetos concluídos"
+              />
+              <Metric
+                value={String(acceptedMeetings)}
+                label="Reuniões realizadas"
+              />
+              <Metric
+                value={`${summaryPct}%`}
+                label="Dias com resumo"
+                {...(logs.length === 0 ? { detail: "sem dados" } : {})}
+              />
             </div>
+          </ExpandingSection>
+
+          <ExpandingSection
+            title="Link público"
+            icon={<Link2 className="size-4" />}
+            summary={publicLinkSummary}
+            description="Sua janela para o mundo — agenda, projetos e realizações"
+          >
             {publicUrl ? (
               <>
-                <div className="mt-3 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
+                <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2">
                   <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">
                     {publicUrl.replace(/^https?:\/\//, "")}
                   </span>
@@ -361,18 +432,16 @@ export function DashboardPage() {
                     )}
                   </button>
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <Link
-                    to="/u/$slug"
-                    params={{ slug: publicSlug }}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline-offset-2 hover:underline"
-                  >
-                    <ExternalLink className="size-3" /> Ver como visitante
-                  </Link>
-                </div>
+                <Link
+                  to="/u/$slug"
+                  params={{ slug: publicSlug }}
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  <ExternalLink className="size-3" /> Ver como visitante
+                </Link>
               </>
             ) : (
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              <p className="text-sm leading-6 text-muted-foreground">
                 Defina seu nome de link em{" "}
                 <Link
                   to="/configuracoes"
@@ -383,107 +452,114 @@ export function DashboardPage() {
                 e compartilhe perfilvivo.com/…
               </p>
             )}
-          </div>
+          </ExpandingSection>
 
-          {/* Disponibilidade */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between gap-2">
-              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-faint">
-                <CalendarDays className="size-3.5" /> Disponível para reuniões
-              </p>
-              <Link
-                to="/configuracoes"
-                className="text-[11px] font-semibold text-primary underline-offset-2 hover:underline"
-              >
-                Configurar
-              </Link>
+          <ExpandingSection
+            title="Disponibilidade"
+            icon={<CalendarDays className="size-4" />}
+            summary={availabilitySummary}
+            description="Quando você pode receber reuniões"
+          >
+            <div className="space-y-4">
+              {availableWeekdays.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Você ainda não abriu dias para reuniões. Configure quais dias
+                  aceita pedidos em{" "}
+                  <Link
+                    to="/configuracoes"
+                    className="font-medium text-primary underline underline-offset-2"
+                  >
+                    Configurações
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableWeekdays.map((wd) => (
+                      <span key={wd} className="status status-open">
+                        {WEEKDAY_SHORT[wd % 7]}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md border border-border bg-background px-3 py-2">
+                      <p className="text-[11px] text-faint">Hoje — livres</p>
+                      <p className="font-display font-semibold text-primary">
+                        {slotsToday.slices.length > 0
+                          ? `${slotsToday.slices.length} horário(s)`
+                          : slotsToday.free.length > 0
+                            ? "janelas abertas"
+                            : "nenhum"}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-border bg-background px-3 py-2">
+                      <p className="text-[11px] text-faint">Amanhã — livres</p>
+                      <p className="font-display font-semibold text-primary">
+                        {slotsTomorrow.slices.length > 0
+                          ? `${slotsTomorrow.slices.length} horário(s)`
+                          : slotsTomorrow.free.length > 0
+                            ? "janelas abertas"
+                            : "nenhum"}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/configuracoes"
+                    className="inline-block text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                  >
+                    Configurar disponibilidade →
+                  </Link>
+                </>
+              )}
+              {pendingMeetings > 0 && (
+                <Link
+                  to="/agenda"
+                  className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-primary"
+                >
+                  <Inbox className="size-3.5" />
+                  {pendingMeetings} solicitação(ões) de reunião aguardando
+                  resposta
+                  <ArrowRight className="ml-auto size-3.5" />
+                </Link>
+              )}
             </div>
-            {availableWeekdays.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">
-                Você ainda não abriu dias para reuniões. Configure quais dias
-                aceita pedidos.
-              </p>
-            ) : (
-              <>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {availableWeekdays.map((wd) => (
-                    <span key={wd} className="status status-open">
-                      {WEEKDAY_SHORT[wd % 7]}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-md border border-border bg-background px-3 py-2">
-                    <p className="text-[11px] text-faint">Hoje — livres</p>
-                    <p className="font-display font-semibold text-primary">
-                      {slotsToday.slices.length > 0
-                        ? `${slotsToday.slices.length} horário(s)`
-                        : slotsToday.free.length > 0
-                          ? "janelas abertas"
-                          : "nenhum"}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-border bg-background px-3 py-2">
-                    <p className="text-[11px] text-faint">Amanhã — livres</p>
-                    <p className="font-display font-semibold text-primary">
-                      {slotsTomorrow.slices.length > 0
-                        ? `${slotsTomorrow.slices.length} horário(s)`
-                        : slotsTomorrow.free.length > 0
-                          ? "janelas abertas"
-                          : "nenhum"}
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-            {pendingMeetings > 0 && (
-              <Link
-                to="/agenda"
-                className="mt-3 flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-primary"
-              >
-                <Inbox className="size-3.5" />
-                {pendingMeetings} solicitação(ões) de reunião aguardando
-                resposta
-                <ArrowRight className="ml-auto size-3.5" />
-              </Link>
-            )}
-          </div>
+          </ExpandingSection>
 
-          <Section title="Em números">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-7 border-y border-border py-5">
-              <Metric value={String(logs.length)} label="Dias registrados" />
-              <Metric
-                value={String(commitments.filter((c) => c.is_active).length)}
-                label="Compromissos fixos"
-              />
-              <Metric value={String(milestones.length)} label="Realizações" />
-              <Metric
-                value={String(
-                  projects.filter((p) => p.status === "Concluído").length,
-                )}
-                label="Projetos concluídos"
-              />
-              <Metric
-                value={String(acceptedMeetings)}
-                label="Reuniões realizadas"
-              />
-              <Metric
-                value={`${summaryPct}%`}
-                label="Dias com resumo"
-                {...(logs.length === 0 ? { detail: "sem dados" } : {})}
-              />
+          <ExpandingSection
+            title="Consistência"
+            icon={<Activity className="size-4" />}
+            summary="Mapa das suas últimas 20 semanas de registro"
+            description="Cada célula é um dia registrado"
+          >
+            <div className="rounded-lg border border-border bg-card p-4">
+              <ConsistencyHeatmap />
             </div>
-          </Section>
+          </ExpandingSection>
+
+          <ExpandingSection
+            title="Memento Mori"
+            icon={<Hourglass className="size-4" />}
+            summary="O valor de cada dia, medido no tempo que resta"
+            description="Seus ciclos de vida em blocos de 25 anos"
+          >
+            <div className="quiet-panel">
+              <LifetimeTracker />
+            </div>
+          </ExpandingSection>
+
+          <ExpandingSection
+            title="Gamificação"
+            icon={<Sparkles className="size-4" />}
+            summary="Nível, XP, streak e conquistas"
+            description="Seu progresso vivo, derivado dos seus registros"
+          >
+            <GamificationPanel />
+          </ExpandingSection>
 
           <ProfileCompleteness />
 
-          <div className="rounded-lg border border-border bg-card p-4">
-            <ConsistencyHeatmap />
-          </div>
-
-          <GamificationPanel />
-
-          <div className="flex items-center gap-2 text-xs text-faint">
+          <div className="flex items-center gap-2 px-1 pt-3 text-xs text-faint">
             <Clock3 className="size-3.5" />
             <span>Cada registro fortalece a sua história.</span>
           </div>

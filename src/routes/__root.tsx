@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "../components/app-shell";
+import { AuthGate } from "../components/auth-gate";
 import * as Sentry from "@sentry/react";
 import { enableRealtime } from "../lib/supabase";
 
@@ -171,9 +172,11 @@ function RootComponent() {
       {isPublicProfile ? (
         <Outlet />
       ) : (
-        <AppShell>
-          <Outlet />
-        </AppShell>
+        <AuthGate>
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        </AuthGate>
       )}
     </QueryClientProvider>
   );

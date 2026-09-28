@@ -34,15 +34,20 @@ const links = [
   ["/configuracoes", "Configurações", Settings],
 ] as const;
 
+/**
+ * Shell viewport-fit: nada rola na página — a tela tem a altura exata da
+ * viewport e o conteúdo rola (quando precisa) dentro do main. Regra do
+ * produto: o essencial fica visível e o resto se expande no lugar.
+ */
 export function SidebarNav({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const { profile } = useProfile();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-5">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-5">
           <Link
             to="/"
             className="flex items-center gap-2.5"
@@ -92,7 +97,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="border-t border-sidebar-border p-4">
+        <div className="shrink-0 border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
             <div className="avatar-small">{profile?.initials ?? "··"}</div>
             <div className="min-w-0">
@@ -115,8 +120,8 @@ export function SidebarNav({ children }: { children: ReactNode }) {
           onClick={() => setOpen(false)}
         />
       )}
-      <div className="md:pl-56">
-        <div className="sticky top-0 z-20 flex h-14 items-center border-b border-border bg-background/90 px-4 backdrop-blur md:hidden">
+      <div className="flex min-w-0 flex-1 flex-col md:pl-56">
+        <div className="flex h-14 shrink-0 items-center border-b border-border bg-background px-4 md:hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -127,7 +132,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
           </Button>
           <span className="ml-3 text-sm font-semibold">Perfil Vivo</span>
         </div>
-        <main className="page-enter mx-auto max-w-[1180px] px-5 py-7 sm:px-8 sm:py-10 lg:px-12">
+        <main className="page-enter mx-auto flex min-h-0 w-full max-w-[1180px] flex-1 flex-col overflow-y-auto px-5 pb-6 pt-5 sm:px-8 sm:pt-7 lg:px-12">
           <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
           {children}
         </main>

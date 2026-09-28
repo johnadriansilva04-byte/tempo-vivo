@@ -182,6 +182,28 @@
   }
 }
 
+/* --------------------------------- Expansão in-place ----------------------
+ * Linha-resumo do dashboard: clicável, abre o detalhe em painel central
+ * sobre a mesma tela — nada rola a página.
+ */
+@utility expand-card {
+  display: flex; width: 100%; align-items: center; justify-content: space-between;
+  gap: 1rem; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .8rem 1rem; background: var(--card); text-align: left;
+  cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease;
+  &:hover {
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    background: color-mix(in oklab, var(--primary) 4%, var(--card));
+    transform: translateY(-1px);
+  }
+  &[data-state="open"] { border-color: color-mix(in oklab, var(--primary) 40%, var(--border)); }
+}
+@utility expand-icon {
+  display: grid; height: 2rem; width: 2rem; flex: none; place-items: center;
+  border-radius: .4rem; background: var(--muted); color: var(--accent-foreground);
+  svg { height: .95rem; width: .95rem; }
+}
+
 @utility quiet-panel {
   border-radius: var(--radius);
   background: var(--muted);
@@ -292,6 +314,10 @@
     grid-template-columns: 1fr 24rem; align-items: stretch; padding: 2rem;
   }
 }
+/* Variante compacta: cabe na primeira dobra — banner raso, corpo sem grid de 2 colunas */
+.profile-header[data-compact="true"] .profile-banner,
+.profile-header[data-compact="true"] .profile-banner-default { height: 4.25rem; }
+.profile-header[data-compact="true"] .profile-header-body { padding: 1.15rem 1.5rem 1.25rem; }
 
 /* --------------------------- Memento Mori -------------------------------- */
 @utility life-donut {
@@ -686,6 +712,42 @@
   .profile-header-body { padding: 1.25rem; }
   .avatar-main { height: 4rem; width: 4rem; font-size: 1.1rem; }
   .prologue { padding: 1rem; }
+}
+
+/* --------------------------- Auth viva ----------------------------------- */
+/* Porta de entrada: movimento sutil que prova que o app respira. */
+@keyframes orb-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(1.5rem, -1.25rem) scale(1.08); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+@utility auth-orb {
+  position: absolute; z-index: 0; border-radius: 999px;
+  filter: blur(48px); pointer-events: none;
+  animation: orb-drift 16s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent); }
+  50% { opacity: .6; box-shadow: 0 0 0 4px transparent; }
+}
+@utility auth-live-dot {
+  display: inline-block; height: .45rem; width: .45rem; flex: none;
+  border-radius: 999px; background: var(--primary);
+  animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes cycle-breathe {
+  0%, 100% { opacity: .35; }
+  50% { opacity: 1; }
+}
+@utility auth-cycle-seg {
+  display: grid; place-items: center; height: 2.1rem; border-radius: .35rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 20%, var(--border));
+  background: color-mix(in oklab, var(--primary) 6%, var(--muted));
+  font-size: .6rem; font-weight: 600; letter-spacing: .02em;
+  color: color-mix(in oklab, var(--primary) 60%, var(--muted-foreground));
+  cursor: default; transition: border-color .2s ease;
+  animation: cycle-breathe 8s ease-in-out infinite;
+  &:hover { border-color: color-mix(in oklab, var(--primary) 50%, transparent); }
 }
 
 /* --------------------------- Animations --------------------------------- */
