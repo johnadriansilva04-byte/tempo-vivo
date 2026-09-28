@@ -5,7 +5,10 @@ export const Route = createFileRoute("/intelligence-dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard de Inteligência — Perfil Vivo" },
-      { name: "description", content: "IA local combinando predição, sentimento e recomendações." },
+      {
+        name: "description",
+        content: "IA local combinando predição, sentimento e recomendações.",
+      },
     ],
   }),
   component: IntelligenceDashboard,

@@ -53,7 +53,8 @@ export async function completeFirstRun(
   answers: StoryAnswers = EMPTY_ANSWERS,
 ): Promise<void> {
   const account = currentAccount();
-  if (!account) throw new Error("Nenhuma conta logada para iniciar a história.");
+  if (!account)
+    throw new Error("Nenhuma conta logada para iniciar a história.");
   await startLifeForAccount(account, preset, answers);
   await completeOnboarding();
 }

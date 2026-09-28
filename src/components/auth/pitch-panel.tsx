@@ -1,5 +1,9 @@
 import { Activity, ArrowRight } from "lucide-react";
-import { BRAND_PILLARS, BRAND_PROMISE, PRIVACY_NOTE } from "@/components/auth/copy";
+import {
+  BRAND_PILLARS,
+  BRAND_PROMISE,
+  PRIVACY_NOTE,
+} from "@/components/auth/copy";
 
 // ---------------------------------------------------------------------------
 // Painel de apresentação da porta de entrada (metade esquerda, telas grandes).
@@ -12,7 +16,9 @@ export function BrandMark() {
       <span className="brand-mark">
         <Activity className="size-4" />
       </span>
-      <span className="font-display text-sm font-semibold text-foreground">Perfil Vivo</span>
+      <span className="font-display text-sm font-semibold text-foreground">
+        Perfil Vivo
+      </span>
     </span>
   );
 }
@@ -35,7 +41,10 @@ export function PitchPanel() {
         </h1>
         <ul className="mt-8 space-y-4">
           {BRAND_PILLARS.map((pillar) => (
-            <li key={pillar} className="flex gap-3 text-sm leading-6 text-muted-foreground">
+            <li
+              key={pillar}
+              className="flex gap-3 text-sm leading-6 text-muted-foreground"
+            >
               <ArrowRight className="mt-0.5 size-4 shrink-0 text-primary" />
               {pillar}
             </li>
@@ -62,13 +71,18 @@ export function PitchCompact() {
       </h1>
       <ul className="mt-3 space-y-1.5">
         {BRAND_PILLARS.map((pillar) => (
-          <li key={pillar} className="flex gap-2 text-xs leading-5 text-muted-foreground">
+          <li
+            key={pillar}
+            className="flex gap-2 text-xs leading-5 text-muted-foreground"
+          >
             <ArrowRight className="mt-0.5 size-3.5 shrink-0 text-primary" />
             {pillar}
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[0.6875rem] leading-4 text-faint">{PRIVACY_NOTE}</p>
+      <p className="mt-3 text-[0.6875rem] leading-4 text-faint">
+        {PRIVACY_NOTE}
+      </p>
     </div>
   );
 }

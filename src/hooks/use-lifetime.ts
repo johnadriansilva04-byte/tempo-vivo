@@ -31,7 +31,9 @@ export function computeLifetime(
 ): LifetimeStats {
   const birth = new Date(`${birthDate}T00:00:00`);
   const valid =
-    birthDate !== "" && !Number.isNaN(birth.getTime()) && birth.getTime() <= now.getTime();
+    birthDate !== "" &&
+    !Number.isNaN(birth.getTime()) &&
+    birth.getTime() <= now.getTime();
   if (!valid) {
     return {
       hasBirthDate: false,
@@ -83,5 +85,9 @@ export function useLifetime() {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(id);
   }, []);
-  return computeLifetime(profile?.birth_date ?? "", profile?.target_lifespan ?? 100, now);
+  return computeLifetime(
+    profile?.birth_date ?? "",
+    profile?.target_lifespan ?? 100,
+    now,
+  );
 }

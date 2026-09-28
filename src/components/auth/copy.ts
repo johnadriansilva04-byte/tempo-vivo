@@ -52,14 +52,19 @@ export const SIGNUP_BLOCKS = {
   },
   recovery: {
     title: "Como você volta",
-    description: "Sem e-mail, esta pergunta devolve a sua conta se a senha falhar.",
+    description:
+      "Sem e-mail, esta pergunta devolve a sua conta se a senha falhar.",
     empty: "Escolha algo que só você sabe de cor.",
   },
 } as const;
 
 export type SignupBlockId = keyof typeof SIGNUP_BLOCKS;
 
-export const BLOCK_SEQUENCE: SignupBlockId[] = ["identity", "access", "recovery"];
+export const BLOCK_SEQUENCE: SignupBlockId[] = [
+  "identity",
+  "access",
+  "recovery",
+];
 
 /** Rótulos e ajudas de campo. Curtos: o rótulo já diz o essencial. */
 export const FIELD_HINTS = {
@@ -73,15 +78,25 @@ export const FIELD_HINTS = {
 } as const;
 
 /** Textos que resumem cada bloco fechado — o estado sem abrir nada. */
-export function identitySummary(name: string, age: string, done: boolean): string {
+export function identitySummary(
+  name: string,
+  age: string,
+  done: boolean,
+): string {
   return done ? `${name.trim()} · ${age} anos` : SIGNUP_BLOCKS.identity.empty;
 }
 
-export function accessSummary(phone: string, password: string, done: boolean): string {
+export function accessSummary(
+  phone: string,
+  password: string,
+  done: boolean,
+): string {
   if (phone === "") return SIGNUP_BLOCKS.access.empty;
   const formatted = formatPhone(phone);
   if (password === "") return `${formatted} · falta a senha`;
-  return done ? `${formatted} · senha definida` : `${formatted} · confira a senha`;
+  return done
+    ? `${formatted} · senha definida`
+    : `${formatted} · confira a senha`;
 }
 
 export function recoverySummary(question: string, done: boolean): string {

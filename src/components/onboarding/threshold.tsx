@@ -75,7 +75,8 @@ export function Threshold({
       </div>
 
       <p className="mt-6 text-xs text-faint">
-        {firstName}, os dois caminhos levam ao mesmo Perfil Vivo. Um chega mais rápido.
+        {firstName}, os dois caminhos levam ao mesmo Perfil Vivo. Um chega mais
+        rápido.
       </p>
     </>
   );
@@ -104,7 +105,9 @@ function PathCard({
         {badge}
       </span>
       <h2 className="mt-3 font-display text-lg font-semibold">{title}</h2>
-      <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{body}</p>
+      <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">
+        {body}
+      </p>
       {action}
     </article>
   );

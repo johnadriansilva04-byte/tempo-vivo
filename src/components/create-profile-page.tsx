@@ -2,28 +2,39 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  User, 
-  Phone, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  User,
+  Phone,
   Sparkles,
   ArrowRight,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
-import { useProfile } from "@/hooks/use-profile";
+import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 
 interface ValidationErrors {
-  name?: string;
-  age?: string;
-  phone?: string;
+  name?: string | undefined;
+  age?: string | undefined;
+  phone?: string | undefined;
 }
 
 export function CreateProfilePage() {
-  const { profile, upsert } = useProfile();
+  const { profile } = useProfile();
+  const upsert = useUpdateProfile();
   const [formData, setFormData] = useState({
     name: profile?.name || "",
-    age: profile?.birth_date ? new Date().getFullYear() - new Date(profile.birth_date).getFullYear() : "",
+    age: profile?.birth_date
+      ? String(
+          new Date().getFullYear() - new Date(profile.birth_date).getFullYear(),
+        )
+      : "",
     phone: profile?.phone || "",
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -32,7 +43,7 @@ export function CreateProfilePage() {
 
   const validatePhone = (phone: string): boolean => {
     // Remove todos os caracteres não numéricos
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = phone.replace(/\D/g, "");
     // Valida se tem 10 ou 11 dígitos (com ou sem DDD)
     return cleanPhone.length === 10 || cleanPhone.length === 11;
   };
@@ -67,7 +78,7 @@ export function CreateProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -75,9 +86,11 @@ export function CreateProfilePage() {
     setIsSaving(true);
 
     try {
-      const birthDate = formData.age 
-        ? new Date(new Date().getFullYear() - parseInt(formData.age, 10), 0, 1).toISOString().split('T')[0]
-        : null;
+      const birthDate = formData.age
+        ? new Date(new Date().getFullYear() - parseInt(formData.age, 10), 0, 1)
+            .toISOString()
+            .slice(0, 10)
+        : "";
 
       await upsert.mutateAsync({
         name: formData.name,
@@ -86,13 +99,13 @@ export function CreateProfilePage() {
       });
 
       setShowSuccess(true);
-      
+
       // Redirect to home after successful save
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = "/";
       }, 1500);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      console.error("Error saving profile:", error);
       setErrors({ name: "Erro ao salvar perfil. Tente novamente." });
     } finally {
       setIsSaving(false);
@@ -100,8 +113,8 @@ export function CreateProfilePage() {
   };
 
   const formatPhone = (value: string) => {
-    const cleanValue = value.replace(/\D/g, '');
-    
+    const cleanValue = value.replace(/\D/g, "");
+
     if (cleanValue.length <= 2) {
       return cleanValue;
     } else if (cleanValue.length <= 7) {
@@ -128,7 +141,7 @@ export function CreateProfilePage() {
   };
 
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
+    const value = e.target.value.replace(/\D/g, "");
     setFormData({ ...formData, age: value });
     if (errors.age) {
       setErrors({ ...errors, age: undefined });
@@ -160,7 +173,11 @@ export function CreateProfilePage() {
                   value={formData.name}
                   onChange={handleNameChange}
                   required
-                  className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  className={
+                    errors.name
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
                 />
                 {errors.name && (
                   <p className="text-xs text-red-500 flex items-center gap-1">
@@ -183,7 +200,11 @@ export function CreateProfilePage() {
                   required
                   min="1"
                   max="120"
-                  className={errors.age ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  className={
+                    errors.age
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
                 />
                 {errors.age && (
                   <p className="text-xs text-red-500 flex items-center gap-1">
@@ -204,7 +225,11 @@ export function CreateProfilePage() {
                   value={formData.phone}
                   onChange={handlePhoneChange}
                   required
-                  className={errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  className={
+                    errors.phone
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }
                 />
                 {errors.phone && (
                   <p className="text-xs text-red-500 flex items-center gap-1">
@@ -221,8 +246,8 @@ export function CreateProfilePage() {
                 </div>
               )}
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                 disabled={isSaving}
               >
@@ -244,7 +269,7 @@ export function CreateProfilePage() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => window.location.href = '/'}
+                  onClick={() => (window.location.href = "/")}
                 >
                   Voltar
                 </Button>

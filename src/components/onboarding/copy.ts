@@ -11,9 +11,17 @@ import type { StoryAnswers } from "@/lib/life-story";
 // etapa é acrescentar uma entrada aqui, não um bloco de JSX.
 // ---------------------------------------------------------------------------
 
-export type StepId = "limiar" | "origem" | "caminho" | "sentido" | "frente" | "selar";
+export type StepId =
+  "limiar" | "origem" | "caminho" | "sentido" | "frente" | "selar";
 
-export const GUIDED_STEPS: StepId[] = ["limiar", "origem", "caminho", "sentido", "frente", "selar"];
+export const GUIDED_STEPS: StepId[] = [
+  "limiar",
+  "origem",
+  "caminho",
+  "sentido",
+  "frente",
+  "selar",
+];
 
 /** Numeral romano de cada capítulo; o limiar e o selo não têm. */
 export const ROMAN_BY_INDEX = ["", "I", "II", "III", "IV", ""];
@@ -90,7 +98,8 @@ export const QUESTION_STEPS: QuestionStep[] = [
     field: "intention",
     icon: Target,
     label: "Seu sentido",
-    placeholder: "Ex.: Tornar o cuidado próximo e legível para quem mais precisa.",
+    placeholder:
+      "Ex.: Tornar o cuidado próximo e legível para quem mais precisa.",
     multiline: true,
   },
   {

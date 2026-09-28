@@ -5,7 +5,10 @@ export const Route = createFileRoute("/insights")({
   head: () => ({
     meta: [
       { title: "Insights — Perfil Vivo" },
-      { name: "description", content: "Análise de padrões e sugestões personalizadas." },
+      {
+        name: "description",
+        content: "Análise de padrões e sugestões personalizadas.",
+      },
     ],
   }),
   component: Insights,

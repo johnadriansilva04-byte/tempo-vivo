@@ -24,9 +24,11 @@ export type SignUpInput = {
 export type SignInInput = { phone: string; password: string };
 
 /** Resultado de conferir a resposta secreta: o ticket autoriza trocar a senha. */
-export type RecoveryChallenge = { ok: true; token: string } | { ok: false; error: string };
+export type RecoveryChallenge =
+  { ok: true; token: string } | { ok: false; error: string };
 
 /** Retorno simples de uma ação sem payload. */
 export type ActionOutcome = { ok: true } | { ok: false; error: string };
 
-export type AuthResult = { ok: true; account: Account } | { ok: false; error: string };
+export type AuthResult =
+  { ok: true; account: Account } | { ok: false; error: string };

@@ -18,9 +18,13 @@ export type SignupDraft = {
 };
 
 /** Nome preenchido e idade dentro do horizonte do app (1–120 anos). */
-export function isIdentityComplete(draft: Pick<SignupDraft, "name" | "age">): boolean {
+export function isIdentityComplete(
+  draft: Pick<SignupDraft, "name" | "age">,
+): boolean {
   const age = Number(draft.age);
-  return draft.name.trim() !== "" && Number.isInteger(age) && age >= 1 && age <= 120;
+  return (
+    draft.name.trim() !== "" && Number.isInteger(age) && age >= 1 && age <= 120
+  );
 }
 
 /** Telefone válido, senha com tamanho mínimo e confirmação batendo. */
@@ -28,12 +32,16 @@ export function isAccessComplete(
   draft: Pick<SignupDraft, "phone" | "password" | "confirm">,
 ): boolean {
   return (
-    isValidPhone(draft.phone) && draft.password.length >= 4 && draft.password === draft.confirm
+    isValidPhone(draft.phone) &&
+    draft.password.length >= 4 &&
+    draft.password === draft.confirm
   );
 }
 
 /** Pergunta escolhida e resposta escrita — a porta de volta da conta. */
-export function isRecoveryComplete(draft: Pick<SignupDraft, "question" | "answer">): boolean {
+export function isRecoveryComplete(
+  draft: Pick<SignupDraft, "question" | "answer">,
+): boolean {
   return draft.question.trim() !== "" && draft.answer.trim() !== "";
 }
 

@@ -36,7 +36,9 @@ export function SignInForm({
       <h2 className="font-display text-2xl font-semibold text-foreground">
         {ENTRY_COPY.signin.title}
       </h2>
-      <p className="mt-2 text-sm text-muted-foreground">{ENTRY_COPY.signin.subtitle}</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {ENTRY_COPY.signin.subtitle}
+      </p>
 
       <form
         className="mt-6 space-y-4"
@@ -67,7 +69,11 @@ export function SignInForm({
         </AuthField>
 
         <Button type="submit" className="w-full" disabled={pending}>
-          {pending ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />}
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <LogIn className="size-4" />
+          )}
           {ENTRY_COPY.signin.submit}
         </Button>
 

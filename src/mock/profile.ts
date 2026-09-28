@@ -24,6 +24,20 @@ export const profile: Profile = {
   target_lifespan: 100,
   avatar_url: null,
   cover_url: null,
+  slug: "",
+  phone: "",
+  presentation: "",
+  is_public: true,
+  show_schedule: true,
+  show_projects: true,
+  show_achievements: true,
+  show_family: true,
+  meetings_enabled: false,
+  meeting_duration_min: 30,
+  meeting_buffer_min: 15,
+  meeting_max_per_day: 2,
+  meeting_requires_approval: true,
+  meeting_requirements: "",
 };
 
 export const dailyLogs: DailyLog[] = [];

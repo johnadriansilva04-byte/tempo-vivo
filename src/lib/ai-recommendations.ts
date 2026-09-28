@@ -1,22 +1,22 @@
 // Sistema de IA Recomendação 100% Local - Rule-Based
 // Sem dependências externas, totalmente self-hosted
 
-type RecommendationType = 
-  | 'task_suggestion'
-  | 'time_allocation'
-  | 'focus_area'
-  | 'break_reminder'
-  | 'goal_adjustment'
-  | 'routine_optimization'
-  | 'energy_management'
-  | 'skill_development';
+type RecommendationType =
+  | "task_suggestion"
+  | "time_allocation"
+  | "focus_area"
+  | "break_reminder"
+  | "goal_adjustment"
+  | "routine_optimization"
+  | "energy_management"
+  | "skill_development";
 
 type Recommendation = {
   id: string;
   type: RecommendationType;
   title: string;
   description: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: "high" | "medium" | "low";
   confidence: number;
   actionable: boolean;
   basedOn: string[];
@@ -34,7 +34,7 @@ type UserContext = {
   avgProductivity: number;
   mostProductiveDay: number;
   completionRate: number;
-  sentimentTrend: 'improving' | 'declining' | 'stable';
+  sentimentTrend: "improving" | "declining" | "stable";
   activeProjects: number;
   completedProjects: number;
   lastActivity: string;
@@ -68,30 +68,39 @@ class LocalAIRecommendations {
     if (this.context.avgProductivity < 100) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'routine_optimization',
-        title: 'Otimizar rotina matinal',
-        description: 'Sua produtividade média está abaixo do ideal. Tente adicionar 30 minutos de planejamento ao início do dia.',
-        priority: 'high',
+        type: "routine_optimization",
+        title: "Otimizar rotina matinal",
+        description:
+          "Sua produtividade média está abaixo do ideal. Tente adicionar 30 minutos de planejamento ao início do dia.",
+        priority: "high",
         confidence: 0.8,
         actionable: true,
-        basedOn: ['avgProductivity'],
-        estimatedImpact: '+25% de produtividade',
+        basedOn: ["avgProductivity"],
+        estimatedImpact: "+25% de produtividade",
       });
     }
 
     // Detect best performing day
-    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const dayNames = [
+      "Domingo",
+      "Segunda",
+      "Terça",
+      "Quarta",
+      "Quinta",
+      "Sexta",
+      "Sábado",
+    ];
     if (this.context.mostProductiveDay !== -1) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'time_allocation',
+        type: "time_allocation",
         title: `Aproveitar ${dayNames[this.context.mostProductiveDay]}`,
         description: `Seu dia mais produtivo é ${dayNames[this.context.mostProductiveDay]}. Planeje suas tarefas mais importantes para esse dia.`,
-        priority: 'medium',
+        priority: "medium",
         confidence: 0.9,
         actionable: true,
-        basedOn: ['mostProductiveDay'],
-        estimatedImpact: '+40% de eficácia',
+        basedOn: ["mostProductiveDay"],
+        estimatedImpact: "+40% de eficácia",
       });
     }
 
@@ -105,14 +114,15 @@ class LocalAIRecommendations {
     if (this.context.completionRate < 0.5) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'goal_adjustment',
-        title: 'Ajustar metas diárias',
-        description: 'Você está completando menos de 50% das tarefas planejadas. Tente reduzir o número de tarefas e focar no essencial.',
-        priority: 'high',
+        type: "goal_adjustment",
+        title: "Ajustar metas diárias",
+        description:
+          "Você está completando menos de 50% das tarefas planejadas. Tente reduzir o número de tarefas e focar no essencial.",
+        priority: "high",
         confidence: 0.85,
         actionable: true,
-        basedOn: ['completionRate'],
-        estimatedImpact: '+60% de conclusão',
+        basedOn: ["completionRate"],
+        estimatedImpact: "+60% de conclusão",
       });
     }
 
@@ -120,14 +130,15 @@ class LocalAIRecommendations {
     if (this.context.completionRate > 0.8) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'goal_adjustment',
-        title: 'Aumentar metas',
-        description: 'Você está superando suas metas! Considere adicionar 1-2 tarefas adicionais para crescer ainda mais.',
-        priority: 'medium',
+        type: "goal_adjustment",
+        title: "Aumentar metas",
+        description:
+          "Você está superando suas metas! Considere adicionar 1-2 tarefas adicionais para crescer ainda mais.",
+        priority: "medium",
         confidence: 0.75,
         actionable: true,
-        basedOn: ['completionRate'],
-        estimatedImpact: '+20% de progresso',
+        basedOn: ["completionRate"],
+        estimatedImpact: "+20% de progresso",
       });
     }
 
@@ -138,36 +149,39 @@ class LocalAIRecommendations {
     const recommendations: Recommendation[] = [];
 
     // Analyze executed text length as proxy for energy
-    const avgExecutedLength = this.context.recentLogs.reduce(
-      (sum, log) => sum + log.executed_text.length,
-      0
-    ) / Math.max(this.context.recentLogs.length, 1);
+    const avgExecutedLength =
+      this.context.recentLogs.reduce(
+        (sum, log) => sum + log.executed_text.length,
+        0,
+      ) / Math.max(this.context.recentLogs.length, 1);
 
     if (avgExecutedLength < 50) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'energy_management',
-        title: 'Gerenciar energia',
-        description: 'Seus registros são curtos, possivelmente indicando baixa energia. Considere pausas mais frequentes.',
-        priority: 'medium',
+        type: "energy_management",
+        title: "Gerenciar energia",
+        description:
+          "Seus registros são curtos, possivelmente indicando baixa energia. Considere pausas mais frequentes.",
+        priority: "medium",
         confidence: 0.7,
         actionable: true,
-        basedOn: ['executed_text_length'],
-        estimatedImpact: '+15% de energia',
+        basedOn: ["executed_text_length"],
+        estimatedImpact: "+15% de energia",
       });
     }
 
     if (avgExecutedLength > 500) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'break_reminder',
-        title: 'Lembrar de pausas',
-        description: 'Você está escrevendo muito! Ótimo sinal de produtividade, mas lembre-se de fazer pausas.',
-        priority: 'low',
+        type: "break_reminder",
+        title: "Lembrar de pausas",
+        description:
+          "Você está escrevendo muito! Ótimo sinal de produtividade, mas lembre-se de fazer pausas.",
+        priority: "low",
         confidence: 0.6,
         actionable: true,
-        basedOn: ['executed_text_length'],
-        estimatedImpact: 'Prevenção de burnout',
+        basedOn: ["executed_text_length"],
+        estimatedImpact: "Prevenção de burnout",
       });
     }
 
@@ -178,30 +192,45 @@ class LocalAIRecommendations {
     const recommendations: Recommendation[] = [];
 
     // Analyze recurring keywords in executed tasks
-    const allExecuted = this.context.recentLogs.map(log => log.executed_text.toLowerCase()).join(' ');
-    const keywords = ['programação', 'desenvolvimento', 'design', 'marketing', 'vendas', 'estudo', 'aprendizado', 'exercício', 'saúde', 'família', 'leitura', 'escrita'];
-    
-    const keywordCounts = keywords.map(keyword => ({
+    const allExecuted = this.context.recentLogs
+      .map((log) => log.executed_text.toLowerCase())
+      .join(" ");
+    const keywords = [
+      "programação",
+      "desenvolvimento",
+      "design",
+      "marketing",
+      "vendas",
+      "estudo",
+      "aprendizado",
+      "exercício",
+      "saúde",
+      "família",
+      "leitura",
+      "escrita",
+    ];
+
+    const keywordCounts = keywords.map((keyword) => ({
       keyword,
-      count: (allExecuted.match(new RegExp(keyword, 'g')) || []).length,
+      count: (allExecuted.match(new RegExp(keyword, "g")) || []).length,
     }));
 
     const topKeywords = keywordCounts
-      .filter(k => k.count > 0)
+      .filter((k) => k.count > 0)
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
 
     if (topKeywords.length > 0) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'focus_area',
-        title: `Focar em ${topKeywords[0].keyword}`,
-        description: `Você tem dedicado mais tempo a ${topKeywords[0].keyword}. Considere estruturar metas específicas nesta área.`,
-        priority: 'medium',
+        type: "focus_area",
+        title: `Focar em ${topKeywords[0]!.keyword}`,
+        description: `Você tem dedicado mais tempo a ${topKeywords[0]!.keyword}. Considere estruturar metas específicas nesta área.`,
+        priority: "medium",
         confidence: 0.8,
         actionable: true,
-        basedOn: ['executed_keywords'],
-        estimatedImpact: '+30% de especialização',
+        basedOn: ["executed_keywords"],
+        estimatedImpact: "+30% de especialização",
       });
     }
 
@@ -211,31 +240,33 @@ class LocalAIRecommendations {
   private analyzeSentiment(): Recommendation[] {
     const recommendations: Recommendation[] = [];
 
-    if (this.context.sentimentTrend === 'declining') {
+    if (this.context.sentimentTrend === "declining") {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'energy_management',
-        title: 'Revisar bem-estar',
-        description: 'Seu sentimento geral está em declínio. Considere adicion atividades que te fazem feliz.',
-        priority: 'high',
+        type: "energy_management",
+        title: "Revisar bem-estar",
+        description:
+          "Seu sentimento geral está em declínio. Considere adicion atividades que te fazem feliz.",
+        priority: "high",
         confidence: 0.75,
         actionable: true,
-        basedOn: ['sentimentTrend'],
-        estimatedImpact: '+40% de bem-estar',
+        basedOn: ["sentimentTrend"],
+        estimatedImpact: "+40% de bem-estar",
       });
     }
 
-    if (this.context.sentimentTrend === 'improving') {
+    if (this.context.sentimentTrend === "improving") {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'routine_optimization',
-        title: 'Manter momento',
-        description: 'Seu sentimento está melhorando! Continue com as práticas atuais que estão funcionando.',
-        priority: 'low',
+        type: "routine_optimization",
+        title: "Manter momento",
+        description:
+          "Seu sentimento está melhorando! Continue com as práticas atuais que estão funcionando.",
+        priority: "low",
         confidence: 0.7,
         actionable: true,
-        basedOn: ['sentimentTrend'],
-        estimatedImpact: 'Sustentabilidade',
+        basedOn: ["sentimentTrend"],
+        estimatedImpact: "Sustentabilidade",
       });
     }
 
@@ -248,42 +279,44 @@ class LocalAIRecommendations {
     if (this.context.currentStreak === 0) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'task_suggestion',
-        title: 'Recomeçar streak',
-        description: 'Seu streak foi interrompido. Comece com uma tarefa simples para recuperar o ritmo.',
-        priority: 'high',
+        type: "task_suggestion",
+        title: "Recomeçar streak",
+        description:
+          "Seu streak foi interrompido. Comece com uma tarefa simples para recuperar o ritmo.",
+        priority: "high",
         confidence: 0.9,
         actionable: true,
-        basedOn: ['currentStreak'],
-        estimatedImpact: 'Início de novo streak',
+        basedOn: ["currentStreak"],
+        estimatedImpact: "Início de novo streak",
       });
     }
 
     if (this.context.currentStreak >= 7) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'goal_adjustment',
-        title: 'Celebrar streak',
+        type: "goal_adjustment",
+        title: "Celebrar streak",
         description: `Incrível! Você tem ${this.context.currentStreak} dias consecutivos. Considere celebrar esta conquista.`,
-        priority: 'low',
+        priority: "low",
         confidence: 0.85,
         actionable: true,
-        basedOn: ['currentStreak'],
-        estimatedImpact: 'Motivação sustentada',
+        basedOn: ["currentStreak"],
+        estimatedImpact: "Motivação sustentada",
       });
     }
 
     if (this.context.currentStreak >= 21) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'goal_adjustment',
-        title: 'Estabelecer hábito sólido',
-        description: 'Com 21+ dias, você formou um hábito sólido. Considere expandir sua rotina.',
-        priority: 'medium',
+        type: "goal_adjustment",
+        title: "Estabelecer hábito sólido",
+        description:
+          "Com 21+ dias, você formou um hábito sólido. Considere expandir sua rotina.",
+        priority: "medium",
         confidence: 0.9,
         actionable: true,
-        basedOn: ['currentStreak'],
-        estimatedImpact: 'Hábito consolidado',
+        basedOn: ["currentStreak"],
+        estimatedImpact: "Hábito consolidado",
       });
     }
 
@@ -296,42 +329,48 @@ class LocalAIRecommendations {
     if (this.context.activeProjects > 5) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'focus_area',
-        title: 'Reduzir projetos ativos',
-        description: 'Você tem muitos projetos ativos. Considere focar em 2-3 projetos principais.',
-        priority: 'high',
+        type: "focus_area",
+        title: "Reduzir projetos ativos",
+        description:
+          "Você tem muitos projetos ativos. Considere focar em 2-3 projetos principais.",
+        priority: "high",
         confidence: 0.8,
         actionable: true,
-        basedOn: ['activeProjects'],
-        estimatedImpact: '+50% de foco',
+        basedOn: ["activeProjects"],
+        estimatedImpact: "+50% de foco",
       });
     }
 
     if (this.context.activeProjects === 0) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'task_suggestion',
-        title: 'Iniciar novo projeto',
-        description: 'Você não tem projetos ativos. Comece um projeto para direcionar seu foco.',
-        priority: 'medium',
+        type: "task_suggestion",
+        title: "Iniciar novo projeto",
+        description:
+          "Você não tem projetos ativos. Comece um projeto para direcionar seu foco.",
+        priority: "medium",
         confidence: 0.75,
         actionable: true,
-        basedOn: ['activeProjects'],
-        estimatedImpact: 'Direção clara',
+        basedOn: ["activeProjects"],
+        estimatedImpact: "Direção clara",
       });
     }
 
-    if (this.context.completedProjects > 0 && this.context.activeProjects === 0) {
+    if (
+      this.context.completedProjects > 0 &&
+      this.context.activeProjects === 0
+    ) {
       recommendations.push({
         id: crypto.randomUUID(),
-        type: 'goal_adjustment',
-        title: 'Planejar próximo projeto',
-        description: 'Você completou projetos recentemente. Ótimo momento para planejar o próximo.',
-        priority: 'medium',
+        type: "goal_adjustment",
+        title: "Planejar próximo projeto",
+        description:
+          "Você completou projetos recentemente. Ótimo momento para planejar o próximo.",
+        priority: "medium",
         confidence: 0.8,
         actionable: true,
-        basedOn: ['completedProjects', 'activeProjects'],
-        estimatedImpact: 'Continuidade de progresso',
+        basedOn: ["completedProjects", "activeProjects"],
+        estimatedImpact: "Continuidade de progresso",
       });
     }
 
@@ -346,19 +385,21 @@ class LocalAIRecommendations {
   }
 
   getRecommendationsByType(type: RecommendationType): Recommendation[] {
-    return this.recommendations.filter(r => r.type === type);
+    return this.recommendations.filter((r) => r.type === type);
   }
 
   getHighPriorityRecommendations(): Recommendation[] {
-    return this.recommendations.filter(r => r.priority === 'high');
+    return this.recommendations.filter((r) => r.priority === "high");
   }
 
   dismissRecommendation(id: string) {
-    this.recommendations = this.recommendations.filter(r => r.id !== id);
+    this.recommendations = this.recommendations.filter((r) => r.id !== id);
   }
 }
 
-export function generateRecommendations(context: UserContext): Recommendation[] {
+export function generateRecommendations(
+  context: UserContext,
+): Recommendation[] {
   const ai = new LocalAIRecommendations(context);
   return ai.getRecommendations();
 }

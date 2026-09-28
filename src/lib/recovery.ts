@@ -41,7 +41,9 @@ export function normalizeAnswer(value: string): string {
 }
 
 export function isValidQuestion(question: string): boolean {
-  return question.trim().length >= 3 && question.trim().length <= MAX_QUESTION_LENGTH;
+  return (
+    question.trim().length >= 3 && question.trim().length <= MAX_QUESTION_LENGTH
+  );
 }
 
 export function isValidAnswer(answer: string): boolean {

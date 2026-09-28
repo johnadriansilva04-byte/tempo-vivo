@@ -18,7 +18,9 @@ vi.mock("@/lib/supabase", () => ({
   supabase: {
     auth: {
       getSession: (...args: unknown[]) => getSession(...args),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+      onAuthStateChange: () => ({
+        data: { subscription: { unsubscribe() {} } },
+      }),
     },
     from: (...args: unknown[]) => from(...args),
   },
@@ -58,7 +60,9 @@ describe("initAuth no primeiro acesso", () => {
     getSession.mockResolvedValue({ data: { session: { user: { id: "u1" } } } });
     from.mockReturnValue({
       select: () => ({
-        eq: () => ({ maybeSingle: async () => ({ data: null, error: new Error("rede") }) }),
+        eq: () => ({
+          maybeSingle: async () => ({ data: null, error: new Error("rede") }),
+        }),
       }),
     });
     const store = await import("@/store/auth-store");

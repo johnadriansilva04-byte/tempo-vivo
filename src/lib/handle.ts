@@ -38,7 +38,10 @@ export function isValidHandle(value: string): boolean {
  * Handle efetivo de um perfil: o guardado quando existe, senão o derivado do
  * nome. O `handle` guardado é só uma foto — o nome continua sendo a verdade.
  */
-export function resolveHandle(person: { handle?: string; name?: string }): string {
+export function resolveHandle(person: {
+  handle?: string;
+  name?: string;
+}): string {
   const stored = normalizeHandle(person.handle ?? "");
   if (stored) return stored;
   return handleFromName(person.name ?? "");

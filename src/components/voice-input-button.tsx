@@ -9,7 +9,10 @@ interface VoiceInputButtonProps {
   placeholder?: string;
 }
 
-export function VoiceInputButton({ onTranscript, placeholder = "Fale para ditar..." }: VoiceInputButtonProps) {
+export function VoiceInputButton({
+  onTranscript,
+  placeholder = "Fale para ditar...",
+}: VoiceInputButtonProps) {
   const voiceInputEnabled = useFeatureFlag("voice_input");
   const {
     isSupported,
@@ -61,17 +64,15 @@ export function VoiceInputButton({ onTranscript, placeholder = "Fale para ditar.
           </>
         )}
       </Button>
-      
+
       {isListening && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>{transcript || placeholder}</span>
         </div>
       )}
-      
-      {error && (
-        <div className="text-xs text-destructive">{error}</div>
-      )}
+
+      {error && <div className="text-xs text-destructive">{error}</div>}
     </div>
   );
 }

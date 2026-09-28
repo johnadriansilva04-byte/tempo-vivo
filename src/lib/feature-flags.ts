@@ -85,16 +85,18 @@ export function getFeatureFlag(id: string): FeatureFlag | undefined {
 function hashUserId(): number {
   // In a real implementation, this would use the actual user ID
   // For now, we'll use a random value
-  const userId = localStorage.getItem('feature_flag_user_id') || Math.random().toString(36).substring(7);
-  localStorage.setItem('feature_flag_user_id', userId);
-  
+  const userId =
+    localStorage.getItem("feature_flag_user_id") ||
+    Math.random().toString(36).substring(7);
+  localStorage.setItem("feature_flag_user_id", userId);
+
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     const char = userId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
-  
+
   return Math.abs(hash) % 100;
 }
 

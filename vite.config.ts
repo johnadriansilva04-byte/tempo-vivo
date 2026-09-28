@@ -30,6 +30,7 @@ export default defineConfig({
             if (id.includes('recharts')) {
               return 'charts-vendor';
             }
+            return undefined;
           },
         },
       },

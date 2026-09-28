@@ -23,7 +23,11 @@ import type { SignupDraftState } from "@/components/auth/use-signup-draft";
 // não muda conforme a pessoa avança. Quem guarda o rascunho é `useSignupDraft`.
 // ---------------------------------------------------------------------------
 
-const STEP_INDEX: Record<SignupBlockId, number> = { identity: 1, access: 2, recovery: 3 };
+const STEP_INDEX: Record<SignupBlockId, number> = {
+  identity: 1,
+  access: 2,
+  recovery: 3,
+};
 
 export function SignUpForm({
   draft,
@@ -63,7 +67,9 @@ export function SignUpForm({
           {draft.progress.completed} de {draft.progress.total}
         </span>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">{ENTRY_COPY.signup.subtitle}</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {ENTRY_COPY.signup.subtitle}
+      </p>
 
       <form
         className="mt-4"
@@ -77,7 +83,12 @@ export function SignUpForm({
             const block = SIGNUP_BLOCKS[id];
             const current = step === id;
             return (
-              <div key={id} className={current ? "entry-step entry-step-current" : "entry-step"}>
+              <div
+                key={id}
+                className={
+                  current ? "entry-step entry-step-current" : "entry-step"
+                }
+              >
                 <button
                   type="button"
                   className="entry-step-button"
@@ -97,7 +108,9 @@ export function SignUpForm({
         </div>
 
         <div className="entry-step-fields">
-          <p className="mb-3 text-xs leading-5 text-faint">{SIGNUP_BLOCKS[step].description}</p>
+          <p className="mb-3 text-xs leading-5 text-faint">
+            {SIGNUP_BLOCKS[step].description}
+          </p>
           {step === "identity" && <IdentityFields draft={draft} />}
           {step === "access" && <AccessFields draft={draft} />}
           {step === "recovery" && <RecoveryFields draft={draft} />}
@@ -109,7 +122,9 @@ export function SignUpForm({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => draft.setStep(BLOCK_SEQUENCE[position - 1] ?? step)}
+              onClick={() =>
+                draft.setStep(BLOCK_SEQUENCE[position - 1] ?? step)
+              }
             >
               <ArrowLeft className="size-3.5" />
               Voltar

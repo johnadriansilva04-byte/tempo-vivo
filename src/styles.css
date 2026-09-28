@@ -216,6 +216,27 @@
   display: grid; height: 2rem; width: 2rem; flex: none; place-items: center; border-radius: 999px;
   background: var(--accent); color: var(--accent-foreground); font-size: .65rem; font-weight: 700;
 }
+@utility palette-trigger {
+  display: flex; align-items: center; gap: .6rem; border-radius: .45rem;
+  border: 1px solid var(--sidebar-border); background: var(--sidebar-accent);
+  padding: .5rem .65rem; font-size: .75rem; color: var(--faint);
+  cursor: pointer; transition: all .16s ease;
+  &:hover { border-color: color-mix(in oklab, var(--primary) 30%, var(--sidebar-border)); color: var(--sidebar-accent-foreground); }
+}
+@utility palette-kbd {
+  border: 1px solid var(--sidebar-border); border-radius: .25rem;
+  background: var(--sidebar); padding: .1rem .35rem;
+  font-family: var(--font-sans); font-size: .6rem; font-weight: 600; color: var(--muted-foreground);
+}
+
+/* Transição suave de entrada das páginas */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@utility page-enter {
+  animation: page-enter .3s cubic-bezier(.22,1,.36,1) both;
+}
 @utility avatar-main {
   display: grid; height: 5.25rem; width: 5.25rem; flex: none; place-items: center; border-radius: 999px;
   background: var(--primary); color: var(--primary-foreground); font-family: var(--font-display);
@@ -329,6 +350,66 @@
 @utility record-label {
   margin-bottom: .75rem; font-size: .65rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: .12em; color: var(--faint);
+}
+
+/* ---------------------- Smart inputs (áreas de texto) --------------------- */
+@utility smart-field {
+  position: relative;
+}
+@utility smart-shell {
+  position: relative;
+  &:focus-within {
+    .smart-textarea { border-color: color-mix(in oklab, var(--primary) 55%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 12%, transparent); }
+    .smart-count { color: var(--primary); }
+  }
+}
+@utility smart-textarea {
+  padding-bottom: 1.6rem;
+  transition: border-color .18s ease, box-shadow .18s ease;
+  resize: vertical;
+}
+@utility smart-count {
+  position: absolute; right: .65rem; bottom: .5rem;
+  font-size: .6rem; font-weight: 600; letter-spacing: .04em;
+  color: var(--faint); pointer-events: none;
+  transition: color .18s ease;
+}
+@utility smart-count-over { color: var(--destructive); }
+@utility smart-state {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .62rem; font-weight: 600; color: var(--muted-foreground);
+  transition: color .18s ease;
+}
+.smart-field[data-state="saved"] .smart-state { color: var(--primary); }
+.smart-field[data-state="error"] .smart-state { color: var(--destructive); }
+
+/* --------------------------- Heatmap ------------------------------------- */
+@utility heatmap-scroll {
+  overflow-x: auto; padding-bottom: .25rem;
+}
+@utility heatmap-month {
+  display: block; height: .85rem; font-size: .55rem; letter-spacing: .04em;
+  color: var(--faint); text-transform: uppercase;
+}
+@utility heatmap-cell {
+  display: block; height: .72rem; width: .72rem; flex: none;
+  border-radius: .18rem; background: var(--muted);
+  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  transition: transform .12s ease;
+  &:hover { transform: scale(1.25); }
+}
+@utility heatmap-l1 { background: color-mix(in oklab, var(--primary) 22%, var(--muted)); border-color: transparent; }
+@utility heatmap-l2 { background: color-mix(in oklab, var(--primary) 42%, var(--muted)); border-color: transparent; }
+@utility heatmap-l3 { background: color-mix(in oklab, var(--primary) 65%, var(--muted)); border-color: transparent; }
+@utility heatmap-l4 { background: var(--primary); border-color: transparent; box-shadow: 0 0 6px color-mix(in oklab, var(--primary) 45%, transparent); }
+
+/* --------------------------- Saudação ------------------------------------- */
+@utility greeting-icon {
+  display: grid; place-items: center; height: 2.6rem; width: 2.6rem; flex: none;
+  border-radius: .55rem; border: 1px solid color-mix(in oklab, var(--primary) 28%, var(--border));
+  background: color-mix(in oklab, var(--primary) 9%, var(--card));
+  color: var(--primary); box-shadow: var(--glow);
+  svg { height: 1.1rem; width: 1.1rem; }
 }
 @utility validation-note {
   border-top: 1px solid var(--border); padding: .65rem 1.25rem;
@@ -451,12 +532,154 @@
   border: 1px solid var(--border); border-radius: .4rem; padding: 1rem;
   font-size: .75rem; color: var(--faint);
   svg { height: .8rem; width: .8rem; }
+  &[data-active="true"] {
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+    color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 8%, transparent);
+  }
+}
+@utility capsule-card {
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.35rem;
+  background: var(--card); transition: border-color .2s ease, transform .2s ease;
+  &:hover { border-color: color-mix(in oklab, var(--primary) 35%, var(--border)); transform: translateY(-2px); }
+  &[data-state="sealed"] {
+    background:
+      radial-gradient(20rem 8rem at 80% -30%, color-mix(in oklab, var(--chart-2) 10%, transparent), transparent 70%),
+      var(--card);
+  }
+  &[data-state="openable"] {
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+    box-shadow: var(--glow);
+  }
+}
+@utility capsule-countdown {
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-family: var(--font-display); font-size: .72rem; font-weight: 700;
+  color: oklch(0.85 0.12 90);
+}
+@utility capsule-mask {
+  font-family: monospace; font-size: .8rem; letter-spacing: .12em;
+  color: var(--faint); user-select: none;
+  mask-image: linear-gradient(180deg, #000 40%, transparent);
+}
+@utility capsule-content {
+  white-space: pre-wrap; font-size: .875rem; line-height: 1.7;
+  color: var(--muted-foreground);
+  border-left: 2px solid color-mix(in oklab, var(--primary) 30%, transparent);
+  padding-left: 1rem;
 }
 @utility focus-bar { height: .375rem; overflow: hidden; border-radius: 999px; background: var(--muted); }
 @utility focus-bar-fill {
   height: 100%; border-radius: 999px; background: var(--primary);
   box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 45%, transparent);
   transition: width .3s ease;
+}
+
+/* --------------------------- Gamificação ---------------------------------- */
+/* XP, níveis, streak e conquistas — derivados 100% dos dados reais do usuário. */
+
+@keyframes xp-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); opacity: 1; }
+  50% { transform: scale(1.12) rotate(2deg); opacity: .85; }
+}
+@keyframes badge-unlock {
+  0% { transform: scale(.85); opacity: .4; }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes level-pop {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@utility xp-bar {
+  position: relative; height: .5rem; overflow: hidden; border-radius: 999px;
+  background: var(--muted); border: 1px solid var(--border);
+}
+@utility xp-bar-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 55%, var(--muted)), var(--primary));
+  box-shadow: 0 0 10px color-mix(in oklab, var(--primary) 40%, transparent);
+  transition: width .5s cubic-bezier(.22,1,.36,1);
+  &::after {
+    content: ""; position: absolute; inset: 0; width: 40%;
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 18%), transparent);
+    animation: xp-shimmer 2.2s ease-in-out infinite;
+  }
+}
+@utility level-ring {
+  display: grid; place-items: center; height: 3.25rem; width: 3.25rem; flex: none;
+  border-radius: 999px; border: 2px solid var(--primary);
+  background: color-mix(in oklab, var(--primary) 12%, var(--card));
+  font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; color: var(--primary);
+  box-shadow: var(--glow);
+  animation: level-pop 2.4s ease-in-out infinite;
+}
+@utility streak-flame {
+  display: inline-grid; place-items: center; height: 1.75rem; width: 1.75rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, oklch(0.75 0.16 55) 18%, transparent);
+  border: 1px solid color-mix(in oklab, oklch(0.75 0.16 55) 40%, transparent);
+  color: oklch(0.8 0.15 55);
+  svg { height: .85rem; width: .85rem; }
+}
+@utility streak-active {
+  & svg { animation: flame-flicker 1.6s ease-in-out infinite; }
+}
+@utility streak-num {
+  font-family: var(--font-display); font-size: .8rem; font-weight: 700;
+  color: oklch(0.85 0.13 60);
+}
+@utility badge-tile {
+  position: relative; display: flex; align-items: center; gap: .65rem;
+  border: 1px solid var(--border); border-radius: .5rem; padding: .7rem .8rem;
+  background: var(--muted); transition: all .2s ease;
+  &[data-locked="true"] { opacity: .45; filter: grayscale(.6); }
+  &[data-locked="false"] {
+    background: color-mix(in oklab, var(--primary) 8%, var(--muted));
+    border-color: color-mix(in oklab, var(--primary) 30%, var(--border));
+    animation: badge-unlock .45s ease both;
+    &:hover { transform: translateY(-1px); border-color: color-mix(in oklab, var(--primary) 55%, var(--border)); }
+  }
+  .badge-icon {
+    display: grid; place-items: center; height: 1.9rem; width: 1.9rem; flex: none;
+    border-radius: .4rem; background: var(--card); border: 1px solid var(--border);
+    color: var(--primary); svg { height: .9rem; width: .9rem; }
+  }
+  .badge-label { font-size: .72rem; font-weight: 600; color: var(--foreground); }
+  .badge-desc { font-size: .62rem; color: var(--muted-foreground); margin-top: .1rem; }
+}
+@utility gamification-card {
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem;
+  background:
+    radial-gradient(24rem 10rem at 90% -20%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 70%),
+    var(--card);
+}
+@utility xp-chip-bar {
+  display: block; height: .3rem; overflow: hidden; border-radius: 999px; background: var(--sidebar-accent);
+}
+@utility progression-chip {
+  display: flex; align-items: center; gap: .65rem; border-radius: .5rem;
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, var(--border));
+  background: color-mix(in oklab, var(--primary) 7%, var(--sidebar-accent));
+  padding: .6rem .7rem; transition: border-color .18s ease, transform .18s ease;
+  &:hover { border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); transform: translateY(-1px); }
+}
+@utility chip-level {
+  display: grid; place-items: center; height: 1.9rem; width: 1.9rem; flex: none;
+  border-radius: 999px; border: 1.5px solid var(--primary);
+  background: color-mix(in oklab, var(--primary) 14%, var(--card));
+  font-family: var(--font-display); font-size: .72rem; font-weight: 700; color: var(--primary);
+}
+@utility profile-meter-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--chart-2) 50%, var(--muted)), var(--chart-2));
+  transition: width .4s ease;
 }
 
 @media (max-width: 39.99rem) {

@@ -1,20 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createCareerChapter, getCareerChapters } from "@/services/profile-service";
+import { qk } from "@/lib/query-keys";
+import {
+  createCareerChapter,
+  getCareerChapters,
+} from "@/services/profile-service";
 import type { CareerChapter } from "@/types/profile";
 
 export function useCareerChapters() {
   const query = useQuery({
-    queryKey: ["career-chapters"],
+    queryKey: qk.careerChapters(),
     queryFn: getCareerChapters,
     staleTime: 60_000,
   });
-  return { chapters: query.data ?? [], isLoading: query.isLoading, error: query.error };
+  return {
+    chapters: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
 export function useCreateCareerChapter() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Omit<CareerChapter, "id">) => createCareerChapter(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["career-chapters"] }),
+    mutationFn: (input: Omit<CareerChapter, "id">) =>
+      createCareerChapter(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.careerChapters() }),
   });
 }

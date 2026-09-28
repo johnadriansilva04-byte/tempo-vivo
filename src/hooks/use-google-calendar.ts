@@ -28,9 +28,10 @@ export function useGoogleCalendar() {
 
     // Simulate OAuth flow
     setTimeout(() => {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || window.location.origin;
-      
+      const clientId = import.meta.env["VITE_GOOGLE_CLIENT_ID"];
+      const redirectUri =
+        import.meta.env["VITE_GOOGLE_REDIRECT_URI"] || window.location.origin;
+
       if (!clientId) {
         setError("Google Client ID não configurado");
         setIsLoading(false);
@@ -44,68 +45,74 @@ export function useGoogleCalendar() {
     }, 1000);
   }, []);
 
-  const createEvent = useCallback(async (event: GoogleCalendarEvent) => {
-    if (!isAuthenticated) {
-      setError("Não autenticado com Google Calendar");
-      return null;
-    }
+  const createEvent = useCallback(
+    async (event: GoogleCalendarEvent) => {
+      if (!isAuthenticated) {
+        setError("Não autenticado com Google Calendar");
+        return null;
+      }
 
-    setIsLoading(true);
-    setError(null);
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      // In a real implementation, this would call the Google Calendar API
-      // For now, we'll simulate the API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate successful event creation
-      const mockEventId = `event_${Date.now()}`;
-      setIsLoading(false);
-      return mockEventId;
-    } catch (err) {
-      setError("Erro ao criar evento no Google Calendar");
-      setIsLoading(false);
-      return null;
-    }
-  }, [isAuthenticated]);
+      try {
+        // In a real implementation, this would call the Google Calendar API
+        // For now, we'll simulate the API call
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  const syncDailyLog = useCallback(async (date: string, plannedText: string) => {
-    if (!isAuthenticated) {
-      setError("Não autenticado com Google Calendar");
-      return null;
-    }
+        // Simulate successful event creation
+        const mockEventId = `event_${Date.now()}`;
+        setIsLoading(false);
+        return mockEventId;
+      } catch (err) {
+        setError("Erro ao criar evento no Google Calendar");
+        setIsLoading(false);
+        return null;
+      }
+    },
+    [isAuthenticated],
+  );
 
-    setIsLoading(true);
-    setError(null);
+  const syncDailyLog = useCallback(
+    async (date: string, plannedText: string) => {
+      if (!isAuthenticated) {
+        setError("Não autenticado com Google Calendar");
+        return null;
+      }
 
-    try {
-      // Parse the planned text into individual tasks
-      const tasks = plannedText.split('\n').filter(line => line.trim());
-      
-      const events = tasks.map(task => ({
-        summary: task.trim(),
-        description: `Tarefa do Perfil Vivo para ${date}`,
-        start: {
-          date: date,
-        },
-        end: {
-          date: date,
-        },
-      }));
+      setIsLoading(true);
+      setError(null);
 
-      // Create events for each task
-      const eventIds = await Promise.all(
-        events.map(event => createEvent(event))
-      );
+      try {
+        // Parse the planned text into individual tasks
+        const tasks = plannedText.split("\n").filter((line) => line.trim());
 
-      setIsLoading(false);
-      return eventIds.filter(Boolean);
-    } catch (err) {
-      setError("Erro ao sincronizar com Google Calendar");
-      setIsLoading(false);
-      return null;
-    }
-  }, [isAuthenticated, createEvent]);
+        const events = tasks.map((task) => ({
+          summary: task.trim(),
+          description: `Tarefa do Perfil Vivo para ${date}`,
+          start: {
+            date: date,
+          },
+          end: {
+            date: date,
+          },
+        }));
+
+        // Create events for each task
+        const eventIds = await Promise.all(
+          events.map((event) => createEvent(event)),
+        );
+
+        setIsLoading(false);
+        return eventIds.filter(Boolean);
+      } catch (err) {
+        setError("Erro ao sincronizar com Google Calendar");
+        setIsLoading(false);
+        return null;
+      }
+    },
+    [isAuthenticated, createEvent],
+  );
 
   const disconnect = useCallback(() => {
     setIsAuthenticated(false);

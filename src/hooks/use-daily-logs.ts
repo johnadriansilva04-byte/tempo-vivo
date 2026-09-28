@@ -1,16 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDailyLogs, setLifePrologue, upsertDailyLog } from "@/services/profile-service";
+import { qk } from "@/lib/query-keys";
+import { getDailyLogs, upsertDailyLog } from "@/services/profile-service";
 import type { DailyLog } from "@/types/profile";
 
-export function useDailyLogs() {
+export function useDailyLogs(opts?: { limit?: number }) {
   const query = useQuery({
-    queryKey: ["daily-logs"],
-    queryFn: getDailyLogs,
+    queryKey: qk.dailyLogs(),
+    queryFn: () => getDailyLogs(opts),
     staleTime: 30_000,
-    // Revalida ao voltar pra aba: a regra de 24h evolui com o relógio.
     refetchOnWindowFocus: true,
   });
-  return { logs: query.data ?? [], isLoading: query.isLoading, error: query.error };
+  return {
+    logs: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
 export function useUpsertDailyLog() {
@@ -18,7 +23,7 @@ export function useUpsertDailyLog() {
   return useMutation({
     mutationFn: (log: DailyLog) => upsertDailyLog(log),
     onSuccess: (saved) => {
-      queryClient.setQueryData<DailyLog[]>(["daily-logs"], (old) => {
+      queryClient.setQueryData<DailyLog[]>(qk.dailyLogs(), (old) => {
         const next = old ? [...old] : [];
         const idx = next.findIndex((l) => l.id === saved.id);
         if (idx === -1) next.push(saved);
@@ -47,12 +52,4 @@ export function useOpenTodayLog() {
     },
     isPending: upsert.isPending,
   };
-}
-
-export function useSetPrologue() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: setLifePrologue,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["prologue"] }),
-  });
 }

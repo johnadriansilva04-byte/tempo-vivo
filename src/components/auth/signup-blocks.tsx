@@ -29,7 +29,11 @@ export function StepHeader({
 }) {
   return (
     <>
-      <span className={done ? "entry-step-index entry-step-done" : "entry-step-index"}>
+      <span
+        className={
+          done ? "entry-step-index entry-step-done" : "entry-step-index"
+        }
+      >
         {done ? <Check className="size-3" /> : index}
       </span>
       <span className="entry-step-heading">
@@ -101,7 +105,9 @@ export function AccessFields({ draft }: { draft: SignupDraftState }) {
           />
         </AuthField>
       </div>
-      {mismatch && <p className="text-xs text-destructive">As senhas não conferem.</p>}
+      {mismatch && (
+        <p className="text-xs text-destructive">As senhas não conferem.</p>
+      )}
     </div>
   );
 }

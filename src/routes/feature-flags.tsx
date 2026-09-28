@@ -5,7 +5,10 @@ export const Route = createFileRoute("/feature-flags")({
   head: () => ({
     meta: [
       { title: "Feature Flags — Perfil Vivo" },
-      { name: "description", content: "Gerencie recursos experimentais e funcionalidades." },
+      {
+        name: "description",
+        content: "Gerencie recursos experimentais e funcionalidades.",
+      },
     ],
   }),
   component: FeatureFlags,

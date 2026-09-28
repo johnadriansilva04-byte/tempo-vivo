@@ -27,19 +27,23 @@ export function useInsights() {
     const generatedInsights: Insight[] = [];
 
     if (logs.length === 0) {
-      return [{
-        id: "first_step",
-        title: "Comece sua jornada",
-        description: "Registre seu primeiro dia para começar a receber insights personalizados.",
-        type: "suggestion",
-        severity: "medium",
-        actionable: true,
-        icon: "🎯",
-      }];
+      return [
+        {
+          id: "first_step",
+          title: "Comece sua jornada",
+          description:
+            "Registre seu primeiro dia para começar a receber insights personalizados.",
+          type: "suggestion",
+          severity: "medium",
+          actionable: true,
+          icon: "🎯",
+        },
+      ];
     }
 
     // Consistency insight
-    const consistencyRate = logs.filter(log => log.summary_text.length > 0).length / logs.length;
+    const consistencyRate =
+      logs.filter((log) => log.summary_text.length > 0).length / logs.length;
     if (consistencyRate > 0.8) {
       generatedInsights.push({
         id: "high_consistency",
@@ -64,12 +68,15 @@ export function useInsights() {
 
     // Productivity pattern
     const recentLogs = logs.slice(0, 7);
-    const avgExecutedLength = recentLogs.reduce((sum, log) => sum + log.executed_text.length, 0) / recentLogs.length;
+    const avgExecutedLength =
+      recentLogs.reduce((sum, log) => sum + log.executed_text.length, 0) /
+      recentLogs.length;
     if (avgExecutedLength > 200) {
       generatedInsights.push({
         id: "high_productivity",
         title: "Produtividade em alta",
-        description: "Você tem mantido um nível alto de produtividade nos últimos dias.",
+        description:
+          "Você tem mantido um nível alto de produtividade nos últimos dias.",
         type: "achievement",
         severity: "low",
         actionable: false,
@@ -78,7 +85,13 @@ export function useInsights() {
     }
 
     // Goal completion pattern
-    const avgPlannedItems = logs.reduce((sum, log) => sum + log.planned_text.split('\n').filter(line => line.trim()).length, 0) / logs.length;
+    const avgPlannedItems =
+      logs.reduce(
+        (sum, log) =>
+          sum +
+          log.planned_text.split("\n").filter((line) => line.trim()).length,
+        0,
+      ) / logs.length;
     if (avgPlannedItems > 5) {
       generatedInsights.push({
         id: "goal_setter",
@@ -93,12 +106,20 @@ export function useInsights() {
 
     // Time pattern analysis
     const weekdays = new Array(7).fill(0);
-    logs.forEach(log => {
+    logs.forEach((log) => {
       const date = new Date(log.log_date);
       weekdays[date.getDay()] += log.executed_text.length;
     });
     const mostProductiveDay = weekdays.indexOf(Math.max(...weekdays));
-    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const dayNames = [
+      "Domingo",
+      "Segunda",
+      "Terça",
+      "Quarta",
+      "Quinta",
+      "Sexta",
+      "Sábado",
+    ];
     if (mostProductiveDay !== -1 && weekdays[mostProductiveDay] > 0) {
       generatedInsights.push({
         id: "productivity_pattern",
@@ -114,14 +135,18 @@ export function useInsights() {
     // Streak analysis
     let currentStreak = 0;
     let maxStreak = 0;
-    const sortedLogs = [...logs].sort((a, b) => a.log_date.localeCompare(b.log_date));
-    
+    const sortedLogs = [...logs].sort((a, b) =>
+      a.log_date.localeCompare(b.log_date),
+    );
+
     for (let i = 0; i < sortedLogs.length; i++) {
       if (i > 0) {
-        const prevDate = new Date(sortedLogs[i - 1].log_date);
-        const currDate = new Date(sortedLogs[i].log_date);
-        const daysDiff = Math.floor((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
-        
+        const prevDate = new Date(sortedLogs[i - 1]!.log_date);
+        const currDate = new Date(sortedLogs[i]!.log_date);
+        const daysDiff = Math.floor(
+          (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
         if (daysDiff === 1) {
           currentStreak++;
         } else {
@@ -153,7 +178,8 @@ export function useInsights() {
         generatedInsights.push({
           id: "life_phase_career",
           title: "Fase de construção",
-          description: "Você está na fase ideal para construir sua carreira. Foque em projetos de longo prazo.",
+          description:
+            "Você está na fase ideal para construir sua carreira. Foque em projetos de longo prazo.",
           type: "suggestion",
           severity: "medium",
           actionable: true,
@@ -163,7 +189,8 @@ export function useInsights() {
         generatedInsights.push({
           id: "life_phase_leadership",
           title: "Fase de liderança",
-          description: "Ótimo momento para assumir posições de liderança e mentoria.",
+          description:
+            "Ótimo momento para assumir posições de liderança e mentoria.",
           type: "suggestion",
           severity: "medium",
           actionable: true,
@@ -181,16 +208,22 @@ export function useInsights() {
     if (logs.length < 7) return patterns;
 
     // Weekly pattern
-    const weeklyData = logs.slice(0, 7).map(log => ({
+    const weeklyData = logs.slice(0, 7).map((log) => ({
       date: log.log_date,
       productivity: log.executed_text.length,
-      planned: log.planned_text.split('\n').filter(line => line.trim()).length,
-      completed: log.executed_text.split('\n').filter(line => line.trim()).length,
+      planned: log.planned_text.split("\n").filter((line) => line.trim())
+        .length,
+      completed: log.executed_text.split("\n").filter((line) => line.trim())
+        .length,
     }));
 
-    const avgProductivity = weeklyData.reduce((sum, d) => sum + d.productivity, 0) / weeklyData.length;
-    const avgPlanned = weeklyData.reduce((sum, d) => sum + d.planned, 0) / weeklyData.length;
-    const avgCompleted = weeklyData.reduce((sum, d) => sum + d.completed, 0) / weeklyData.length;
+    const avgProductivity =
+      weeklyData.reduce((sum, d) => sum + d.productivity, 0) /
+      weeklyData.length;
+    const avgPlanned =
+      weeklyData.reduce((sum, d) => sum + d.planned, 0) / weeklyData.length;
+    const avgCompleted =
+      weeklyData.reduce((sum, d) => sum + d.completed, 0) / weeklyData.length;
 
     patterns.push({
       category: "Produtividade Semanal",
@@ -200,12 +233,18 @@ export function useInsights() {
     });
 
     // Goal completion rate
-    const completionRate = avgPlanned > 0 ? (avgCompleted / avgPlanned) * 100 : 0;
+    const completionRate =
+      avgPlanned > 0 ? (avgCompleted / avgPlanned) * 100 : 0;
     patterns.push({
       category: "Taxa de Conclusão",
       description: `${completionRate.toFixed(0)}% das tarefas planejadas são executadas`,
       data: { completionRate },
-      trend: completionRate > 70 ? "increasing" : completionRate < 50 ? "decreasing" : "stable",
+      trend:
+        completionRate > 70
+          ? "increasing"
+          : completionRate < 50
+            ? "decreasing"
+            : "stable",
     });
 
     return patterns;

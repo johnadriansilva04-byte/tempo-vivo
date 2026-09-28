@@ -5,7 +5,10 @@ export const Route = createFileRoute("/local-systems")({
   head: () => ({
     meta: [
       { title: "Sistemas Locais — Perfil Vivo" },
-      { name: "description", content: "10 sistemas 100% self-hosted, zero custo." },
+      {
+        name: "description",
+        content: "10 sistemas 100% self-hosted, zero custo.",
+      },
     ],
   }),
   component: LocalSystems,

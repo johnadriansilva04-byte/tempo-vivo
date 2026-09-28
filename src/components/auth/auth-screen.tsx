@@ -88,7 +88,9 @@ export function AuthScreen() {
     try {
       const found = await recoveryQuestionFor(recoveryPhone);
       if (!found) {
-        setError("Não achamos essa conta. Confira o número ou crie a sua história.");
+        setError(
+          "Não achamos essa conta. Confira o número ou crie a sua história.",
+        );
         return;
       }
       setRecoveryQuestion(found);
@@ -126,7 +128,10 @@ export function AuthScreen() {
         return;
       }
       // Entra direto com a senha nova: a pessoa acabou de provar quem é.
-      const signInResult = await signIn({ phone: recoveryPhone, password: newPassword });
+      const signInResult = await signIn({
+        phone: recoveryPhone,
+        password: newPassword,
+      });
       if (!signInResult.ok) {
         switchMode("entrar");
         draft.setPhone(recoveryPhone);
@@ -190,7 +195,11 @@ export function AuthScreen() {
             />
           ) : mode === "criar" ? (
             <>
-              <SignUpForm draft={draft} pending={pending} onSubmit={() => void submitSignup()} />
+              <SignUpForm
+                draft={draft}
+                pending={pending}
+                onSubmit={() => void submitSignup()}
+              />
               {error && <AuthError message={error} />}
             </>
           ) : (

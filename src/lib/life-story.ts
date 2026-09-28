@@ -8,7 +8,6 @@ import type {
   WeeklyFocus,
 } from "@/types/profile";
 import { newId } from "@/repositories/profile-repository";
-import { handleFromName } from "@/lib/handle";
 
 // ---------------------------------------------------------------------------
 // Gerador de "história inicial".
@@ -19,7 +18,12 @@ import { handleFromName } from "@/lib/handle";
 // nada de fatos inventados sobre a pessoa; ela edita e substitui.
 // ---------------------------------------------------------------------------
 
-export type Cycle = { index: number; range: string; name: string; intent: string };
+export type Cycle = {
+  index: number;
+  range: string;
+  name: string;
+  intent: string;
+};
 
 export const CYCLES: Cycle[] = [
   {
@@ -106,8 +110,14 @@ function focusFor(cycle: Cycle, primaryFocus: string): WeeklyFocus[] {
       primaryFocus.trim() || "Dar o primeiro passo da frente que escolhi",
       "Tirar a intenção do papel e colocar no mundo nesta semana",
     ],
-    [`Definir a direção de ${cycle.name}`, "O que os próximos 12 meses precisam significar"],
-    ["Registrar 5 dias seguidos", "Constância no livro de bordo antes de qualquer perfeição"],
+    [
+      `Definir a direção de ${cycle.name}`,
+      "O que os próximos 12 meses precisam significar",
+    ],
+    [
+      "Registrar 5 dias seguidos",
+      "Constância no livro de bordo antes de qualquer perfeição",
+    ],
   ];
   return items.map(([title, description]) => ({
     id: newId(),
@@ -121,7 +131,8 @@ function focusFor(cycle: Cycle, primaryFocus: string): WeeklyFocus[] {
 
 /** Convite gentil quando um trecho do ritual fica em branco — nunca um colchete cru. */
 const OPENING = {
-  origin: (city: string) => (city.trim() ? `Nasci em ${city.trim()}.` : "Nasci e cresci."),
+  origin: (city: string) =>
+    city.trim() ? `Nasci em ${city.trim()}.` : "Nasci e cresci.",
   focus: (text: string) => text.trim(),
 };
 
@@ -145,7 +156,9 @@ export function stripAppPrompts(prologue: string): string {
     .filter((line) => {
       const trimmed = line.trim();
       if (!trimmed.includes("[")) return true;
-      return !LEGACY_PROMPT_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+      return !LEGACY_PROMPT_PREFIXES.some((prefix) =>
+        trimmed.startsWith(prefix),
+      );
     })
     .join("\n");
 
@@ -166,7 +179,6 @@ export function buildStarterLife(
     name: account.name,
     birth_date: account.birth_date,
     role: "",
-    handle: handleFromName(account.name),
     // A resposta de origem é do dono: vira o "onde você vive" do perfil, em vez
     // de ficar só no prólogo e deixar a página Sobre em branco.
     location: answers.origin.trim(),
@@ -210,7 +222,8 @@ export function buildStarterLife(
     id: newId(),
     log_date: todayIso(),
     planned_text: [
-      answers.focus.trim() || "Escolher a primeira frente de trabalho real deste ciclo",
+      answers.focus.trim() ||
+        "Escolher a primeira frente de trabalho real deste ciclo",
       "Separar 30 minutos para registrar memória e intenção do dia",
       "Contar a alguém que este recomeço começou",
     ].join("\n"),
@@ -229,21 +242,24 @@ export function buildStarterLife(
       title: "Formação ou aprendizado fundador",
       period: "",
       document_type: "EDUCATION",
-      content: "[O que você estudou, onde, e o que isso mudou no seu jeito de pensar.]",
+      content:
+        "[O que você estudou, onde, e o que isso mudou no seu jeito de pensar.]",
     },
     {
       id: newId(),
       title: "A experiência que mais me formou",
       period: "",
       document_type: "EXPERIENCE",
-      content: "[O que você fazia, com quem, e o resultado concreto que gerou.]",
+      content:
+        "[O que você fazia, com quem, e o resultado concreto que gerou.]",
     },
     {
       id: newId(),
       title: "Uma produção de que me orgulho",
       period: "",
       document_type: "PRODUCTION",
-      content: "[Projeto, texto, obra, sistema ou pesquisa que continua de pé depois de você.]",
+      content:
+        "[Projeto, texto, obra, sistema ou pesquisa que continua de pé depois de você.]",
     },
   ];
 
@@ -264,19 +280,26 @@ export function buildStarterLife(
     {
       year: String(thisYear + 1),
       title: "A virada que estou construindo",
-      description: answers.intention.trim() || "[A virada que estou construindo agora]",
+      description:
+        answers.intention.trim() || "[A virada que estou construindo agora]",
       category: cycle.name,
     },
   ];
 
   const projects: Project[] = [
     {
-      name: OPENING.focus(answers.focus) || "[A frente que quero colocar em movimento]",
+      name:
+        OPENING.focus(answers.focus) ||
+        "[A frente que quero colocar em movimento]",
       description: "A frente que está recebendo minha energia neste ciclo.",
       status: "Em andamento",
       progress: 0,
-      objective: "[O que precisa estar pronto para eu considerar esta frente concluída.]",
-      link: "",
+      objective:
+        "[O que precisa estar pronto para eu considerar esta frente concluída.]",
+      period: "",
+      activities: "",
+      results: "",
+      links: "",
     },
     {
       name: "Registro diário por 30 dias",
@@ -284,7 +307,10 @@ export function buildStarterLife(
       status: "Planejado",
       progress: 0,
       objective: "30 dias consecutivos com resumo escrito.",
-      link: "",
+      period: "",
+      activities: "",
+      results: "",
+      links: "",
     },
   ];
 

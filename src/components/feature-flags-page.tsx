@@ -1,13 +1,19 @@
 import { getFeatureFlags, isFeatureEnabled } from "@/lib/feature-flags";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  CheckCircle2, 
-  XCircle, 
+import {
+  CheckCircle2,
+  XCircle,
   Settings,
   Sparkles,
-  Shield
+  Shield,
 } from "lucide-react";
 
 export function FeatureFlagsPage() {
@@ -86,8 +92,8 @@ export function FeatureFlagsPage() {
                     <span>{flag.rolloutPercentage}%</span>
                   </div>
                   <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all" 
+                    <div
+                      className="h-full bg-primary transition-all"
                       style={{ width: `${flag.rolloutPercentage}%` }}
                     />
                   </div>
@@ -107,24 +113,28 @@ export function FeatureFlagsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="font-semibold mb-2">🎯 Controle de Funcionalidades</h3>
+            <h3 className="font-semibold mb-2">
+              🎯 Controle de Funcionalidades
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Feature flags permitem ativar/desativar funcionalidades sem precisar fazer deploy.
-              Isso é útil para testes A/B, lançamentos graduais e rollback rápido.
+              Feature flags permitem ativar/desativar funcionalidades sem
+              precisar fazer deploy. Isso é útil para testes A/B, lançamentos
+              graduais e rollback rápido.
             </p>
           </div>
           <div>
             <h3 className="font-semibold mb-2">📊 Rollout Gradual</h3>
             <p className="text-sm text-muted-foreground">
-              Algumas features são lançadas gradualmente para um percentual de usuários,
-              permitindo testar estabilidade antes do lançamento completo.
+              Algumas features são lançadas gradualmente para um percentual de
+              usuários, permitindo testar estabilidade antes do lançamento
+              completo.
             </p>
           </div>
           <div>
             <h3 className="font-semibold mb-2">🔒 Segurança</h3>
             <p className="text-sm text-muted-foreground">
-              As configurações de feature flags são determinísticas baseadas no seu usuário,
-              garantindo uma experiência consistente.
+              As configurações de feature flags são determinísticas baseadas no
+              seu usuário, garantindo uma experiência consistente.
             </p>
           </div>
         </CardContent>
@@ -137,7 +147,8 @@ export function FeatureFlagsPage() {
             <div>
               <h3 className="font-semibold">Features Ativas</h3>
               <p className="text-sm text-muted-foreground">
-                {flags.filter(f => f.enabled).length} de {flags.length} funcionalidades estão ativas no momento.
+                {flags.filter((f) => f.enabled).length} de {flags.length}{" "}
+                funcionalidades estão ativas no momento.
               </p>
             </div>
           </div>

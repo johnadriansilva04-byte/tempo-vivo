@@ -5,7 +5,7 @@ type OnboardingStep = {
   id: string;
   title: string;
   description: string;
-  type: 'info' | 'action' | 'interactive';
+  type: "info" | "action" | "interactive";
   target?: string; // CSS selector for element to highlight
   action?: () => Promise<boolean>; // Returns true if completed
   completed: boolean;
@@ -24,7 +24,7 @@ type OnboardingProgress = {
 class OnboardingSystem {
   private steps: Map<string, OnboardingStep> = new Map();
   private progress: OnboardingProgress;
-  private readonly STORAGE_KEY = 'perfil-vivo:onboarding';
+  private readonly STORAGE_KEY = "perfil-vivo:onboarding";
 
   constructor() {
     this.progress = this.loadProgress();
@@ -38,11 +38,11 @@ class OnboardingSystem {
         return JSON.parse(stored);
       }
     } catch (e) {
-      console.error('Error loading onboarding progress:', e);
+      console.error("Error loading onboarding progress:", e);
     }
 
     return {
-      currentStep: 'welcome',
+      currentStep: "welcome",
       completedSteps: [],
       startedAt: Date.now(),
       skipped: false,
@@ -53,93 +53,97 @@ class OnboardingSystem {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.progress));
     } catch (e) {
-      console.error('Error saving onboarding progress:', e);
+      console.error("Error saving onboarding progress:", e);
     }
   }
 
   private setupDefaultSteps() {
     const defaultSteps: OnboardingStep[] = [
       {
-        id: 'welcome',
-        title: 'Bem-vindo ao Perfil Vivo',
-        description: 'Seu companion pessoal para registrar e transformar sua jornada de vida.',
-        type: 'info',
+        id: "welcome",
+        title: "Bem-vindo ao Perfil Vivo",
+        description:
+          "Seu companion pessoal para registrar e transformar sua jornada de vida.",
+        type: "info",
         completed: false,
         order: 1,
         required: true,
       },
       {
-        id: 'create_first_log',
-        title: 'Crie seu primeiro registro',
-        description: 'Vá até a Agenda e registre suas intenções para hoje.',
-        type: 'action',
+        id: "create_first_log",
+        title: "Crie seu primeiro registro",
+        description: "Vá até a Agenda e registre suas intenções para hoje.",
+        type: "action",
         target: '[href="/agenda"]',
         completed: false,
         order: 2,
         required: true,
       },
       {
-        id: 'explore_dashboard',
-        title: 'Explore o Dashboard',
-        description: 'Conheça o painel principal onde você acompanha seu progresso.',
-        type: 'interactive',
+        id: "explore_dashboard",
+        title: "Explore o Dashboard",
+        description:
+          "Conheça o painel principal onde você acompanha seu progresso.",
+        type: "interactive",
         target: '[href="/"]',
         completed: false,
         order: 3,
         required: true,
       },
       {
-        id: 'create_project',
-        title: 'Crie seu primeiro projeto',
-        description: 'Projetos ajudam a organizar seus objetivos de longo prazo.',
-        type: 'action',
+        id: "create_project",
+        title: "Crie seu primeiro projeto",
+        description:
+          "Projetos ajudam a organizar seus objetivos de longo prazo.",
+        type: "action",
         target: '[href="/projetos"]',
         completed: false,
         order: 4,
         required: false,
       },
       {
-        id: 'set_weekly_focus',
-        title: 'Defina seu foco semanal',
-        description: 'Estabeleça suas prioridades para a semana.',
-        type: 'action',
+        id: "set_weekly_focus",
+        title: "Defina seu foco semanal",
+        description: "Estabeleça suas prioridades para a semana.",
+        type: "action",
         target: '[href="/planejamento"]',
         completed: false,
         order: 5,
         required: false,
       },
       {
-        id: 'explore_analytics',
-        title: 'Descubra seus insights',
-        description: 'O Analytics mostra padrões e tendências da sua produtividade.',
-        type: 'interactive',
+        id: "explore_analytics",
+        title: "Descubra seus insights",
+        description:
+          "O Analytics mostra padrões e tendências da sua produtividade.",
+        type: "interactive",
         target: '[href="/analytics"]',
         completed: false,
         order: 6,
         required: false,
       },
       {
-        id: 'try_gamification',
-        title: 'Experimente a gamificação',
-        description: 'Conquistas e streaks tornam sua jornada mais divertida.',
-        type: 'interactive',
+        id: "try_gamification",
+        title: "Experimente a gamificação",
+        description: "Conquistas e streaks tornam sua jornada mais divertida.",
+        type: "interactive",
         target: '[href="/gamification"]',
         completed: false,
         order: 7,
         required: false,
       },
       {
-        id: 'complete_onboarding',
-        title: 'Parabéns!',
-        description: 'Você completou o onboarding básico. Continue explorando!',
-        type: 'info',
+        id: "complete_onboarding",
+        title: "Parabéns!",
+        description: "Você completou o onboarding básico. Continue explorando!",
+        type: "info",
         completed: false,
         order: 8,
         required: true,
       },
     ];
 
-    defaultSteps.forEach(step => {
+    defaultSteps.forEach((step) => {
       this.steps.set(step.id, step);
     });
   }
@@ -166,7 +170,7 @@ class OnboardingSystem {
 
     const nextOrder = current.order + 1;
     const steps = Array.from(this.steps.values())
-      .filter(s => s.order === nextOrder)
+      .filter((s) => s.order === nextOrder)
       .sort((a, b) => a.order - b.order);
 
     return steps[0];
@@ -178,7 +182,7 @@ class OnboardingSystem {
 
     const prevOrder = current.order - 1;
     const steps = Array.from(this.steps.values())
-      .filter(s => s.order === prevOrder)
+      .filter((s) => s.order === prevOrder)
       .sort((a, b) => a.order - b.order);
 
     return steps[0];
@@ -189,11 +193,11 @@ class OnboardingSystem {
   }
 
   getRequiredSteps(): OnboardingStep[] {
-    return this.getAllSteps().filter(s => s.required);
+    return this.getAllSteps().filter((s) => s.required);
   }
 
   getOptionalSteps(): OnboardingStep[] {
-    return this.getAllSteps().filter(s => !s.required);
+    return this.getAllSteps().filter((s) => !s.required);
   }
 
   completeStep(id: string): void {
@@ -201,14 +205,14 @@ class OnboardingSystem {
     if (step) {
       step.completed = true;
       this.progress.completedSteps.push(id);
-      
+
       const next = this.getNextStep();
       if (next) {
         this.progress.currentStep = next.id;
       } else {
         this.progress.completedAt = Date.now();
       }
-      
+
       this.saveProgress();
     }
   }
@@ -218,12 +222,12 @@ class OnboardingSystem {
     if (step && !step.required) {
       step.completed = true;
       this.progress.completedSteps.push(id);
-      
+
       const next = this.getNextStep();
       if (next) {
         this.progress.currentStep = next.id;
       }
-      
+
       this.saveProgress();
     }
   }
@@ -258,23 +262,23 @@ class OnboardingSystem {
 
   restartOnboarding(): void {
     this.progress = {
-      currentStep: 'welcome',
+      currentStep: "welcome",
       completedSteps: [],
       startedAt: Date.now(),
       skipped: false,
     };
-    
+
     // Reset all steps
-    this.steps.forEach(step => {
+    this.steps.forEach((step) => {
       step.completed = false;
     });
-    
+
     this.saveProgress();
   }
 
   isOnboardingComplete(): boolean {
     const requiredSteps = this.getRequiredSteps();
-    return requiredSteps.every(step => step.completed);
+    return requiredSteps.every((step) => step.completed);
   }
 
   isOnboardingSkipped(): boolean {
@@ -288,7 +292,7 @@ class OnboardingSystem {
   } {
     const total = this.steps.size;
     const completed = this.progress.completedSteps.length;
-    
+
     return {
       current: completed,
       total,
@@ -308,7 +312,7 @@ class OnboardingSystem {
 
   resetProgress(): void {
     this.progress = {
-      currentStep: 'welcome',
+      currentStep: "welcome",
       completedSteps: [],
       startedAt: Date.now(),
       skipped: false,

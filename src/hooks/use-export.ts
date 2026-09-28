@@ -22,7 +22,7 @@ export function useExport() {
   const { chapters } = useCareerChapters();
   const { milestones } = useMilestones();
   const { projects } = useProjects();
-  const { weeklyFocus } = useWeeklyFocus();
+  const { focus: weeklyFocus } = useWeeklyFocus();
 
   const exportToJSON = () => {
     const data: ExportData = {
@@ -80,7 +80,7 @@ export function useExport() {
   const exportToCSV = () => {
     // Export daily logs to CSV
     const headers = ["Data", "Planejado", "Executado", "Resumo", "Status"];
-    const rows = logs.map(log => [
+    const rows = logs.map((log) => [
       log.log_date,
       `"${log.planned_text.replace(/"/g, '""')}"`,
       `"${log.executed_text.replace(/"/g, '""')}"`,
@@ -90,7 +90,7 @@ export function useExport() {
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.join(",")),
+      ...rows.map((row) => row.join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -113,7 +113,14 @@ export function useExport() {
 }
 
 function generateHTMLReport(data: ExportData): string {
-  const { profile, dailyLogs, careerChapters, milestones, projects, weeklyFocus } = data;
+  const {
+    profile,
+    dailyLogs,
+    careerChapters,
+    milestones,
+    projects,
+    weeklyFocus,
+  } = data;
 
   return `
 <!DOCTYPE html>
@@ -194,7 +201,9 @@ function generateHTMLReport(data: ExportData): string {
   </div>
 
   <h2>Registro Diário (${dailyLogs.length} dias)</h2>
-  ${dailyLogs.map(log => `
+  ${dailyLogs
+    .map(
+      (log) => `
     <div class="log-entry">
       <div class="log-date">${log.log_date}</div>
       <p><strong>Planejado:</strong> ${log.planned_text || "Nada planejado"}</p>
@@ -202,49 +211,67 @@ function generateHTMLReport(data: ExportData): string {
       <p><strong>Resumo:</strong> ${log.summary_text || "Sem resumo"}</p>
       <p><strong>Status:</strong> ${log.status}</p>
     </div>
-  `).join("")}
+  `,
+    )
+    .join("")}
 
   <h2>Capítulos de Carreira (${careerChapters.length})</h2>
-  ${careerChapters.map(chapter => `
+  ${careerChapters
+    .map(
+      (chapter) => `
     <div class="log-entry">
       <h3>${chapter.title}</h3>
       <p><strong>Período:</strong> ${chapter.period}</p>
       <p><strong>Tipo:</strong> ${chapter.document_type}</p>
       <p>${chapter.content}</p>
     </div>
-  `).join("")}
+  `,
+    )
+    .join("")}
 
   <h2>Marcos (${milestones.length})</h2>
-  ${milestones.map(milestone => `
+  ${milestones
+    .map(
+      (milestone) => `
     <div class="milestone">
       <h3>${milestone.title} (${milestone.year})</h3>
       <p><strong>Categoria:</strong> ${milestone.category}</p>
       <p>${milestone.description}</p>
     </div>
-  `).join("")}
+  `,
+    )
+    .join("")}
 
   <h2>Projetos (${projects.length})</h2>
-  ${projects.map(project => `
+  ${projects
+    .map(
+      (project) => `
     <div class="project">
       <h3>${project.name}</h3>
       <p><strong>Status:</strong> ${project.status}</p>
       <p><strong>Progresso:</strong> ${project.progress}%</p>
       <p>${project.description}</p>
     </div>
-  `).join("")}
+  `,
+    )
+    .join("")}
 
   <h2>Foco Semanal (${weeklyFocus.length})</h2>
-  ${weeklyFocus.map(focus => `
+  ${weeklyFocus
+    .map(
+      (focus) => `
     <div class="log-entry">
       <h3>${focus.title}</h3>
       <p><strong>Semana:</strong> ${focus.week_number}/${focus.year}</p>
       <p><strong>Progresso:</strong> ${focus.progress_pct}%</p>
       <p>${focus.description}</p>
     </div>
-  `).join("")}
+  `,
+    )
+    .join("")}
 
   <div class="footer">
-    <p>Gerado em ${new Date(data.exportDate).toLocaleString('pt-BR')}</p>
+    <p>Gerado em ${new Date(data.exportDate).toLocaleString("pt-BR")}</p>
     <p>Perfil Vivo v${data.version}</p>
   </div>
 </body>

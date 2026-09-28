@@ -15,14 +15,16 @@ type PredictionResult = {
   confidence: number;
   factors: string[];
   recommendation: string;
-  trend: 'increasing' | 'decreasing' | 'stable';
+  trend: "increasing" | "decreasing" | "stable";
 };
 
 class ProductivityPredictor {
   private data: ProductivityData[];
 
   constructor(data: ProductivityData[]) {
-    this.data = data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    this.data = data.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
   }
 
   // Moving Average Prediction
@@ -49,12 +51,15 @@ class ProductivityPredictor {
   }
 
   // Linear Regression for trend prediction
-  private calculateLinearRegression(days: number): { slope: number; intercept: number } {
+  private calculateLinearRegression(days: number): {
+    slope: number;
+    intercept: number;
+  } {
     if (this.data.length < days) return { slope: 0, intercept: 0 };
-    
+
     const recent = this.data.slice(-days);
     const n = recent.length;
-    
+
     let sumX = 0;
     let sumY = 0;
     let sumXY = 0;
@@ -76,8 +81,8 @@ class ProductivityPredictor {
   // Seasonality Detection (day of week patterns)
   private detectSeasonality(): Map<number, number> {
     const dayMap = new Map<number, ProductivityData[]>();
-    
-    this.data.forEach(d => {
+
+    this.data.forEach((d) => {
       const day = new Date(d.date).getDay();
       if (!dayMap.has(day)) {
         dayMap.set(day, []);
@@ -87,7 +92,8 @@ class ProductivityPredictor {
 
     const dayAverages = new Map<number, number>();
     dayMap.forEach((data, day) => {
-      const avg = data.reduce((sum, d) => sum + d.productivity, 0) / data.length;
+      const avg =
+        data.reduce((sum, d) => sum + d.productivity, 0) / data.length;
       dayAverages.set(day, avg);
     });
 
@@ -97,7 +103,7 @@ class ProductivityPredictor {
   // Correlation with sentiment
   private calculateSentimentCorrelation(): number {
     if (this.data.length < 2) return 0;
-    
+
     const n = this.data.length;
     let sumX = 0;
     let sumY = 0;
@@ -105,7 +111,7 @@ class ProductivityPredictor {
     let sumX2 = 0;
     let sumY2 = 0;
 
-    this.data.forEach(d => {
+    this.data.forEach((d) => {
       sumX += d.sentiment;
       sumY += d.productivity;
       sumXY += d.sentiment * d.productivity;
@@ -114,8 +120,10 @@ class ProductivityPredictor {
     });
 
     const numerator = n * sumXY - sumX * sumY;
-    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-    
+    const denominator = Math.sqrt(
+      (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY),
+    );
+
     return denominator === 0 ? 0 : numerator / denominator;
   }
 
@@ -123,7 +131,7 @@ class ProductivityPredictor {
   predictProductivity(targetDate: string): PredictionResult {
     const target = new Date(targetDate);
     const targetDay = target.getDay();
-    
+
     // Calculate various prediction models
     const ma7 = this.calculateMovingAverage(7);
     const wma7 = this.calculateWeightedMovingAverage(7);
@@ -141,7 +149,7 @@ class ProductivityPredictor {
     };
 
     let basePrediction = 0;
-    let factors: string[] = [];
+    const factors: string[] = [];
 
     // Recent performance
     basePrediction += wma7 * weights.recent;
@@ -150,7 +158,9 @@ class ProductivityPredictor {
     // Trend
     const trendPrediction = ma7 + regression.slope * 7;
     basePrediction += trendPrediction * weights.trend;
-    factors.push(`Tendência: ${regression.slope > 0 ? 'Crescente' : 'Decrescente'}`);
+    factors.push(
+      `Tendência: ${regression.slope > 0 ? "Crescente" : "Decrescente"}`,
+    );
 
     // Seasonality
     const seasonalAvg = seasonality.get(targetDay) || ma7;
@@ -159,10 +169,13 @@ class ProductivityPredictor {
 
     // Sentiment correlation
     if (Math.abs(sentimentCorrelation) > 0.3) {
-      const recentSentiment = this.data.slice(-7).reduce((sum, d) => sum + d.sentiment, 0) / 7;
+      const recentSentiment =
+        this.data.slice(-7).reduce((sum, d) => sum + d.sentiment, 0) / 7;
       const sentimentAdjustment = recentSentiment * sentimentCorrelation * 50;
       basePrediction += sentimentAdjustment * weights.sentiment;
-      factors.push(`Correlação sentimento: ${(sentimentCorrelation * 100).toFixed(0)}%`);
+      factors.push(
+        `Correlação sentimento: ${(sentimentCorrelation * 100).toFixed(0)}%`,
+      );
     }
 
     // Confidence calculation
@@ -170,17 +183,21 @@ class ProductivityPredictor {
     const confidence = Math.min(1, dataPoints / 30);
 
     // Trend determination
-    let trend: 'increasing' | 'decreasing' | 'stable';
+    let trend: "increasing" | "decreasing" | "stable";
     if (regression.slope > 1) {
-      trend = 'increasing';
+      trend = "increasing";
     } else if (regression.slope < -1) {
-      trend = 'decreasing';
+      trend = "decreasing";
     } else {
-      trend = 'stable';
+      trend = "stable";
     }
 
     // Generate recommendation
-    const recommendation = this.generateRecommendation(basePrediction, trend, confidence);
+    const recommendation = this.generateRecommendation(
+      basePrediction,
+      trend,
+      confidence,
+    );
 
     return {
       date: targetDate,
@@ -200,7 +217,7 @@ class ProductivityPredictor {
     for (let i = 1; i <= 7; i++) {
       const targetDate = new Date(today);
       targetDate.setDate(today.getDate() + i);
-      const dateString = targetDate.toISOString().split('T')[0];
+      const dateString = targetDate.toISOString().split("T")[0] ?? "";
       predictions.push(this.predictProductivity(dateString));
     }
 
@@ -209,40 +226,40 @@ class ProductivityPredictor {
 
   private generateRecommendation(
     predictedProductivity: number,
-    trend: 'increasing' | 'decreasing' | 'stable',
-    confidence: number
+    trend: "increasing" | "decreasing" | "stable",
+    confidence: number,
   ): string {
     if (confidence < 0.3) {
-      return 'Dados insuficientes para predição confiável. Continue registrando.';
+      return "Dados insuficientes para predição confiável. Continue registrando.";
     }
 
     if (predictedProductivity > 200) {
-      return 'Dia de alta produtividade esperado. Planeje tarefas importantes.';
+      return "Dia de alta produtividade esperado. Planeje tarefas importantes.";
     }
 
     if (predictedProductivity > 100) {
-      return 'Produtividade moderada esperada. Bom dia para tarefas regulares.';
+      return "Produtividade moderada esperada. Bom dia para tarefas regulares.";
     }
 
     if (predictedProductivity < 50) {
-      return 'Produtividade baixa esperada. Considere tarefas leves ou descanso.';
+      return "Produtividade baixa esperada. Considere tarefas leves ou descanso.";
     }
 
-    if (trend === 'increasing') {
-      return 'Tendência de melhoria. Aproveite o momento!';
+    if (trend === "increasing") {
+      return "Tendência de melhoria. Aproveite o momento!";
     }
 
-    if (trend === 'decreasing') {
-      return 'Tendência de queda. Considere ajustar rotina.';
+    if (trend === "decreasing") {
+      return "Tendência de queda. Considere ajustar rotina.";
     }
 
-    return 'Produtividade estável esperada. Mantenha rotina atual.';
+    return "Produtividade estável esperada. Mantenha rotina atual.";
   }
 
   // Get overall productivity insights
   getInsights(): {
     averageProductivity: number;
-    trend: 'increasing' | 'decreasing' | 'stable';
+    trend: "increasing" | "decreasing" | "stable";
     bestDay: string;
     worstDay: string;
     totalEntries: number;
@@ -250,27 +267,32 @@ class ProductivityPredictor {
     if (this.data.length === 0) {
       return {
         averageProductivity: 0,
-        trend: 'stable',
-        bestDay: 'N/A',
-        worstDay: 'N/A',
+        trend: "stable",
+        bestDay: "N/A",
+        worstDay: "N/A",
         totalEntries: 0,
       };
     }
 
-    const averageProductivity = this.data.reduce((sum, d) => sum + d.productivity, 0) / this.data.length;
+    const averageProductivity =
+      this.data.reduce((sum, d) => sum + d.productivity, 0) / this.data.length;
     const regression = this.calculateLinearRegression(14);
-    
-    let trend: 'increasing' | 'decreasing' | 'stable';
+
+    let trend: "increasing" | "decreasing" | "stable";
     if (regression.slope > 1) {
-      trend = 'increasing';
+      trend = "increasing";
     } else if (regression.slope < -1) {
-      trend = 'decreasing';
+      trend = "decreasing";
     } else {
-      trend = 'stable';
+      trend = "stable";
     }
 
-    const best = this.data.reduce((max, d) => d.productivity > max.productivity ? d : max);
-    const worst = this.data.reduce((min, d) => d.productivity < min.productivity ? d : min);
+    const best = this.data.reduce((max, d) =>
+      d.productivity > max.productivity ? d : max,
+    );
+    const worst = this.data.reduce((min, d) =>
+      d.productivity < min.productivity ? d : min,
+    );
 
     return {
       averageProductivity,
@@ -282,7 +304,10 @@ class ProductivityPredictor {
   }
 }
 
-export function predictProductivity(data: ProductivityData[], targetDate: string): PredictionResult {
+export function predictProductivity(
+  data: ProductivityData[],
+  targetDate: string,
+): PredictionResult {
   const predictor = new ProductivityPredictor(data);
   return predictor.predictProductivity(targetDate);
 }

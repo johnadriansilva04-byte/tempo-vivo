@@ -104,7 +104,9 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
         )}
       </div>
 
-      <div className={`flex items-center gap-5 ${compact ? "flex-col items-start" : ""}`}>
+      <div
+        className={`flex items-center gap-5 ${compact ? "flex-col items-start" : ""}`}
+      >
         <div className="life-donut shrink-0">
           <svg
             viewBox="0 0 120 120"
@@ -113,7 +115,14 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
             role="img"
             aria-label="Ciclos de vida em 4 blocos de 25 anos"
           >
-            <circle cx="60" cy="60" r={R} fill="none" stroke="var(--muted)" strokeWidth="9" />
+            <circle
+              cx="60"
+              cy="60"
+              r={R}
+              fill="none"
+              stroke="var(--muted)"
+              strokeWidth="9"
+            />
             {slices.map((s) => {
               const start = s.index * 90 + GAP_DEG / 2;
               const end = (s.index + 1) * 90 - GAP_DEG / 2;
@@ -137,7 +146,9 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
                         ? "var(--primary)"
                         : "transparent"
                   }
-                  className={s.state === "active" ? "life-donut-glow" : undefined}
+                  className={
+                    s.state === "active" ? "life-donut-glow" : undefined
+                  }
                   strokeDasharray={`${consumed} 360`}
                 />
               );
@@ -159,7 +170,8 @@ export function LifetimeTracker({ compact = false }: { compact?: boolean }) {
           <p className="flex items-center gap-1.5 pt-1 text-xs text-faint">
             <LockKeyhole className="size-3" />
             {Math.floor(life.yearsRemaining)} anos ·{" "}
-            {Math.round(life.daysRemaining).toLocaleString("pt-BR")} dias restantes
+            {Math.round(life.daysRemaining).toLocaleString("pt-BR")} dias
+            restantes
           </p>
         </div>
       </div>

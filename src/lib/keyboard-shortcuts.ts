@@ -1,24 +1,24 @@
 // Sistema de Keyboard Shortcuts 100% Local
 // Sem dependências externas
 
-type ShortcutAction = 
-  | 'save'
-  | 'new_log'
-  | 'search'
-  | 'toggle_theme'
-  | 'go_dashboard'
-  | 'go_agenda'
-  | 'go_analytics'
-  | 'go_settings'
-  | 'undo'
-  | 'redo'
-  | 'focus_search'
-  | 'navigate_next'
-  | 'navigate_prev'
-  | 'quick_add_task'
-  | 'toggle_sidebar'
-  | 'export_data'
-  | 'custom';
+type ShortcutAction =
+  | "save"
+  | "new_log"
+  | "search"
+  | "toggle_theme"
+  | "go_dashboard"
+  | "go_agenda"
+  | "go_analytics"
+  | "go_settings"
+  | "undo"
+  | "redo"
+  | "focus_search"
+  | "navigate_next"
+  | "navigate_prev"
+  | "quick_add_task"
+  | "toggle_sidebar"
+  | "export_data"
+  | "custom";
 
 type ShortcutConfig = {
   key: string;
@@ -27,7 +27,7 @@ type ShortcutConfig = {
   alt?: boolean;
   meta?: boolean;
   description: string;
-  category: 'navigation' | 'actions' | 'editing' | 'system' | 'custom';
+  category: "navigation" | "actions" | "editing" | "system" | "custom";
 };
 
 type ShortcutBinding = {
@@ -39,114 +39,114 @@ type ShortcutBinding = {
 
 const DEFAULT_SHORTCUTS: Record<ShortcutAction, ShortcutConfig> = {
   save: {
-    key: 's',
+    key: "s",
     ctrl: true,
-    description: 'Salvar',
-    category: 'actions',
+    description: "Salvar",
+    category: "actions",
   },
   new_log: {
-    key: 'n',
+    key: "n",
     ctrl: true,
     shift: true,
-    description: 'Novo registro',
-    category: 'actions',
+    description: "Novo registro",
+    category: "actions",
   },
   search: {
-    key: 'k',
+    key: "k",
     ctrl: true,
-    description: 'Buscar',
-    category: 'system',
+    description: "Buscar",
+    category: "system",
   },
   toggle_theme: {
-    key: 'd',
+    key: "d",
     ctrl: true,
     shift: true,
-    description: 'Alternar tema',
-    category: 'system',
+    description: "Alternar tema",
+    category: "system",
   },
   go_dashboard: {
-    key: 'g',
+    key: "g",
     ctrl: true,
-    description: 'Ir para Dashboard',
-    category: 'navigation',
+    description: "Ir para Dashboard",
+    category: "navigation",
   },
   go_agenda: {
-    key: 'a',
+    key: "a",
     ctrl: true,
-    description: 'Ir para Agenda',
-    category: 'navigation',
+    description: "Ir para Agenda",
+    category: "navigation",
   },
   go_analytics: {
-    key: 'i',
+    key: "i",
     ctrl: true,
-    description: 'Ir para Analytics',
-    category: 'navigation',
+    description: "Ir para Analytics",
+    category: "navigation",
   },
   go_settings: {
-    key: ',',
+    key: ",",
     ctrl: true,
-    description: 'Ir para Configurações',
-    category: 'navigation',
+    description: "Ir para Configurações",
+    category: "navigation",
   },
   undo: {
-    key: 'z',
+    key: "z",
     ctrl: true,
-    description: 'Desfazer',
-    category: 'editing',
+    description: "Desfazer",
+    category: "editing",
   },
   redo: {
-    key: 'z',
+    key: "z",
     ctrl: true,
     shift: true,
-    description: 'Refazer',
-    category: 'editing',
+    description: "Refazer",
+    category: "editing",
   },
   focus_search: {
-    key: '/',
-    description: 'Focar busca',
-    category: 'system',
+    key: "/",
+    description: "Focar busca",
+    category: "system",
   },
   navigate_next: {
-    key: 'Tab',
-    description: 'Próximo item',
-    category: 'navigation',
+    key: "Tab",
+    description: "Próximo item",
+    category: "navigation",
   },
   navigate_prev: {
-    key: 'Tab',
+    key: "Tab",
     shift: true,
-    description: 'Item anterior',
-    category: 'navigation',
+    description: "Item anterior",
+    category: "navigation",
   },
   quick_add_task: {
-    key: 'q',
+    key: "q",
     ctrl: true,
-    description: 'Adicionar tarefa rápida',
-    category: 'actions',
+    description: "Adicionar tarefa rápida",
+    category: "actions",
   },
   toggle_sidebar: {
-    key: 'b',
+    key: "b",
     ctrl: true,
-    description: 'Alternar sidebar',
-    category: 'system',
+    description: "Alternar sidebar",
+    category: "system",
   },
   export_data: {
-    key: 'e',
+    key: "e",
     ctrl: true,
     shift: true,
-    description: 'Exportar dados',
-    category: 'actions',
+    description: "Exportar dados",
+    category: "actions",
   },
   custom: {
-    key: '',
-    description: 'Customizado',
-    category: 'custom',
+    key: "",
+    description: "Customizado",
+    category: "custom",
   },
 };
 
 class KeyboardShortcutManager {
   private bindings: Map<ShortcutAction, ShortcutBinding> = new Map();
   private callbacks: Map<ShortcutAction, () => void> = new Map();
-  private readonly STORAGE_KEY = 'perfil-vivo:shortcuts';
+  private readonly STORAGE_KEY = "perfil-vivo:shortcuts";
 
   constructor() {
     this.loadShortcuts();
@@ -159,11 +159,14 @@ class KeyboardShortcutManager {
       if (stored) {
         const customBindings = JSON.parse(stored);
         Object.entries(customBindings).forEach(([action, binding]) => {
-          this.bindings.set(action as ShortcutAction, binding as ShortcutBinding);
+          this.bindings.set(
+            action as ShortcutAction,
+            binding as ShortcutBinding,
+          );
         });
       }
     } catch (e) {
-      console.error('Error loading shortcuts:', e);
+      console.error("Error loading shortcuts:", e);
     }
 
     // Initialize default bindings
@@ -184,12 +187,12 @@ class KeyboardShortcutManager {
       const bindingsObj = Object.fromEntries(this.bindings);
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(bindingsObj));
     } catch (e) {
-      console.error('Error saving shortcuts:', e);
+      console.error("Error saving shortcuts:", e);
     }
   }
 
   private setupEventListeners() {
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener("keydown", (e) => {
       this.handleKeyDown(e);
     });
   }
@@ -197,8 +200,11 @@ class KeyboardShortcutManager {
   private handleKeyDown(e: KeyboardEvent) {
     // Don't trigger shortcuts in input fields unless global
     const target = e.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-    
+    const isInput =
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable;
+
     for (const [action, binding] of this.bindings) {
       if (!binding.enabled) continue;
       if (isInput && !binding.global) continue;
@@ -231,7 +237,11 @@ class KeyboardShortcutManager {
     this.callbacks.delete(action);
   }
 
-  bindShortcut(action: ShortcutAction, config: ShortcutConfig, global: boolean = false) {
+  bindShortcut(
+    action: ShortcutAction,
+    config: ShortcutConfig,
+    global: boolean = false,
+  ) {
     this.bindings.set(action, {
       action,
       config,
@@ -270,20 +280,22 @@ class KeyboardShortcutManager {
     return this.bindings;
   }
 
-  getShortcutsByCategory(category: ShortcutConfig['category']): ShortcutBinding[] {
+  getShortcutsByCategory(
+    category: ShortcutConfig["category"],
+  ): ShortcutBinding[] {
     return Array.from(this.bindings.values()).filter(
-      binding => binding.config.category === category
+      (binding) => binding.config.category === category,
     );
   }
 
   getShortcutDisplay(config: ShortcutConfig): string {
     const parts: string[] = [];
-    if (config.ctrl) parts.push('Ctrl');
-    if (config.shift) parts.push('Shift');
-    if (config.alt) parts.push('Alt');
-    if (config.meta) parts.push('Cmd');
+    if (config.ctrl) parts.push("Ctrl");
+    if (config.shift) parts.push("Shift");
+    if (config.alt) parts.push("Alt");
+    if (config.meta) parts.push("Cmd");
     parts.push(config.key.toUpperCase());
-    return parts.join(' + ');
+    return parts.join(" + ");
   }
 
   resetToDefaults() {
@@ -312,7 +324,7 @@ class KeyboardShortcutManager {
       });
       this.saveShortcuts();
     } catch (e) {
-      throw new Error('Invalid shortcuts format');
+      throw new Error("Invalid shortcuts format");
     }
   }
 }
@@ -323,32 +335,27 @@ export const keyboardShortcuts = new KeyboardShortcutManager();
 // React hook for shortcuts
 export function useKeyboardShortcuts() {
   return {
-    register: (action: ShortcutAction, callback: () => void) => 
+    register: (action: ShortcutAction, callback: () => void) =>
       keyboardShortcuts.registerCallback(action, callback),
-    unregister: (action: ShortcutAction) => 
+    unregister: (action: ShortcutAction) =>
       keyboardShortcuts.unregisterCallback(action),
-    bind: (action: ShortcutAction, config: ShortcutConfig, global?: boolean) => 
+    bind: (action: ShortcutAction, config: ShortcutConfig, global?: boolean) =>
       keyboardShortcuts.bindShortcut(action, config, global),
-    unbind: (action: ShortcutAction) => 
+    unbind: (action: ShortcutAction) =>
       keyboardShortcuts.unbindShortcut(action),
-    enable: (action: ShortcutAction) => 
+    enable: (action: ShortcutAction) =>
       keyboardShortcuts.enableShortcut(action),
-    disable: (action: ShortcutAction) => 
+    disable: (action: ShortcutAction) =>
       keyboardShortcuts.disableShortcut(action),
-    get: (action: ShortcutAction) => 
-      keyboardShortcuts.getShortcut(action),
-    getAll: () => 
-      keyboardShortcuts.getAllShortcuts(),
-    getByCategory: (category: ShortcutConfig['category']) => 
+    get: (action: ShortcutAction) => keyboardShortcuts.getShortcut(action),
+    getAll: () => keyboardShortcuts.getAllShortcuts(),
+    getByCategory: (category: ShortcutConfig["category"]) =>
       keyboardShortcuts.getShortcutsByCategory(category),
-    getDisplay: (config: ShortcutConfig) => 
+    getDisplay: (config: ShortcutConfig) =>
       keyboardShortcuts.getShortcutDisplay(config),
-    reset: () => 
-      keyboardShortcuts.resetToDefaults(),
-    export: () => 
-      keyboardShortcuts.exportShortcuts(),
-    import: (json: string) => 
-      keyboardShortcuts.importShortcuts(json),
+    reset: () => keyboardShortcuts.resetToDefaults(),
+    export: () => keyboardShortcuts.exportShortcuts(),
+    import: (json: string) => keyboardShortcuts.importShortcuts(json),
   };
 }
 

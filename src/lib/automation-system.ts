@@ -1,25 +1,28 @@
 // Sistema de Automações Rule-Based 100% Local
 // Sem dependências externas
 
-type AutomationTrigger = 
-  | 'time_based'
-  | 'event_based'
-  | 'condition_based'
-  | 'schedule';
+type AutomationTrigger =
+  "time_based" | "event_based" | "condition_based" | "schedule";
 
-type AutomationAction = 
-  | 'send_notification'
-  | 'create_task'
-  | 'update_field'
-  | 'send_email'
-  | 'run_webhook'
-  | 'calculate_metric'
-  | 'backup_data'
-  | 'custom';
+type AutomationAction =
+  | "send_notification"
+  | "create_task"
+  | "update_field"
+  | "send_email"
+  | "run_webhook"
+  | "calculate_metric"
+  | "backup_data"
+  | "custom";
 
 type AutomationCondition = {
   field: string;
-  operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'not_contains';
+  operator:
+    | "equals"
+    | "not_equals"
+    | "greater_than"
+    | "less_than"
+    | "contains"
+    | "not_contains";
   value: any;
 };
 
@@ -49,7 +52,7 @@ type AutomationContext = {
 
 class AutomationSystem {
   private automations: Map<string, Automation> = new Map();
-  private readonly STORAGE_KEY = 'perfil-vivo:automations';
+  private readonly STORAGE_KEY = "perfil-vivo:automations";
 
   constructor() {
     this.loadAutomations();
@@ -66,7 +69,7 @@ class AutomationSystem {
         });
       }
     } catch (e) {
-      console.error('Error loading automations:', e);
+      console.error("Error loading automations:", e);
     }
   }
 
@@ -75,25 +78,25 @@ class AutomationSystem {
       const automationsObj = Object.fromEntries(this.automations);
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(automationsObj));
     } catch (e) {
-      console.error('Error saving automations:', e);
+      console.error("Error saving automations:", e);
     }
   }
 
   private setupDefaultAutomations() {
     // Default automation: Daily summary reminder
-    if (!this.automations.has('daily_reminder')) {
+    if (!this.automations.has("daily_reminder")) {
       this.createAutomation({
-        id: 'daily_reminder',
-        name: 'Lembrete Diário',
-        description: 'Envia notificação para registrar o dia',
+        id: "daily_reminder",
+        name: "Lembrete Diário",
+        description: "Envia notificação para registrar o dia",
         enabled: true,
-        trigger: 'time_based',
-        triggerConfig: { time: '20:00' },
+        trigger: "time_based",
+        triggerConfig: { time: "20:00" },
         conditions: [],
         actions: [
           {
-            type: 'send_notification',
-            config: { message: 'Não esqueça de registrar seu dia!' },
+            type: "send_notification",
+            config: { message: "Não esqueça de registrar seu dia!" },
           },
         ],
         createdAt: Date.now(),
@@ -102,21 +105,19 @@ class AutomationSystem {
     }
 
     // Default automation: Streak celebration
-    if (!this.automations.has('streak_celebration')) {
+    if (!this.automations.has("streak_celebration")) {
       this.createAutomation({
-        id: 'streak_celebration',
-        name: 'Celebração de Streak',
-        description: 'Celebra milestones de streak',
+        id: "streak_celebration",
+        name: "Celebração de Streak",
+        description: "Celebra milestones de streak",
         enabled: true,
-        trigger: 'event_based',
-        triggerConfig: { event: 'streak_milestone' },
-        conditions: [
-          { field: 'streak', operator: 'greater_than', value: 7 },
-        ],
+        trigger: "event_based",
+        triggerConfig: { event: "streak_milestone" },
+        conditions: [{ field: "streak", operator: "greater_than", value: 7 }],
         actions: [
           {
-            type: 'send_notification',
-            config: { message: 'Parabéns! Você alcançou um novo milestone!' },
+            type: "send_notification",
+            config: { message: "Parabéns! Você alcançou um novo milestone!" },
           },
         ],
         createdAt: Date.now(),
@@ -125,18 +126,18 @@ class AutomationSystem {
     }
 
     // Default automation: Weekly backup
-    if (!this.automations.has('weekly_backup')) {
+    if (!this.automations.has("weekly_backup")) {
       this.createAutomation({
-        id: 'weekly_backup',
-        name: 'Backup Semanal',
-        description: 'Backup automático semanal',
+        id: "weekly_backup",
+        name: "Backup Semanal",
+        description: "Backup automático semanal",
         enabled: true,
-        trigger: 'schedule',
-        triggerConfig: { interval: 'weekly', day: 0 }, // Sunday
+        trigger: "schedule",
+        triggerConfig: { interval: "weekly", day: 0 }, // Sunday
         conditions: [],
         actions: [
           {
-            type: 'backup_data',
+            type: "backup_data",
             config: { encrypted: true },
           },
         ],
@@ -173,7 +174,7 @@ class AutomationSystem {
   }
 
   getEnabledAutomations(): Automation[] {
-    return this.getAllAutomations().filter(a => a.enabled);
+    return this.getAllAutomations().filter((a) => a.enabled);
   }
 
   enableAutomation(id: string): void {
@@ -195,9 +196,12 @@ class AutomationSystem {
     }
   }
 
-  private shouldRunAutomation(automation: Automation, context: AutomationContext): boolean {
+  private shouldRunAutomation(
+    automation: Automation,
+    context: AutomationContext,
+  ): boolean {
     // Check trigger type
-    if (automation.trigger === 'event_based') {
+    if (automation.trigger === "event_based") {
       if (automation.triggerConfig.event !== context.eventType) {
         return false;
       }
@@ -215,21 +219,24 @@ class AutomationSystem {
     return true;
   }
 
-  private evaluateCondition(condition: AutomationCondition, data: any): boolean {
+  private evaluateCondition(
+    condition: AutomationCondition,
+    data: any,
+  ): boolean {
     const fieldValue = this.getFieldValue(data, condition.field);
-    
+
     switch (condition.operator) {
-      case 'equals':
+      case "equals":
         return fieldValue === condition.value;
-      case 'not_equals':
+      case "not_equals":
         return fieldValue !== condition.value;
-      case 'greater_than':
+      case "greater_than":
         return fieldValue > condition.value;
-      case 'less_than':
+      case "less_than":
         return fieldValue < condition.value;
-      case 'contains':
+      case "contains":
         return String(fieldValue).includes(String(condition.value));
-      case 'not_contains':
+      case "not_contains":
         return !String(fieldValue).includes(String(condition.value));
       default:
         return false;
@@ -237,17 +244,20 @@ class AutomationSystem {
   }
 
   private getFieldValue(data: any, field: string): any {
-    const keys = field.split('.');
+    const keys = field.split(".");
     let value = data;
-    
+
     for (const key of keys) {
       value = value?.[key];
     }
-    
+
     return value;
   }
 
-  private async runAutomation(automation: Automation, context: AutomationContext): Promise<void> {
+  private async runAutomation(
+    automation: Automation,
+    context: AutomationContext,
+  ): Promise<void> {
     try {
       // Execute all actions
       for (const action of automation.actions) {
@@ -264,21 +274,24 @@ class AutomationSystem {
     }
   }
 
-  private async executeAction(action: any, context: AutomationContext): Promise<void> {
+  private async executeAction(
+    action: any,
+    context: AutomationContext,
+  ): Promise<void> {
     switch (action.type) {
-      case 'send_notification':
+      case "send_notification":
         this.sendNotification(action.config.message);
         break;
-      case 'create_task':
+      case "create_task":
         this.createTask(action.config);
         break;
-      case 'update_field':
+      case "update_field":
         this.updateField(action.config);
         break;
-      case 'backup_data':
+      case "backup_data":
         await this.backupData(action.config);
         break;
-      case 'calculate_metric':
+      case "calculate_metric":
         this.calculateMetric(action.config);
         break;
       default:
@@ -288,31 +301,31 @@ class AutomationSystem {
 
   private sendNotification(message: string): void {
     // Use browser notification API
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Perfil Vivo', { body: message });
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Perfil Vivo", { body: message });
     } else {
-      console.log('Notification:', message);
+      console.log("Notification:", message);
     }
   }
 
   private createTask(config: any): void {
     // Create task in local storage or send to app
-    console.log('Creating task:', config);
+    console.log("Creating task:", config);
   }
 
   private updateField(config: any): void {
     // Update field in local storage
-    console.log('Updating field:', config);
+    console.log("Updating field:", config);
   }
 
   private async backupData(config: any): Promise<void> {
     // Trigger backup
-    console.log('Backing up data:', config);
+    console.log("Backing up data:", config);
   }
 
   private calculateMetric(config: any): void {
     // Calculate and store metric
-    console.log('Calculating metric:', config);
+    console.log("Calculating metric:", config);
   }
 
   // Schedule-based automation runner
@@ -326,8 +339,11 @@ class AutomationSystem {
     const automations = this.getEnabledAutomations();
     const now = new Date();
 
-    automations.forEach(automation => {
-      if (automation.trigger === 'schedule' || automation.trigger === 'time_based') {
+    automations.forEach((automation) => {
+      if (
+        automation.trigger === "schedule" ||
+        automation.trigger === "time_based"
+      ) {
         if (this.shouldRunScheduled(automation, now)) {
           this.triggerAutomations({
             timestamp: Date.now(),
@@ -339,17 +355,21 @@ class AutomationSystem {
 
   private shouldRunScheduled(automation: Automation, now: Date): boolean {
     const config = automation.triggerConfig;
-    
+
     if (config.time) {
-      const [hours, minutes] = config.time.split(':').map(Number);
+      const [hours, minutes] = config.time.split(":").map(Number);
       return now.getHours() === hours && now.getMinutes() === minutes;
     }
 
-    if (config.interval === 'weekly') {
-      return now.getDay() === config.day && now.getHours() === 0 && now.getMinutes() === 0;
+    if (config.interval === "weekly") {
+      return (
+        now.getDay() === config.day &&
+        now.getHours() === 0 &&
+        now.getMinutes() === 0
+      );
     }
 
-    if (config.interval === 'daily') {
+    if (config.interval === "daily") {
       return now.getHours() === config.hour && now.getMinutes() === 0;
     }
 
@@ -370,7 +390,7 @@ class AutomationSystem {
       });
       this.saveAutomations();
     } catch (e) {
-      throw new Error('Invalid automations format');
+      throw new Error("Invalid automations format");
     }
   }
 }
@@ -381,31 +401,28 @@ export const automationSystem = new AutomationSystem();
 // React hook for automations
 export function useAutomations() {
   return {
-    create: (automation: Automation) => 
+    create: (automation: Automation) =>
       automationSystem.createAutomation(automation),
-    update: (id: string, updates: Partial<Automation>) => 
+    update: (id: string, updates: Partial<Automation>) =>
       automationSystem.updateAutomation(id, updates),
-    delete: (id: string) => 
-      automationSystem.deleteAutomation(id),
-    get: (id: string) => 
-      automationSystem.getAutomation(id),
-    getAll: () => 
-      automationSystem.getAllAutomations(),
-    getEnabled: () => 
-      automationSystem.getEnabledAutomations(),
-    enable: (id: string) => 
-      automationSystem.enableAutomation(id),
-    disable: (id: string) => 
-      automationSystem.disableAutomation(id),
-    trigger: (context: AutomationContext) => 
+    delete: (id: string) => automationSystem.deleteAutomation(id),
+    get: (id: string) => automationSystem.getAutomation(id),
+    getAll: () => automationSystem.getAllAutomations(),
+    getEnabled: () => automationSystem.getEnabledAutomations(),
+    enable: (id: string) => automationSystem.enableAutomation(id),
+    disable: (id: string) => automationSystem.disableAutomation(id),
+    trigger: (context: AutomationContext) =>
       automationSystem.triggerAutomations(context),
-    startScheduler: () => 
-      automationSystem.startScheduler(),
-    export: () => 
-      automationSystem.exportAutomations(),
-    import: (json: string) => 
-      automationSystem.importAutomations(json),
+    startScheduler: () => automationSystem.startScheduler(),
+    export: () => automationSystem.exportAutomations(),
+    import: (json: string) => automationSystem.importAutomations(json),
   };
 }
 
-export type { Automation, AutomationTrigger, AutomationAction, AutomationCondition, AutomationContext };
+export type {
+  Automation,
+  AutomationTrigger,
+  AutomationAction,
+  AutomationCondition,
+  AutomationContext,
+};

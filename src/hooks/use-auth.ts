@@ -27,7 +27,11 @@ export type AuthState = {
 
 /** Estado de autenticação reativo (Supabase Auth ou store local). */
 export function useAuth(): AuthState {
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const snapshot = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   useEffect(() => {
     initAuth();

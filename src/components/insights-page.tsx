@@ -1,16 +1,22 @@
 import { useInsights } from "@/hooks/use-insights";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Lightbulb, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  Lightbulb,
+  TrendingUp,
+  TrendingDown,
   Minus,
   ArrowRight,
   Sparkles,
   Target,
-  BarChart3
+  BarChart3,
 } from "lucide-react";
 import { AnimatedCard, FadeIn } from "@/components/animated-card";
 
@@ -40,9 +46,12 @@ export function InsightsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold">Insights Inteligentes</h1>
+        <h1 className="font-display text-3xl font-bold">
+          Insights Inteligentes
+        </h1>
         <p className="mt-2 text-muted-foreground">
-          Análise de padrões e sugestões personalizadas baseadas no seu comportamento
+          Análise de padrões e sugestões personalizadas baseadas no seu
+          comportamento
         </p>
       </div>
 
@@ -54,7 +63,8 @@ export function InsightsPage() {
               <div>
                 <h3 className="font-semibold">Comece a receber insights</h3>
                 <p className="text-sm text-muted-foreground">
-                  Registre seus primeiros dias na Agenda para começar a receber insights personalizados.
+                  Registre seus primeiros dias na Agenda para começar a receber
+                  insights personalizados.
                 </p>
                 <Button className="mt-3" size="sm">
                   Ir para Agenda
@@ -72,17 +82,25 @@ export function InsightsPage() {
               const IconComponent = TYPE_ICONS[insight.type];
               return (
                 <AnimatedCard key={insight.id} delay={index * 0.1}>
-                  <Card className={`border-2 ${SEVERITY_COLORS[insight.severity]}`}>
+                  <Card
+                    className={`border-2 ${SEVERITY_COLORS[insight.severity]}`}
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="text-2xl">{INSIGHT_ICONS[insight.type]}</div>
+                          <div className="text-2xl">
+                            {INSIGHT_ICONS[insight.type]}
+                          </div>
                           <div>
-                            <CardTitle className="text-base">{insight.title}</CardTitle>
+                            <CardTitle className="text-base">
+                              {insight.title}
+                            </CardTitle>
                             <CardDescription className="text-xs">
                               {insight.type === "achievement" && "Conquista"}
-                              {insight.type === "improvement" && "Melhoria sugerida"}
-                              {insight.type === "pattern" && "Padrão identificado"}
+                              {insight.type === "improvement" &&
+                                "Melhoria sugerida"}
+                              {insight.type === "pattern" &&
+                                "Padrão identificado"}
                               {insight.type === "suggestion" && "Sugestão"}
                             </CardDescription>
                           </div>
@@ -122,7 +140,9 @@ export function InsightsPage() {
                     <div className="flex items-center justify-between p-4 rounded-lg border border-border">
                       <div className="flex-1">
                         <h3 className="font-semibold">{pattern.category}</h3>
-                        <p className="text-sm text-muted-foreground">{pattern.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {pattern.description}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         {pattern.trend === "increasing" && (
@@ -158,8 +178,9 @@ export function InsightsPage() {
                 <div>
                   <h3 className="font-semibold">IA de Insights</h3>
                   <p className="text-sm text-muted-foreground">
-                    Os insights são gerados automaticamente baseados nos seus dados reais.
-                    Quanto mais você registrar, mais precisos serão os insights.
+                    Os insights são gerados automaticamente baseados nos seus
+                    dados reais. Quanto mais você registrar, mais precisos serão
+                    os insights.
                   </p>
                 </div>
               </div>

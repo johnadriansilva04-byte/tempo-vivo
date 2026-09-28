@@ -8,10 +8,18 @@ import { Label } from "@/components/ui/label";
 // desenham campo, aviso e entrada de senha. Por isso vivem separadas do fluxo.
 // ---------------------------------------------------------------------------
 
-export function AuthField({ label, children }: { label: string; children: ReactNode }) {
+export function AuthField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-faint">{label}</Label>
+      <Label className="text-xs font-semibold uppercase tracking-wide text-faint">
+        {label}
+      </Label>
       {children}
     </div>
   );

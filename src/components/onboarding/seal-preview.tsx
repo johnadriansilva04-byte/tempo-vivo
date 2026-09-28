@@ -8,7 +8,13 @@ import type { StarterLife } from "@/lib/life-story";
 // prólogo que o app montou e os números do que já existe. Nada além disso.
 // ---------------------------------------------------------------------------
 
-export function SealPreview({ intention, preview }: { intention: string; preview: StarterLife }) {
+export function SealPreview({
+  intention,
+  preview,
+}: {
+  intention: string;
+  preview: StarterLife;
+}) {
   return (
     <div className="mt-8 space-y-6">
       {intention.trim() !== "" && (
@@ -31,11 +37,19 @@ export function SealPreview({ intention, preview }: { intention: string; preview
       <div className="grid gap-3 sm:grid-cols-3">
         <SealCount
           value={preview.focus.length}
-          label={plural(preview.focus.length, "meta da semana", "metas da semana")}
+          label={plural(
+            preview.focus.length,
+            "meta da semana",
+            "metas da semana",
+          )}
         />
         <SealCount
           value={preview.chapters.length}
-          label={plural(preview.chapters.length, "capítulo de currículo", "capítulos de currículo")}
+          label={plural(
+            preview.chapters.length,
+            "capítulo de currículo",
+            "capítulos de currículo",
+          )}
         />
         <SealCount
           value={preview.milestones.length}
@@ -49,8 +63,12 @@ export function SealPreview({ intention, preview }: { intention: string; preview
 
       <p className="text-xs text-faint">
         Mais a agenda de hoje,{" "}
-        {plural(preview.projects.length, "1 projeto", `${preview.projects.length} projetos`)} e o
-        seu perfil — tudo editável a qualquer momento.
+        {plural(
+          preview.projects.length,
+          "1 projeto",
+          `${preview.projects.length} projetos`,
+        )}{" "}
+        e o seu perfil — tudo editável a qualquer momento.
       </p>
     </div>
   );
@@ -59,7 +77,9 @@ export function SealPreview({ intention, preview }: { intention: string; preview
 function SealCount({ value, label }: { value: number; label: string }) {
   return (
     <div className="rounded-lg border border-border bg-background px-4 py-3">
-      <p className="ink-number text-2xl font-semibold text-foreground">{value}</p>
+      <p className="ink-number text-2xl font-semibold text-foreground">
+        {value}
+      </p>
       <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
     </div>
   );

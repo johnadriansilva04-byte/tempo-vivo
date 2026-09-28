@@ -118,20 +118,20 @@ create trigger enforce_daily_log_lock
   for each row execute function public.enforce_daily_log_temporal_integrity();
 
 -- ============================================================================
--- Seed de perfil singleton (id fixo usado pelo app enquanto não há auth)
+-- Seed de perfil singleton VAZIO (id fixo usado pelo app enquanto não há auth).
+-- O dono preenche tudo pelo app (/configuracoes) — nenhum dado fictício.
+-- Se já existia um seed antigo com dados de exemplo, ele é limpo uma única vez
+-- apenas se nunca foi editado (nome 'Ana Costa' intacto).
 -- ============================================================================
 
 insert into public.profiles (id, full_name, role, location, bio, birth_date, target_lifespan)
-values (
-  '00000000-0000-0000-0000-000000000001',
-  'Ana Costa',
-  'Pesquisadora de futuros humanos',
-  'São Paulo, Brasil',
-  'Investigo como escolhas, memória e tecnologia transformam vidas ao longo do tempo.',
-  '1992-03-14',
-  100
-)
+values ('00000000-0000-0000-0000-000000000001', '', '', '', '', null, 100)
 on conflict (id) do nothing;
+
+update public.profiles
+set full_name = '', role = '', location = '', bio = '', birth_date = null
+where id = '00000000-0000-0000-0000-000000000001'
+  and full_name = 'Ana Costa';
 
 -- ============================================================================
 -- Row Level Security — singleton local: policies abertas até haver Supabase Auth.

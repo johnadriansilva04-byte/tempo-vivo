@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useSignIn, useSignUp, useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "@tanstack/react-router";
+import { signIn, signUp, useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Sparkles } from "lucide-react";
@@ -12,11 +19,15 @@ import { Loader2, Sparkles } from "lucide-react";
 export function AuthPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const signIn = useSignIn();
-  const signUp = useSignUp();
-  
-  const [signInData, setSignInData] = useState({ email: "", password: "" });
-  const [signUpData, setSignUpData] = useState({ email: "", password: "", name: "" });
+
+  const [signInData, setSignInData] = useState({ phone: "", password: "" });
+  const [signUpData, setSignUpData] = useState({
+    name: "",
+    age: "",
+    phone: "",
+    password: "",
+  });
+  const [pending, setPending] = useState<"signin" | "signup" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -29,12 +40,22 @@ export function AuthPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+    setPending("signin");
+
     try {
-      await signIn.mutateAsync(signInData);
-      navigate({ to: "/" });
-    } catch (err: any) {
-      setError(err.message || "Erro ao fazer login");
+      const result = await signIn({
+        phone: signInData.phone,
+        password: signInData.password,
+      });
+      if (result.ok) {
+        navigate({ to: "/" });
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao fazer login");
+    } finally {
+      setPending(null);
     }
   };
 
@@ -42,16 +63,24 @@ export function AuthPage() {
     e.preventDefault();
     setError(null);
     setSuccessMessage(null);
-    
+    setPending("signup");
+
     try {
-      const result = await signUp.mutateAsync(signUpData);
-      if (result) {
+      const result = await signUp({
+        name: signUpData.name,
+        age: Number(signUpData.age),
+        phone: signUpData.phone,
+        password: signUpData.password,
+      });
+      if (result.ok) {
         navigate({ to: "/" });
       } else {
-        setSuccessMessage("Verifique seu email para confirmar a conta");
+        setError(result.error);
       }
-    } catch (err: any) {
-      setError(err.message || "Erro ao criar conta");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar conta");
+    } finally {
+      setPending(null);
     }
   };
 
@@ -76,7 +105,7 @@ export function AuthPage() {
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin">
               <form onSubmit={handleSignIn}>
                 <CardHeader>
@@ -91,19 +120,21 @@ export function AuthPage() {
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
-                  
+
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-phone">Telefone</Label>
                     <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={signInData.email}
-                      onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                      id="signin-phone"
+                      type="tel"
+                      placeholder="(11) 99999-9999"
+                      value={signInData.phone}
+                      onChange={(e) =>
+                        setSignInData({ ...signInData, phone: e.target.value })
+                      }
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Senha</Label>
                     <Input
@@ -111,18 +142,23 @@ export function AuthPage() {
                       type="password"
                       placeholder="••••••••"
                       value={signInData.password}
-                      onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                      onChange={(e) =>
+                        setSignInData({
+                          ...signInData,
+                          password: e.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full"
-                    disabled={signIn.isPending}
+                    disabled={pending === "signin"}
                   >
-                    {signIn.isPending ? (
+                    {pending === "signin" ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Entrando...
@@ -134,7 +170,7 @@ export function AuthPage() {
                 </CardFooter>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup">
               <form onSubmit={handleSignUp}>
                 <CardHeader>
@@ -149,13 +185,13 @@ export function AuthPage() {
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
-                  
+
                   {successMessage && (
                     <Alert>
                       <AlertDescription>{successMessage}</AlertDescription>
                     </Alert>
                   )}
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Nome</Label>
                     <Input
@@ -163,22 +199,45 @@ export function AuthPage() {
                       type="text"
                       placeholder="Seu nome"
                       value={signUpData.name}
-                      onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={signUpData.email}
-                      onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
+                      onChange={(e) =>
+                        setSignUpData({ ...signUpData, name: e.target.value })
+                      }
                       required
                     />
                   </div>
-                  
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-age">Idade</Label>
+                    <Input
+                      id="signup-age"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Sua idade"
+                      value={signUpData.age}
+                      onChange={(e) =>
+                        setSignUpData({
+                          ...signUpData,
+                          age: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Telefone</Label>
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="(11) 99999-9999"
+                      value={signUpData.phone}
+                      onChange={(e) =>
+                        setSignUpData({ ...signUpData, phone: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Senha</Label>
                     <Input
@@ -186,19 +245,24 @@ export function AuthPage() {
                       type="password"
                       placeholder="••••••••"
                       value={signUpData.password}
-                      onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                      onChange={(e) =>
+                        setSignUpData({
+                          ...signUpData,
+                          password: e.target.value,
+                        })
+                      }
                       required
-                      minLength={6}
+                      minLength={4}
                     />
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full"
-                    disabled={signUp.isPending}
+                    disabled={pending === "signup"}
                   >
-                    {signUp.isPending ? (
+                    {pending === "signup" ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Criando conta...
@@ -214,14 +278,8 @@ export function AuthPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground">
-          Ao continuar, você concorda com nossos{" "}
-          <Link to="/termos" className="underline underline-offset-4 hover:text-primary">
-            Termos de Serviço
-          </Link>{" "}
-          e{" "}
-          <Link to="/privacidade" className="underline underline-offset-4 hover:text-primary">
-            Política de Privacidade
-          </Link>
+          Ao continuar, você concorda com nossos Termos de Serviço e com a nossa
+          Política de Privacidade.
         </p>
       </div>
     </div>

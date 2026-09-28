@@ -17,31 +17,31 @@ type BackupInfo = {
 };
 
 class EncryptedBackup {
-  private readonly STORAGE_KEY = 'perfil-vivo:backups';
-  private readonly BACKUP_VERSION = '1.0';
+  private readonly STORAGE_KEY = "perfil-vivo:backups";
+  private readonly BACKUP_VERSION = "1.0";
 
   // Generate encryption key from password
   private async deriveKey(password: string): Promise<CryptoKey> {
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
-      'raw',
+      "raw",
       encoder.encode(password),
-      'PBKDF2',
+      "PBKDF2",
       false,
-      ['deriveKey']
+      ["deriveKey"],
     );
 
     return crypto.subtle.deriveKey(
       {
-        name: 'PBKDF2',
-        salt: encoder.encode('perfil-vivo-salt'),
+        name: "PBKDF2",
+        salt: encoder.encode("perfil-vivo-salt"),
         iterations: 100000,
-        hash: 'SHA-256',
+        hash: "SHA-256",
       },
       keyMaterial,
-      { name: 'AES-GCM', length: 256 },
+      { name: "AES-GCM", length: 256 },
       false,
-      ['encrypt', 'decrypt']
+      ["encrypt", "decrypt"],
     );
   }
 
@@ -54,9 +54,9 @@ class EncryptedBackup {
     const dataBytes = encoder.encode(dataStr);
 
     const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
+      { name: "AES-GCM", iv },
       key,
-      dataBytes
+      dataBytes,
     );
 
     // Combine IV and encrypted data
@@ -72,22 +72,24 @@ class EncryptedBackup {
   private async decrypt(encryptedStr: string, password: string): Promise<any> {
     try {
       const key = await this.deriveKey(password);
-      const combined = Uint8Array.from(atob(encryptedStr), c => c.charCodeAt(0));
-      
+      const combined = Uint8Array.from(atob(encryptedStr), (c) =>
+        c.charCodeAt(0),
+      );
+
       const iv = combined.slice(0, 12);
       const encrypted = combined.slice(12);
 
       const decrypted = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
+        { name: "AES-GCM", iv },
         key,
-        encrypted
+        encrypted,
       );
 
       const decoder = new TextDecoder();
       const dataStr = decoder.decode(decrypted);
       return JSON.parse(dataStr);
     } catch (e) {
-      throw new Error('Decryption failed. Invalid password or corrupted data.');
+      throw new Error("Decryption failed. Invalid password or corrupted data.");
     }
   }
 
@@ -95,9 +97,12 @@ class EncryptedBackup {
   private async generateChecksum(data: any): Promise<string> {
     const dataStr = JSON.stringify(data);
     const encoder = new TextEncoder();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(dataStr));
+    const hashBuffer = await crypto.subtle.digest(
+      "SHA-256",
+      encoder.encode(dataStr),
+    );
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
   // Verify checksum
@@ -107,9 +112,13 @@ class EncryptedBackup {
   }
 
   // Create backup
-  async createBackup(data: any, password: string, encrypted: boolean = true): Promise<string> {
+  async createBackup(
+    data: any,
+    password: string,
+    encrypted: boolean = true,
+  ): Promise<string> {
     const checksum = await this.generateChecksum(data);
-    
+
     const backupData: BackupData = {
       version: this.BACKUP_VERSION,
       timestamp: Date.now(),
@@ -141,12 +150,12 @@ class EncryptedBackup {
   async restoreBackup(backupId: string, password: string): Promise<any> {
     const backupStr = this.getBackup(backupId);
     if (!backupStr) {
-      throw new Error('Backup not found');
+      throw new Error("Backup not found");
     }
 
     const backupInfo = this.getBackupInfo(backupId);
     if (!backupInfo) {
-      throw new Error('Backup info not found');
+      throw new Error("Backup info not found");
     }
 
     let backupData: BackupData;
@@ -157,9 +166,12 @@ class EncryptedBackup {
     }
 
     // Verify checksum
-    const valid = await this.verifyChecksum(backupData.data, backupData.checksum);
+    const valid = await this.verifyChecksum(
+      backupData.data,
+      backupData.checksum,
+    );
     if (!valid) {
-      throw new Error('Backup checksum verification failed');
+      throw new Error("Backup checksum verification failed");
     }
 
     return backupData.data;
@@ -170,11 +182,11 @@ class EncryptedBackup {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) return [];
-      
-      const backups = JSON.parse(stored);
-      return Object.values(backups).sort((a: any, b: any) => b.timestamp - a.timestamp);
+
+      const backups = JSON.parse(stored) as Record<string, BackupInfo>;
+      return Object.values(backups).sort((a, b) => b.timestamp - a.timestamp);
     } catch (e) {
-      console.error('Error listing backups:', e);
+      console.error("Error listing backups:", e);
       return [];
     }
   }
@@ -188,10 +200,10 @@ class EncryptedBackup {
       const backups = JSON.parse(stored);
       delete backups[backupId];
       delete backups[`${backupId}:info`];
-      
+
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(backups));
     } catch (e) {
-      console.error('Error deleting backup:', e);
+      console.error("Error deleting backup:", e);
     }
   }
 
@@ -199,7 +211,7 @@ class EncryptedBackup {
   async exportBackup(backupId: string, password: string): Promise<Blob> {
     const backupStr = this.getBackup(backupId);
     if (!backupStr) {
-      throw new Error('Backup not found');
+      throw new Error("Backup not found");
     }
 
     const backupInfo = this.getBackupInfo(backupId);
@@ -209,7 +221,7 @@ class EncryptedBackup {
     };
 
     const dataStr = JSON.stringify(exportData);
-    return new Blob([dataStr], { type: 'application/json' });
+    return new Blob([dataStr], { type: "application/json" });
   }
 
   // Import backup from file
@@ -218,7 +230,7 @@ class EncryptedBackup {
     const importData = JSON.parse(dataStr);
 
     if (!importData.data || !importData.id) {
-      throw new Error('Invalid backup file format');
+      throw new Error("Invalid backup file format");
     }
 
     this.saveBackup(importData.id, importData.data, importData);
@@ -230,14 +242,14 @@ class EncryptedBackup {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       const backups = stored ? JSON.parse(stored) : {};
-      
+
       backups[id] = data;
       backups[`${id}:info`] = info;
-      
+
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(backups));
     } catch (e) {
-      console.error('Error saving backup:', e);
-      throw new Error('Failed to save backup');
+      console.error("Error saving backup:", e);
+      throw new Error("Failed to save backup");
     }
   }
 
@@ -245,11 +257,11 @@ class EncryptedBackup {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) return null;
-      
+
       const backups = JSON.parse(stored);
       return backups[id] || null;
     } catch (e) {
-      console.error('Error getting backup:', e);
+      console.error("Error getting backup:", e);
       return null;
     }
   }
@@ -258,11 +270,11 @@ class EncryptedBackup {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) return null;
-      
+
       const backups = JSON.parse(stored);
       return backups[`${id}:info`] || null;
     } catch (e) {
-      console.error('Error getting backup info:', e);
+      console.error("Error getting backup info:", e);
       return null;
     }
   }
@@ -272,19 +284,19 @@ class EncryptedBackup {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) return 0;
-      
+
       const backups = JSON.parse(stored);
       let totalSize = 0;
-      
-      Object.keys(backups).forEach(key => {
-        if (!key.endsWith(':info')) {
+
+      Object.keys(backups).forEach((key) => {
+        if (!key.endsWith(":info")) {
           totalSize += (backups[key] as string).length;
         }
       });
-      
+
       return totalSize;
     } catch (e) {
-      console.error('Error calculating backup size:', e);
+      console.error("Error calculating backup size:", e);
       return 0;
     }
   }
@@ -295,7 +307,7 @@ class EncryptedBackup {
     if (backups.length <= 5) return;
 
     const toDelete = backups.slice(5);
-    toDelete.forEach(backup => {
+    toDelete.forEach((backup) => {
       this.deleteBackup(backup.id);
     });
   }

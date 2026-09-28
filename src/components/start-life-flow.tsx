@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Feather, Loader2, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Feather,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { completeFirstRun } from "@/services/onboarding-service";
 import { buildStarterLife, cycleForAge, EMPTY_ANSWERS } from "@/lib/life-story";
@@ -47,7 +53,8 @@ export function StartLifeFlow() {
   const set = (key: keyof StoryAnswers, value: string) =>
     setAnswers((a) => ({ ...a, [key]: value }));
 
-  const next = () => setStepIndex((i) => Math.min(i + 1, GUIDED_STEPS.length - 1));
+  const next = () =>
+    setStepIndex((i) => Math.min(i + 1, GUIDED_STEPS.length - 1));
   const back = () => setStepIndex((i) => Math.max(i - 1, 0));
   const skip = () => {
     const field = fieldForStep(step);
@@ -59,10 +66,17 @@ export function StartLifeFlow() {
     setPending(preset);
     setError(null);
     try {
-      await completeFirstRun(preset, preset === "guided" ? answers : EMPTY_ANSWERS);
+      await completeFirstRun(
+        preset,
+        preset === "guided" ? answers : EMPTY_ANSWERS,
+      );
       await navigate({ to: preset === "guided" ? "/" : "/configuracoes" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível iniciar sua história.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Não foi possível iniciar sua história.",
+      );
       setPending(null);
     }
   };
@@ -79,7 +93,9 @@ export function StartLifeFlow() {
             <span className="brand-mark">
               <Feather className="size-4" />
             </span>
-            <span className="font-ui text-sm font-semibold text-foreground">Perfil Vivo</span>
+            <span className="font-ui text-sm font-semibold text-foreground">
+              Perfil Vivo
+            </span>
           </div>
           <div className="ritual-track w-40 sm:w-56">
             {GUIDED_STEPS.map((s, i) => (
@@ -104,7 +120,9 @@ export function StartLifeFlow() {
           <h1 className="mt-6 max-w-3xl font-display text-4xl font-semibold leading-[1.1] text-foreground sm:text-5xl">
             {copy.title(firstName)}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">{copy.help}</p>
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
+            {copy.help}
+          </p>
 
           {step === "limiar" && (
             <Threshold
@@ -134,13 +152,21 @@ export function StartLifeFlow() {
 
           {step !== "limiar" && (
             <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-border pt-6">
-              <Button variant="ghost" size="sm" onClick={back} disabled={pending !== null}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={back}
+                disabled={pending !== null}
+              >
                 <ArrowLeft className="size-3.5" />
                 Voltar
               </Button>
 
               {step === "selar" ? (
-                <Button onClick={() => void run("guided")} disabled={pending !== null}>
+                <Button
+                  onClick={() => void run("guided")}
+                  disabled={pending !== null}
+                >
                   {pending === "guided" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (

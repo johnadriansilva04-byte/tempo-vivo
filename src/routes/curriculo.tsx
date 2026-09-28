@@ -4,7 +4,10 @@ export const Route = createFileRoute("/curriculo")({
   head: () => ({
     meta: [
       { title: "Currículo — Perfil Vivo" },
-      { name: "description", content: "Formação, experiências e produções da sua trajetória." },
+      {
+        name: "description",
+        content: "Formação, experiências e produções da sua trajetória.",
+      },
       { property: "og:title", content: "Currículo — Perfil Vivo" },
       {
         property: "og:description",

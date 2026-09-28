@@ -1,12 +1,18 @@
 import { useExport } from "@/hooks/use-export";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Download, 
-  FileJson, 
-  FileText, 
+import {
+  Download,
+  FileJson,
+  FileText,
   FileSpreadsheet,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
 export function ExportPage() {
@@ -57,8 +63,8 @@ export function ExportPage() {
                 <p>• Marcos e projetos</p>
                 <p>• Foco semanal</p>
               </div>
-              <Button 
-                onClick={exportToJSON} 
+              <Button
+                onClick={exportToJSON}
                 className="w-full"
                 disabled={!hasData}
               >
@@ -88,8 +94,8 @@ export function ExportPage() {
                 <p>• Inclui todos os dados</p>
                 <p>• Pronto para compartilhar</p>
               </div>
-              <Button 
-                onClick={exportToPDF} 
+              <Button
+                onClick={exportToPDF}
                 className="w-full"
                 disabled={!hasData}
               >
@@ -106,9 +112,7 @@ export function ExportPage() {
               <FileSpreadsheet className="h-5 w-5 text-green-500" />
               CSV
             </CardTitle>
-            <CardDescription>
-              Agenda em formato de planilha
-            </CardDescription>
+            <CardDescription>Agenda em formato de planilha</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -119,8 +123,8 @@ export function ExportPage() {
                 <p>• Leve e rápido</p>
                 <p>• Ideal para backups</p>
               </div>
-              <Button 
-                onClick={exportToCSV} 
+              <Button
+                onClick={exportToCSV}
                 className="w-full"
                 disabled={!hasData}
               >
@@ -143,22 +147,23 @@ export function ExportPage() {
           <div>
             <h3 className="font-semibold mb-2">📋 JSON (Recomendado)</h3>
             <p className="text-sm text-muted-foreground">
-              Formato completo que preserva todos os dados e metadados. Ideal para backups 
-              e importação futura. Pode ser aberto em qualquer editor de texto.
+              Formato completo que preserva todos os dados e metadados. Ideal
+              para backups e importação futura. Pode ser aberto em qualquer
+              editor de texto.
             </p>
           </div>
           <div>
             <h3 className="font-semibold mb-2">📄 PDF (Para Compartilhar)</h3>
             <p className="text-sm text-muted-foreground">
-              Formato visual pronto para impressão e compartilhamento. Perfeito para 
-              mostrar seu progresso para outros ou criar arquivos físicos.
+              Formato visual pronto para impressão e compartilhamento. Perfeito
+              para mostrar seu progresso para outros ou criar arquivos físicos.
             </p>
           </div>
           <div>
             <h3 className="font-semibold mb-2">📊 CSV (Para Análise)</h3>
             <p className="text-sm text-muted-foreground">
-              Formato de planilha contendo apenas o registro diário. Ideal para análise 
-              de dados no Excel, Google Sheets ou outras ferramentas.
+              Formato de planilha contendo apenas o registro diário. Ideal para
+              análise de dados no Excel, Google Sheets ou outras ferramentas.
             </p>
           </div>
         </CardContent>
@@ -171,8 +176,8 @@ export function ExportPage() {
             <div>
               <h3 className="font-semibold">Dica de Produtividade</h3>
               <p className="text-sm text-muted-foreground">
-                Exporte seus dados regularmente para manter backups seguros. 
-                O formato JSON é recomendado para restaurações completas.
+                Exporte seus dados regularmente para manter backups seguros. O
+                formato JSON é recomendado para restaurações completas.
               </p>
             </div>
           </div>

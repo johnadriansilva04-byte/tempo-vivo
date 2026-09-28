@@ -17,11 +17,17 @@ export function ProfileHeader() {
   const isBlank = profile?.name.trim() === "" || (profile?.name ?? "") === "";
 
   if (!profile) {
-    return <div className="h-44 animate-pulse rounded-lg border border-border bg-card" />;
+    return (
+      <div className="h-44 animate-pulse rounded-lg border border-border bg-card" />
+    );
   }
 
   const startEdit = () => {
-    setDraft({ name: profile.name, role: profile.role, location: profile.location });
+    setDraft({
+      name: profile.name,
+      role: profile.role,
+      location: profile.location,
+    });
     setEditing(true);
   };
 
@@ -30,7 +36,8 @@ export function ProfileHeader() {
     setEditing(false);
   };
 
-  const setBanner = (url: string | null) => updateProfile.mutate({ cover_url: url });
+  const setBanner = (url: string | null) =>
+    updateProfile.mutate({ cover_url: url });
 
   const onPickFile = (file: File) => {
     const reader = new FileReader();
@@ -41,7 +48,10 @@ export function ProfileHeader() {
   return (
     <section className="profile-header">
       {profile.cover_url ? (
-        <div className="profile-banner" style={{ backgroundImage: `url(${profile.cover_url})` }} />
+        <div
+          className="profile-banner"
+          style={{ backgroundImage: `url(${profile.cover_url})` }}
+        />
       ) : (
         <div className="profile-banner-default" />
       )}
@@ -59,12 +69,18 @@ export function ProfileHeader() {
           }
         }}
       >
-        {profile.cover_url ? <X className="size-3.5" /> : <ImagePlus className="size-3.5" />}
+        {profile.cover_url ? (
+          <X className="size-3.5" />
+        ) : (
+          <ImagePlus className="size-3.5" />
+        )}
       </button>
 
       {bannerUrlOpen && (
         <div className="absolute right-3 top-12 z-30 w-72 rounded-lg border border-border bg-popover p-3 shadow-xl">
-          <p className="text-xs font-semibold text-foreground">Paisagem de fundo</p>
+          <p className="text-xs font-semibold text-foreground">
+            Paisagem de fundo
+          </p>
           <p className="mt-1 text-[11px] text-faint">
             Cole a URL de uma imagem ou envie um arquivo.
           </p>
@@ -137,7 +153,9 @@ export function ProfileHeader() {
                 />
                 <Input
                   value={draft.location}
-                  onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, location: e.target.value })
+                  }
                   className="h-8 text-sm"
                   placeholder="Localização"
                 />

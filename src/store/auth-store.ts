@@ -1,7 +1,16 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { birthDateFromAge, isValidPhone, normalizePhone, phoneToEmail } from "@/lib/identity";
+import {
+  birthDateFromAge,
+  isValidPhone,
+  normalizePhone,
+  phoneToEmail,
+} from "@/lib/identity";
 import { friendlyAuthError, isTransientAuthError } from "@/lib/auth-errors";
-import { isValidAnswer, isValidQuestion, normalizeAnswer } from "@/lib/recovery";
+import {
+  isValidAnswer,
+  isValidQuestion,
+  normalizeAnswer,
+} from "@/lib/recovery";
 import type {
   Account,
   ActionOutcome,
@@ -24,7 +33,10 @@ import type {
 
 const STORAGE_KEY = "perfil-vivo:auth:v1";
 
-type LocalAuthDB = { accounts: LocalAccount[]; session: { user_id: string } | null };
+type LocalAuthDB = {
+  accounts: LocalAccount[];
+  session: { user_id: string } | null;
+};
 type LocalAccount = Account & {
   password_hash: string;
   password_salt: string;
@@ -33,9 +45,17 @@ type LocalAccount = Account & {
   recovery_answer_salt?: string;
 };
 
-export type AuthState = { account: Account | null; isLoading: boolean; ready: boolean };
+export type AuthState = {
+  account: Account | null;
+  isLoading: boolean;
+  ready: boolean;
+};
 
-const EMPTY_STATE: AuthState = { account: null, isLoading: false, ready: !isSupabaseConfigured };
+const EMPTY_STATE: AuthState = {
+  account: null,
+  isLoading: false,
+  ready: !isSupabaseConfigured,
+};
 
 let state: AuthState = EMPTY_STATE;
 const listeners = new Set<() => void>();
@@ -69,7 +89,9 @@ function readLocal(): LocalAuthDB {
   if (typeof window === "undefined") return { accounts: [], session: null };
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as LocalAuthDB) : { accounts: [], session: null };
+    return raw
+      ? (JSON.parse(raw) as LocalAuthDB)
+      : { accounts: [], session: null };
   } catch {
     return { accounts: [], session: null };
   }
@@ -99,7 +121,9 @@ async function hashPassword(password: string, salt: string): Promise<string> {
   const data = new TextEncoder().encode(`${salt}:${password}`);
   if (typeof crypto !== "undefined" && "subtle" in crypto) {
     const digest = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+    return Array.from(new Uint8Array(digest), (b) =>
+      b.toString(16).padStart(2, "0"),
+    ).join("");
   }
   let h = 0;
   const text = `${salt}:${password}`;
@@ -113,7 +137,11 @@ function localAccountFrom(db: LocalAuthDB): Account | null {
 }
 
 function publishLocal(): void {
-  emit({ account: localAccountFrom(readLocal()), isLoading: false, ready: true });
+  emit({
+    account: localAccountFrom(readLocal()),
+    isLoading: false,
+    ready: true,
+  });
 }
 
 // ------------------------------------------------------------- modo Supabase
@@ -143,7 +171,11 @@ function accountFromProfile(row: ProfileRow): Account {
 async function fetchProfileRow(userId: string): Promise<ProfileRow | null> {
   const db = supabase;
   if (!db) return null;
-  const { data, error } = await db.from("profiles").select("*").eq("id", userId).maybeSingle();
+  const { data, error } = await db
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
   if (error) throw error;
   return (data as ProfileRow | null) ?? null;
 }
@@ -161,7 +193,9 @@ async function ensureProfileRow(user: {
   if (existing) return existing;
 
   const meta = user.user_metadata ?? {};
-  const phone = normalizePhone(String(meta["phone"] ?? user.email?.split("@")[0] ?? ""));
+  const phone = normalizePhone(
+    String(meta["phone"] ?? user.email?.split("@")[0] ?? ""),
+  );
   const rawAge = Number(meta["age"] ?? 0);
   const age = Number.isFinite(rawAge) && rawAge > 0 ? Math.round(rawAge) : null;
   const { data, error } = await db
@@ -179,14 +213,21 @@ async function ensureProfileRow(user: {
     .select()
     .single();
   if (error) throw error;
-  return data as ProfileRow;
+  return data as unknown as ProfileRow;
 }
 
 // Sem prazo, uma chamada pendente (rede caída, mixed content, RLS travado)
 // deixaria a tela presa em "Retomando sua sessão…" para sempre.
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`${label}: tempo esgotado`)), ms);
+    const timer = setTimeout(
+      () => reject(new Error(`${label}: tempo esgotado`)),
+      ms,
+    );
     promise.then(
       (value) => {
         clearTimeout(timer);
@@ -215,7 +256,11 @@ async function loadRemoteAccount(user?: {
     // escapa, `ready` nunca vira true e a tela fica presa em "Retomando sua
     // sessão…" até um F5 — quando o token em cache resolve na hora.
     try {
-      const { data } = await withTimeout(db.auth.getSession(), 8000, "getSession");
+      const { data } = await withTimeout(
+        db.auth.getSession(),
+        8000,
+        "getSession",
+      );
       target = data.session?.user;
     } catch (e) {
       console.warn("[auth] falha ao restaurar a sessão:", e);
@@ -281,7 +326,9 @@ export function initAuth(): void {
       return;
     }
     if (
-      (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") &&
+      (event === "SIGNED_IN" ||
+        event === "USER_UPDATED" ||
+        event === "TOKEN_REFRESHED") &&
       session?.user
     ) {
       // Usa o usuário do próprio evento: chamar getSession() aqui trava o lock
@@ -298,10 +345,17 @@ function invalidSignUp(input: SignUpInput): string | null {
   if (!Number.isFinite(input.age) || input.age < 1 || input.age > 120)
     return "Informe uma idade entre 1 e 120 anos.";
   if (!isValidPhone(input.phone)) return "Informe um telefone com DDD válido.";
-  if (input.password.length < 4) return "A senha precisa de ao menos 4 caracteres.";
-  if (input.recovery_question !== undefined && !isValidQuestion(input.recovery_question))
+  if (input.password.length < 4)
+    return "A senha precisa de ao menos 4 caracteres.";
+  if (
+    input.recovery_question !== undefined &&
+    !isValidQuestion(input.recovery_question)
+  )
     return "Escolha uma pergunta secreta (ou escreva a sua).";
-  if (input.recovery_answer !== undefined && !isValidAnswer(input.recovery_answer))
+  if (
+    input.recovery_answer !== undefined &&
+    !isValidAnswer(input.recovery_answer)
+  )
     return "A resposta secreta precisa de ao menos 2 caracteres.";
   return null;
 }
@@ -350,7 +404,10 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
       return { ok: true, account };
     } catch (e) {
       emit({ ...state, isLoading: false });
-      return { ok: false, error: friendlyAuthError(e instanceof Error ? e.message : null) };
+      return {
+        ok: false,
+        error: friendlyAuthError(e instanceof Error ? e.message : null),
+      };
     }
   }
 
@@ -375,7 +432,10 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
     ...(input.recovery_question && input.recovery_answer
       ? {
           recovery_question: input.recovery_question.trim(),
-          recovery_answer_hash: await hashPassword(normalizeAnswer(input.recovery_answer), salt),
+          recovery_answer_hash: await hashPassword(
+            normalizeAnswer(input.recovery_answer),
+            salt,
+          ),
           recovery_answer_salt: salt,
         }
       : {}),
@@ -418,15 +478,20 @@ export async function signIn(input: SignInInput): Promise<AuthResult> {
       return { ok: true, account };
     } catch (e) {
       emit({ ...state, isLoading: false });
-      return { ok: false, error: friendlyAuthError(e instanceof Error ? e.message : null) };
+      return {
+        ok: false,
+        error: friendlyAuthError(e instanceof Error ? e.message : null),
+      };
     }
   }
 
   const db = readLocal();
   const account = db.accounts.find((a) => a.phone === phone);
-  if (!account) return { ok: false, error: "Não encontramos uma conta com este telefone." };
+  if (!account)
+    return { ok: false, error: "Não encontramos uma conta com este telefone." };
   const hash = await hashPassword(input.password, account.password_salt);
-  if (hash !== account.password_hash) return { ok: false, error: "Senha incorreta." };
+  if (hash !== account.password_hash)
+    return { ok: false, error: "Senha incorreta." };
 
   writeLocal({ ...db, session: { user_id: account.id } });
   publishLocal();
@@ -455,7 +520,7 @@ export async function completeOnboarding(): Promise<void> {
   if (isSupabaseConfigured && supabase) {
     const { error } = await supabase
       .from("profiles")
-      .update({ onboarding_completed: true })
+      .update({ onboarding_completed: true } as never)
       .eq("id", account.id);
     if (error) throw error;
     emit({ ...state, account: { ...account, onboarding_completed: true } });
@@ -487,7 +552,10 @@ export async function updateAccount(
       row["birth_date"] = birthDateFromAge(age);
     }
     if (Object.keys(row).length > 0) {
-      const { error } = await supabase.from("profiles").update(row).eq("id", userId);
+      const { error } = await supabase
+        .from("profiles")
+        .update(row as never)
+        .eq("id", userId);
       if (error) throw error;
     }
     if (state.account?.id === userId) {
@@ -496,7 +564,9 @@ export async function updateAccount(
         account: {
           ...state.account,
           ...(patch.name !== undefined ? { name: patch.name } : {}),
-          ...(age !== undefined ? { age, birth_date: birthDateFromAge(age) } : {}),
+          ...(age !== undefined
+            ? { age, birth_date: birthDateFromAge(age) }
+            : {}),
         },
       });
     }
@@ -511,7 +581,9 @@ export async function updateAccount(
         ? {
             ...a,
             ...(patch.name !== undefined ? { name: patch.name } : {}),
-            ...(age !== undefined ? { age, birth_date: birthDateFromAge(age) } : {}),
+            ...(age !== undefined
+              ? { age, birth_date: birthDateFromAge(age) }
+              : {}),
           }
         : a,
     ),
@@ -526,10 +598,13 @@ export async function updateAccount(
  * hash vive e onde a comparação acontece. O cliente manda a resposta em claro
  * (é o que a pessoa digitou), nunca recebe o hash de volta.
  */
-async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T | null> {
+async function rpc<T>(
+  name: string,
+  args: Record<string, unknown>,
+): Promise<T | null> {
   const db = supabase;
   if (!db) return null;
-  const { data, error } = await db.rpc(name, args);
+  const { data, error } = await db.rpc(name as never, args as never);
   if (error) throw error;
   return (data as T) ?? null;
 }
@@ -540,11 +615,14 @@ export async function saveRecoverySecret(
   answer?: string,
 ): Promise<ActionOutcome> {
   if (question === undefined || answer === undefined) return { ok: true };
-  if (!isValidQuestion(question)) return { ok: false, error: "Escolha uma pergunta secreta." };
-  if (!isValidAnswer(answer)) return { ok: false, error: "A resposta secreta é muito curta." };
+  if (!isValidQuestion(question))
+    return { ok: false, error: "Escolha uma pergunta secreta." };
+  if (!isValidAnswer(answer))
+    return { ok: false, error: "A resposta secreta é muito curta." };
 
   const account = state.account;
-  if (!account) return { ok: false, error: "Entre na sua conta para salvar isso." };
+  if (!account)
+    return { ok: false, error: "Entre na sua conta para salvar isso." };
 
   if (isSupabaseConfigured && supabase) {
     try {
@@ -556,7 +634,10 @@ export async function saveRecoverySecret(
     } catch (e) {
       return {
         ok: false,
-        error: e instanceof Error ? e.message : "Não foi possível salvar a pergunta secreta.",
+        error:
+          e instanceof Error
+            ? e.message
+            : "Não foi possível salvar a pergunta secreta.",
       };
     }
   }
@@ -581,13 +662,19 @@ export async function saveRecoverySecret(
 }
 
 /** Pergunta ativa da conta logada (só a pergunta — nunca a resposta). */
-export async function myRecoverySecret(): Promise<{ set: boolean; question: string | null }> {
+export async function myRecoverySecret(): Promise<{
+  set: boolean;
+  question: string | null;
+}> {
   const account = state.account;
   if (!account) return { set: false, question: null };
 
   if (isSupabaseConfigured && supabase) {
     try {
-      const data = await rpc<{ set: boolean; question: string | null }>("recovery_my_secret", {});
+      const data = await rpc<{ set: boolean; question: string | null }>(
+        "recovery_my_secret",
+        {},
+      );
       return data ?? { set: false, question: null };
     } catch {
       return { set: false, question: null };
@@ -601,7 +688,9 @@ export async function myRecoverySecret(): Promise<{ set: boolean; question: stri
 }
 
 /** Passo 1: mostra a pergunta cadastrada para aquele telefone. */
-export async function recoveryQuestionFor(phone: string): Promise<string | null> {
+export async function recoveryQuestionFor(
+  phone: string,
+): Promise<string | null> {
   const normalized = normalizePhone(phone);
   if (!isValidPhone(normalized)) return null;
 
@@ -623,7 +712,8 @@ export async function verifyRecoveryAnswer(
   answer: string,
 ): Promise<RecoveryChallenge> {
   const normalized = normalizePhone(phone);
-  if (!isValidPhone(normalized)) return { ok: false, error: "Telefone inválido." };
+  if (!isValidPhone(normalized))
+    return { ok: false, error: "Telefone inválido." };
   if (!isValidAnswer(answer))
     return { ok: false, error: "A resposta precisa de ao menos 2 caracteres." };
 
@@ -636,15 +726,24 @@ export async function verifyRecoveryAnswer(
       if (!token) return { ok: false, error: "Resposta secreta incorreta." };
       return { ok: true, token };
     } catch {
-      return { ok: false, error: "Não foi possível conferir a resposta agora." };
+      return {
+        ok: false,
+        error: "Não foi possível conferir a resposta agora.",
+      };
     }
   }
 
   const db = readLocal();
   const account = db.accounts.find((a) => a.phone === normalized);
   if (!account?.recovery_answer_hash || !account.recovery_answer_salt)
-    return { ok: false, error: "Esta conta não tem pergunta secreta cadastrada." };
-  const candidate = await hashPassword(normalizeAnswer(answer), account.recovery_answer_salt);
+    return {
+      ok: false,
+      error: "Esta conta não tem pergunta secreta cadastrada.",
+    };
+  const candidate = await hashPassword(
+    normalizeAnswer(answer),
+    account.recovery_answer_salt,
+  );
   if (candidate !== account.recovery_answer_hash)
     return { ok: false, error: "Resposta secreta incorreta." };
   return { ok: true, token: account.id };
@@ -664,12 +763,17 @@ export async function resetPasswordWithToken(
         p_token: token,
         p_new_password: newPassword,
       });
-      if (!done) return { ok: false, error: "O prazo da recuperação expirou. Comece de novo." };
+      if (!done)
+        return {
+          ok: false,
+          error: "O prazo da recuperação expirou. Comece de novo.",
+        };
       return { ok: true };
     } catch (e) {
       return {
         ok: false,
-        error: e instanceof Error ? e.message : "Não foi possível trocar a senha.",
+        error:
+          e instanceof Error ? e.message : "Não foi possível trocar a senha.",
       };
     }
   }
@@ -682,7 +786,9 @@ export async function resetPasswordWithToken(
   writeLocal({
     ...db,
     accounts: db.accounts.map((a) =>
-      a.id === account.id ? { ...a, password_hash: hash, password_salt: salt } : a,
+      a.id === account.id
+        ? { ...a, password_hash: hash, password_salt: salt }
+        : a,
     ),
   });
   return { ok: true };

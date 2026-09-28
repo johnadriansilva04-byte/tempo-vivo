@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { Eye, ImagePlus, Save, Trash2 } from "lucide-react";
+import { Download, Eye, ImagePlus, Save, Trash2, Upload } from "lucide-react";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-kit";
 import { LifetimeTracker } from "@/components/lifetime-tracker";
-import { GoogleCalendarIntegration } from "@/components/google-calendar-integration";
+import { PublicSettings } from "@/components/public-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { clearLocalDB } from "@/repositories/profile-repository";
+import { uploadAvatar } from "@/lib/storage";
+import { exportAllData, importAllData } from "@/services/profile-service";
 import { toast } from "sonner";
 
 type Draft = {
@@ -93,27 +96,56 @@ export function ConfigPage() {
     };
     update.mutate(payload, {
       onSuccess: () => {
-        toast.success("Perfil salvo. Suas alterações já estão visíveis em todo o app.");
+        toast.success(
+          "Perfil salvo. Suas alterações já estão visíveis em todo o app.",
+        );
         setTouched(false);
       },
-      onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível salvar."),
+      onError: (e) =>
+        toast.error(
+          e instanceof Error ? e.message : "Não foi possível salvar.",
+        ),
     });
   };
 
   const clearLocal = () => {
-    try {
-      window.localStorage.removeItem("perfil-vivo:db:v2");
-      window.localStorage.removeItem("perfil-vivo:db:v1");
-    } catch {
-      // armazenamento local pode não existir neste ambiente
-    }
+    clearLocalDB();
     window.location.reload();
   };
 
-  const onPick = (file: File, field: "avatar_url" | "cover_url") => {
-    const reader = new FileReader();
-    reader.onload = () => set(field, String(reader.result));
-    reader.readAsDataURL(file);
+  const onExport = async () => {
+    // Exporta via camada de serviços: puxa dos SQLs quando Supabase está
+    // configurado, ou do repositório local quando não está.
+    try {
+      const dump = await exportAllData();
+      const blob = new Blob([JSON.stringify(dump, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `perfil-vivo-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Exportado — guarde o JSON como backup.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao exportar.");
+    }
+  };
+
+  const onPick = async (file: File, field: "avatar_url" | "cover_url") => {
+    try {
+      const url = await uploadAvatar(
+        file,
+        field === "avatar_url" ? "avatar" : "cover",
+      );
+      set(field, url);
+      toast.success(
+        field === "avatar_url" ? "Foto enviada." : "Banner enviado.",
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha no upload.");
+    }
   };
 
   return (
@@ -131,10 +163,12 @@ export function ConfigPage() {
 
       {incomplete && (
         <div className="mb-6 rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
-          <p className="text-sm font-medium text-primary">Complete seu perfil</p>
+          <p className="text-sm font-medium text-primary">
+            Complete seu perfil
+          </p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Preencha seu nome e demais dados abaixo. O app começa vazio — só o que você escrever vai
-            aparecer.
+            Preencha seu nome e demais dados abaixo. O app começa vazio — só o
+            que você escrever vai aparecer.
           </p>
         </div>
       )}
@@ -214,7 +248,9 @@ export function ConfigPage() {
                 step={1}
                 onValueChange={(arr) => set("target_lifespan", arr[0] ?? 100)}
               />
-              <p className="mt-2 text-[11px] text-faint">40–150 anos. Padrão: 100.</p>
+              <p className="mt-2 text-[11px] text-faint">
+                40–150 anos. Padrão: 100.
+              </p>
             </div>
           </section>
 
@@ -282,20 +318,47 @@ export function ConfigPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Integrações
-            </h2>
-            <div className="mt-5">
-              <GoogleCalendarIntegration />
-            </div>
-          </section>
+          <div className="space-y-6">
+            <PublicSettings />
+          </div>
 
           <div className="flex flex-wrap gap-2 border-t border-border pt-6">
             <Button onClick={save} disabled={update.isPending}>
               <Save className="size-4" /> Salvar alterações
             </Button>
-            <Button variant="ghost" onClick={clearLocal} className="gap-1.5 text-xs text-faint">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onExport}
+              className="gap-1.5"
+            >
+              <Download className="size-3.5" /> Exportar JSON
+            </Button>
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent">
+              <Upload className="size-3.5" /> Importar JSON
+              <input
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  try {
+                    const parsed = JSON.parse(await f.text());
+                    await importAllData(parsed);
+                    toast.success("Importado — recarregando.");
+                    setTimeout(() => window.location.reload(), 400);
+                  } catch {
+                    toast.error("JSON inválido ou importação falhou.");
+                  }
+                }}
+              />
+            </label>
+            <Button
+              variant="ghost"
+              onClick={clearLocal}
+              className="gap-1.5 text-xs text-faint"
+            >
               <Trash2 className="size-3.5" /> Limpar dados locais e recarregar
             </Button>
           </div>
@@ -321,7 +384,11 @@ export function ConfigPage() {
             <div className="flex gap-4 p-5 pt-0">
               <div className="-mt-8 grid size-16 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-card bg-primary text-sm font-bold text-primary-foreground shadow-lg">
                 {draft.avatar_url ? (
-                  <img src={draft.avatar_url} alt="" className="size-full object-cover" />
+                  <img
+                    src={draft.avatar_url}
+                    alt=""
+                    className="size-full object-cover"
+                  />
                 ) : (
                   initialsOf(draft.name || "?")
                 )}
@@ -333,9 +400,13 @@ export function ConfigPage() {
                 <p className="truncate text-xs text-muted-foreground">
                   {draft.role || "Sua ocupação"}
                 </p>
-                <p className="mt-1 text-xs text-faint">{draft.location || "Sua cidade"}</p>
+                <p className="mt-1 text-xs text-faint">
+                  {draft.location || "Sua cidade"}
+                </p>
                 {draft.bio && (
-                  <p className="mt-3 text-xs leading-5 text-muted-foreground">{draft.bio}</p>
+                  <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                    {draft.bio}
+                  </p>
                 )}
               </div>
             </div>
@@ -347,8 +418,9 @@ export function ConfigPage() {
             </div>
           </div>
           <p className="text-xs leading-5 text-faint">
-            Suas alterações aparecem em todo o app imediatamente. Quando o Supabase estiver
-            configurado, ficam persistidas no banco para o usuário logado.
+            Suas alterações aparecem em todo o app imediatamente. Quando o
+            Supabase estiver configurado, ficam persistidas no banco para o
+            usuário logado.
           </p>
         </div>
       </div>
@@ -356,10 +428,18 @@ export function ConfigPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-faint">{label}</Label>
+      <Label className="text-xs font-semibold uppercase tracking-wide text-faint">
+        {label}
+      </Label>
       {children}
     </div>
   );
@@ -375,7 +455,9 @@ function PreviewLifetime({
   const now = new Date();
   const birth = new Date(`${birth_date}T00:00:00`);
   const valid =
-    birth_date !== "" && !Number.isNaN(birth.getTime()) && birth.getTime() <= now.getTime();
+    birth_date !== "" &&
+    !Number.isNaN(birth.getTime()) &&
+    birth.getTime() <= now.getTime();
   if (!valid) {
     return (
       <p className="text-xs text-faint">
@@ -383,7 +465,9 @@ function PreviewLifetime({
       </p>
     );
   }
-  const daysLived = Math.floor((now.getTime() - birth.getTime()) / (24 * 60 * 60 * 1000));
+  const daysLived = Math.floor(
+    (now.getTime() - birth.getTime()) / (24 * 60 * 60 * 1000),
+  );
   const age = Math.floor(daysLived / 365.2425);
   const targetDays = Math.round(target_lifespan * 365.2425);
   const pct = Math.min(100, (daysLived / targetDays) * 100);

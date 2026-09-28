@@ -1,19 +1,23 @@
-import { Check, LockKeyhole, Pencil, Smile, Frown, Meh } from "lucide-react";
-import { useState } from "react";
+import { Check, LockKeyhole, Pencil, Sparkles } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { SmartTextarea } from "@/components/smart-textarea";
 import { useUpsertDailyLog } from "@/hooks/use-daily-logs";
-import { VoiceInputButton } from "@/components/voice-input-button";
-import { analyzeSentiment } from "@/lib/sentiment-analysis";
 import type { DailyLog } from "@/types/profile";
 
 const statusMeta: Record<
   DailyLog["status"],
   { label: string; className: string; editable: boolean }
 > = {
+  // Dentro das 24h (OPEN ou VALIDATING) o dia pode ser corrigido — a trigger do SQL
+  // trava só após 24h. LOCKED é permanente (somente leitura).
   OPEN: { label: "Aberto", className: "status-open", editable: true },
-  VALIDATING: { label: "Em validação", className: "status-review", editable: false },
+  VALIDATING: {
+    label: "Em validação",
+    className: "status-review",
+    editable: true,
+  },
   LOCKED: { label: "Travado", className: "status-archive", editable: false },
 };
 
@@ -25,7 +29,12 @@ function formatDay(isoDate: string): { day: string; weekday: string } {
     .toUpperCase();
   const weekday = d.toLocaleDateString("pt-BR", { weekday: "long" });
   const today = new Date().toISOString().slice(0, 10) === isoDate;
-  return { day, weekday: today ? "Hoje" : weekday.charAt(0).toUpperCase() + weekday.slice(1) };
+  return {
+    day,
+    weekday: today
+      ? "Hoje"
+      : weekday.charAt(0).toUpperCase() + weekday.slice(1),
+  };
 }
 
 /** Um dia do livro de bordo: Planejado, Executado e Resumo — com trava de 24h. */
@@ -39,21 +48,26 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
     executed_text: log.executed_text,
     summary_text: log.summary_text,
   });
+  // Detecta se o resumo foi preenchido agora (ganho de XP — gamificação real).
+  const summaryWasEmpty = useRef(log.summary_text.trim() === "");
 
-  // Calculate sentiment of the summary
-  const sentiment = analyzeSentiment(log.summary_text || '');
-  const sentimentIcon = sentiment.type === 'positive' ? Smile : sentiment.type === 'negative' ? Frown : Meh;
-  const sentimentColor = sentiment.type === 'positive' ? 'text-green-500' : sentiment.type === 'negative' ? 'text-red-500' : 'text-gray-500';
-
-  const save = () => {
-    upsert.mutate({ ...log, ...draft });
+  const save = async () => {
+    await upsert.mutateAsync({ ...log, ...draft });
     setEditing(false);
+    if (summaryWasEmpty.current && draft.summary_text.trim() !== "") {
+      toast.success("+25 XP — a história de hoje foi registrada ✨", {
+        icon: <Sparkles className="size-4 text-primary" />,
+      });
+      summaryWasEmpty.current = false;
+    }
   };
 
   const lines = (text: string) => text.split("\n").filter(Boolean);
 
   return (
-    <article className={`day-record ${log.status === "LOCKED" ? "day-locked" : ""}`}>
+    <article
+      className={`day-record ${log.status === "LOCKED" ? "day-locked" : ""}`}
+    >
       <div className="day-heading">
         <div>
           <p className="font-display text-xl font-semibold">{day}</p>
@@ -74,66 +88,67 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
             {log.status === "LOCKED" && <LockKeyhole className="size-3" />}
             {meta.label}
           </span>
-          {log.summary_text && !editing && (
-            <Badge variant="outline" className="gap-1 text-xs">
-              <sentimentIcon className={`h-3 w-3 ${sentimentColor}`} />
-              {sentiment.emotion}
-            </Badge>
-          )}
         </div>
       </div>
 
       {editing ? (
         <div className="space-y-3 p-4">
-          <Field
+          <SmartTextarea
             label="Planejado"
             value={draft.planned_text}
             onChange={(v) => setDraft({ ...draft, planned_text: v })}
+            onCommit={save}
             placeholder="Intenção do dia…"
-          >
-            <VoiceInputButton 
-              onTranscript={(text) => setDraft({ ...draft, planned_text: draft.planned_text + (draft.planned_text ? ' ' : '') + text })}
-              placeholder="Dite suas tarefas planejadas..."
-            />
-          </Field>
-          <Field
+          />
+          <SmartTextarea
             label="Executado"
             value={draft.executed_text}
             onChange={(v) => setDraft({ ...draft, executed_text: v })}
+            onCommit={save}
             placeholder="O que de fato aconteceu…"
-          >
-            <VoiceInputButton 
-              onTranscript={(text) => setDraft({ ...draft, executed_text: draft.executed_text + (draft.executed_text ? ' ' : '') + text })}
-              placeholder="Dite o que você executou..."
-            />
-          </Field>
-          <Field
+          />
+          <SmartTextarea
             label="Resumo"
             value={draft.summary_text}
             onChange={(v) => setDraft({ ...draft, summary_text: v })}
+            onCommit={save}
             placeholder="Interpretação do dia…"
             rows={3}
-          >
-            <VoiceInputButton 
-              onTranscript={(text) => setDraft({ ...draft, summary_text: draft.summary_text + (draft.summary_text ? ' ' : '') + text })}
-              placeholder="Dite seu resumo do dia..."
-            />
-          </Field>
+          />
+          {upsert.error ? (
+            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {upsert.error instanceof Error
+                ? upsert.error.message
+                : String(upsert.error)}
+            </p>
+          ) : null}
           <div className="flex gap-2">
-            <Button size="sm" onClick={save} disabled={upsert.isPending}>
-              Salvar registro
+            <Button
+              size="sm"
+              onClick={() => void save()}
+              disabled={upsert.isPending}
+            >
+              {upsert.isPending ? "Salvando…" : "Salvar registro"}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
               Cancelar
             </Button>
+            <span className="ml-auto self-center text-[10px] text-faint">
+              ⌘Enter salva
+            </span>
           </div>
           <p className="text-[11px] text-faint">
-            Após salvar, este registro entra em validação e trava em 24h — vira história permanente.
+            Após salvar, este registro entra em validação e trava em 24h — vira
+            história permanente.
           </p>
         </div>
       ) : (
         <div className="record-grid">
-          <Block title="Planejado" items={lines(log.planned_text)} empty="Nada planejado." />
+          <Block
+            title="Planejado"
+            items={lines(log.planned_text)}
+            empty="Nada planejado."
+          />
           <Block
             title="Executado"
             items={lines(log.executed_text)}
@@ -141,13 +156,17 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
           />
           <div>
             <p className="record-label">Resumo</p>
-            <p className="text-sm leading-6 text-muted-foreground">{log.summary_text || "—"}</p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              {log.summary_text || "—"}
+            </p>
           </div>
         </div>
       )}
 
       {log.status === "VALIDATING" && (
-        <p className="validation-note">Correções disponíveis até o fechamento das 24h</p>
+        <p className="validation-note">
+          Correções disponíveis até o fechamento das 24h
+        </p>
       )}
       {log.status === "LOCKED" && (
         <p className="archive-note">
@@ -159,39 +178,15 @@ export function DailyLogCard({ log }: { log: DailyLog }) {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  rows = 2,
-  children,
+function Block({
+  title,
+  items,
+  empty,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  rows?: number;
-  children?: React.ReactNode;
+  title: string;
+  items: string[];
+  empty: string;
 }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <p className="record-label">{label}</p>
-        {children}
-      </div>
-      <Textarea
-        rows={rows}
-        className="text-sm"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  );
-}
-
-function Block({ title, items, empty }: { title: string; items: string[]; empty: string }) {
   return (
     <div>
       <p className="record-label">{title}</p>
@@ -200,7 +195,10 @@ function Block({ title, items, empty }: { title: string; items: string[]; empty:
       ) : (
         <ul className="space-y-2">
           {items.map((x) => (
-            <li key={x} className="flex gap-2 text-sm leading-6 text-muted-foreground">
+            <li
+              key={x}
+              className="flex gap-2 text-sm leading-6 text-muted-foreground"
+            >
               <Check className="mt-1 size-3.5 shrink-0 text-accent-foreground" />
               {x}
             </li>

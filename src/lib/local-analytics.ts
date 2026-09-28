@@ -33,7 +33,7 @@ type UserData = {
   properties: Record<string, any>;
 };
 
-const STORAGE_KEY = 'perfil-vivo:analytics:v1';
+const STORAGE_KEY = "perfil-vivo:analytics:v1";
 
 class LocalAnalytics {
   private data: AnalyticsData;
@@ -53,7 +53,7 @@ class LocalAnalytics {
         return JSON.parse(stored);
       }
     } catch (e) {
-      console.error('Error loading analytics:', e);
+      console.error("Error loading analytics:", e);
     }
     return { events: [], sessions: [], users: [] };
   }
@@ -62,15 +62,15 @@ class LocalAnalytics {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
-      console.error('Error saving analytics:', e);
+      console.error("Error saving analytics:", e);
     }
   }
 
   private getOrCreateUserId(): string {
-    let userId = localStorage.getItem('perfil-vivo:user_id');
+    let userId = localStorage.getItem("perfil-vivo:user_id");
     if (!userId) {
       userId = crypto.randomUUID();
-      localStorage.setItem('perfil-vivo:user_id', userId);
+      localStorage.setItem("perfil-vivo:user_id", userId);
       this.data.users.push({
         id: userId,
         createdAt: Date.now(),
@@ -98,20 +98,20 @@ class LocalAnalytics {
 
   private endSession() {
     if (!this.currentSession) return;
-    
+
     this.currentSession.endTime = Date.now();
     this.currentSession.duration = Date.now() - this.currentSession.startTime;
-    
+
     this.data.sessions.push(this.currentSession);
-    
+
     // Update user stats
-    const user = this.data.users.find(u => u.id === this.userId);
+    const user = this.data.users.find((u) => u.id === this.userId);
     if (user) {
       user.lastActive = Date.now();
       user.totalSessions++;
       user.totalTime += this.currentSession.duration;
     }
-    
+
     this.currentSession = null;
     this.save();
   }
@@ -123,20 +123,20 @@ class LocalAnalytics {
       timestamp: Date.now(),
       properties,
       userId: this.userId,
-      sessionId: this.currentSession?.id || '',
+      sessionId: this.currentSession?.id || "",
     };
 
     this.data.events.push(analyticsEvent);
-    
+
     if (this.currentSession) {
       this.currentSession.events.push(event);
     }
-    
+
     this.save();
   }
 
   trackPageView(page: string) {
-    this.track('page_view', { page });
+    this.track("page_view", { page });
     if (this.currentSession) {
       this.currentSession.pageViews++;
     }
@@ -149,14 +149,16 @@ class LocalAnalytics {
   getAnalytics() {
     this.endSession();
     this.startSession();
-    
+
     return {
       totalEvents: this.data.events.length,
       totalSessions: this.data.sessions.length,
       totalUsers: this.data.users.length,
-      averageSessionDuration: this.data.sessions.length > 0 
-        ? this.data.sessions.reduce((sum, s) => sum + s.duration, 0) / this.data.sessions.length 
-        : 0,
+      averageSessionDuration:
+        this.data.sessions.length > 0
+          ? this.data.sessions.reduce((sum, s) => sum + s.duration, 0) /
+            this.data.sessions.length
+          : 0,
       eventsByType: this.groupEventsByType(),
       pageViews: this.data.sessions.reduce((sum, s) => sum + s.pageViews, 0),
       activeUsers: this.getActiveUsers(7), // Últimos 7 dias
@@ -166,35 +168,39 @@ class LocalAnalytics {
 
   private groupEventsByType() {
     const grouped: Record<string, number> = {};
-    this.data.events.forEach(event => {
+    this.data.events.forEach((event) => {
       grouped[event.event] = (grouped[event.event] || 0) + 1;
     });
     return grouped;
   }
 
   private getActiveUsers(days: number): number {
-    const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
-    return this.data.users.filter(user => user.lastActive > cutoff).length;
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    return this.data.users.filter((user) => user.lastActive > cutoff).length;
   }
 
   private calculateRetention(): number {
     if (this.data.users.length === 0) return 0;
-    
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    
-    const users7Days = this.data.users.filter(u => u.lastActive > sevenDaysAgo).length;
-    const users30Days = this.data.users.filter(u => u.lastActive > thirtyDaysAgo).length;
-    
+
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    const users7Days = this.data.users.filter(
+      (u) => u.lastActive > sevenDaysAgo,
+    ).length;
+    const users30Days = this.data.users.filter(
+      (u) => u.lastActive > thirtyDaysAgo,
+    ).length;
+
     return users30Days > 0 ? (users7Days / users30Days) * 100 : 0;
   }
 
   getUserData(userId: string) {
-    return this.data.users.find(u => u.id === userId);
+    return this.data.users.find((u) => u.id === userId);
   }
 
   getEventsByUser(userId: string) {
-    return this.data.events.filter(e => e.userId === userId);
+    return this.data.events.filter((e) => e.userId === userId);
   }
 
   exportData(): AnalyticsData {
@@ -202,10 +208,10 @@ class LocalAnalytics {
   }
 
   clearData() {
-    if (confirm('Tem certeza que deseja limpar todos os dados de analytics?')) {
+    if (confirm("Tem certeza que deseja limpar todos os dados de analytics?")) {
       this.data = { events: [], sessions: [], users: [] };
       this.save();
-      localStorage.removeItem('perfil-vivo:user_id');
+      localStorage.removeItem("perfil-vivo:user_id");
     }
   }
 }

@@ -15,10 +15,13 @@ const NETWORK_HINTS = [
   "timed out",
 ];
 
-const GENERIC = "Não conseguimos falar com o servidor. Verifique a conexão e tente de novo.";
+const GENERIC =
+  "Não conseguimos falar com o servidor. Verifique a conexão e tente de novo.";
 
 /** Falha de transporte/serviço — não é credencial errada nem conta inexistente. */
-export function isTransientAuthError(message: string | undefined | null): boolean {
+export function isTransientAuthError(
+  message: string | undefined | null,
+): boolean {
   const lower = (message ?? "").trim().toLowerCase();
   if (!lower) return true;
   return NETWORK_HINTS.some((hint) => lower.includes(hint));
@@ -31,10 +34,16 @@ export function friendlyAuthError(message: string | undefined | null): string {
   const lower = raw.toLowerCase();
   if (isTransientAuthError(raw)) return GENERIC;
 
-  if (lower.includes("invalid login credentials") || lower.includes("invalid_grant")) {
+  if (
+    lower.includes("invalid login credentials") ||
+    lower.includes("invalid_grant")
+  ) {
     return "Telefone ou senha não conferem.";
   }
-  if (lower.includes("password should be") || lower.includes("password is too short")) {
+  if (
+    lower.includes("password should be") ||
+    lower.includes("password is too short")
+  ) {
     return "A senha é curta demais. Use pelo menos 4 caracteres.";
   }
   if (lower.includes("rate limit") || lower.includes("too many requests")) {
