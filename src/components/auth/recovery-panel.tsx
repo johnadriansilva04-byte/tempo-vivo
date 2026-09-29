@@ -72,7 +72,7 @@ export function RecoveryPanel({
         {step === "resposta" &&
           "Sem e-mail, sem espera. Não importa maiúscula, acento ou espaço — só o conteúdo."}
         {step === "nova-senha" &&
-          "Você é você. Defina a nova senha e volte direto para a sua história."}
+          "Você é você. Defina a nova senha e volte direto para a sua agenda."}
       </p>
 
       <div className="mt-5 flex items-center gap-1.5">

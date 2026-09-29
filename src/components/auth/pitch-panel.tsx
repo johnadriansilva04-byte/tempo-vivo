@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
-import { Activity, BookOpen, Heart, Hourglass } from "lucide-react";
+import {
+  BellRing,
+  CalendarDays,
+  CalendarCheck2,
+  EyeOff,
+  Link2,
+} from "lucide-react";
 import { BRAND_PROMISE, PRIVACY_NOTE } from "@/components/auth/copy";
 
 // ---------------------------------------------------------------------------
 // Painel de apresentação da porta de entrada (metade esquerda, telas grandes).
-// Marketing vivo: quase nenhum texto — um relógio batendo, os quatro ciclos de
-// vida acendendo em sequência e três chips de valor. A história conta-se sozinha.
+//
+// Mostra o que o app faz, em três passos: monte sua rotina, compartilhe o link,
+// receba e aprove pedidos de reunião. Um relógio batendo dá o sinal de vida.
 // ---------------------------------------------------------------------------
 
 export function BrandMark() {
   return (
     <span className="flex items-center gap-2.5">
       <span className="brand-mark">
-        <Activity className="size-4" />
+        <CalendarDays className="size-4" />
       </span>
       <span className="font-display text-sm font-semibold text-foreground">
         Perfil Vivo
@@ -23,33 +30,37 @@ export function BrandMark() {
 
 /** O agora, literalmente — prova de que o app respira. */
 function LiveClock() {
-  const [now, setNow] = useState(() => new Date());
+  // O horário só entra depois da hidratação: renderizá-lo no servidor faria a
+  // marcação divergir do cliente a cada segundo.
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
+    setNow(new Date());
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, []);
   return (
     <span className="font-display font-semibold tabular-nums text-foreground">
-      {now.toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })}
+      {now
+        ? now.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : "--:--:--"}
     </span>
   );
 }
 
-const LIFE_CYCLES = [
-  { short: "0–25", name: "Aprendizado & Base" },
-  { short: "25–50", name: "Construção & Legado" },
-  { short: "50–75", name: "Consolidação & Mentoria" },
-  { short: "75+", name: "Plenitude & Sabedoria" },
+const STEPS = [
+  { Icon: CalendarDays, short: "1", name: "Monte sua rotina e suas folgas" },
+  { Icon: Link2, short: "2", name: "Compartilhe seu link" },
+  { Icon: BellRing, short: "3", name: "Aprove os pedidos de reunião" },
 ] as const;
 
 const HIGHLIGHTS = [
-  { Icon: BookOpen, label: "História em um só lugar" },
-  { Icon: Hourglass, label: "Tempo em números reais" },
-  { Icon: Heart, label: "Legado para quem fica" },
+  { Icon: CalendarCheck2, label: "Pedidos no seu horário" },
+  { Icon: BellRing, label: "Aviso sonoro na hora" },
+  { Icon: EyeOff, label: "Você quem decide o que aparece" },
 ] as const;
 
 export function PitchPanel() {
@@ -79,27 +90,28 @@ export function PitchPanel() {
 
       <div className="relative max-w-md animate-fade-in">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-foreground">
-          Trajetória viva
+          Sua agenda digital
         </p>
         <h1 className="mt-4 font-display text-4xl font-semibold leading-tight text-foreground">
           {BRAND_PROMISE}
         </h1>
 
-        {/* Os quatro ciclos — acendem um a um, sem parar */}
-        <div className="mt-8 grid grid-cols-4 gap-2">
-          {LIFE_CYCLES.map((c, i) => (
+        {/* Os três passos — acendem um a um, sem parar */}
+        <div className="mt-8 space-y-2">
+          {STEPS.map((c, i) => (
             <span
               key={c.short}
-              className="auth-cycle-seg"
+              className="auth-cycle-seg justify-start gap-2 px-3"
               style={{ animationDelay: `${i * -2}s` }}
               title={c.name}
             >
-              {c.short}
+              <c.Icon className="size-3.5 shrink-0" />
+              {c.name}
             </span>
           ))}
         </div>
         <p className="mt-2 text-[11px] text-faint">
-          A vida em quatro ciclos de 25 anos.
+          Você define os dias e horários; ninguém vê o resto.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2">
@@ -117,7 +129,7 @@ export function PitchPanel() {
 
       <p className="relative flex items-center gap-2 text-xs leading-5 text-faint">
         <span className="auth-live-dot" />
-        Sua página de hoje está sendo escrita agora · {PRIVACY_NOTE}
+        Sua agenda de hoje está pronta · {PRIVACY_NOTE}
       </p>
     </section>
   );

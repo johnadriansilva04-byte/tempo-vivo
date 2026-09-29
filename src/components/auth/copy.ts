@@ -11,25 +11,18 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 // ---------------------------------------------------------------------------
 
 /** Promessa central, no painel de apresentação. */
-export const BRAND_PROMISE = "A sua vida registrada dia a dia — e sempre sua.";
-
-/** Frases de valor. Cada uma responde "o que eu ganho com isso?". */
-export const BRAND_PILLARS = [
-  "Sua história inteira em um lugar que não some quando a memória falha.",
-  "Quatro perguntas e o app escreve sua primeira página com você.",
-  "A vida em quatro ciclos de 25 anos — e quanto do seu ainda está aberto.",
-] as const;
+export const BRAND_PROMISE = "Seu dia organizado — e só quem você quiser vê.";
 
 /** Selo de confiança. Promete só o que o armazenamento atual consegue entregar. */
 export const PRIVACY_NOTE = isSupabaseConfigured
-  ? "Sua história é privada por conta: ninguém além de você entra. Nem por engano."
-  : "Sua história fica neste navegador, sob sua senha. Nada é publicado em lugar nenhum.";
+  ? "Sua agenda é privada por conta: ninguém além de você entra. Nem por engano."
+  : "Sua agenda fica neste navegador, sob sua senha. Nada é publicado em lugar nenhum.";
 
 export const ENTRY_COPY = {
   signup: {
-    title: "Comece a sua história",
-    subtitle: "Três passos rápidos. Depois o app monta sua primeira página.",
-    submit: "Começar minha história",
+    title: "Crie sua agenda",
+    subtitle: "Três passos rápidos. Depois você monta seus horários.",
+    submit: "Criar minha agenda",
   },
   signin: {
     title: "Bem-vindo de volta",
@@ -42,8 +35,8 @@ export const ENTRY_COPY = {
 export const SIGNUP_BLOCKS = {
   identity: {
     title: "Quem é você",
-    description: "Seu nome e a idade que abre a sua linha do tempo.",
-    empty: "É o marco zero dos seus 100 anos.",
+    description: "Seu nome e a idade que identificam a sua conta.",
+    empty: "É o primeiro dado da sua conta.",
   },
   access: {
     title: "Como você entra",

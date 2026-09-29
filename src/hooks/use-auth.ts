@@ -1,18 +1,19 @@
 import { useEffect, useSyncExternalStore } from "react";
 import {
-  completeOnboarding,
   getServerSnapshot,
   getSnapshot,
   initAuth,
   myRecoverySecret,
   recoveryQuestionFor,
+  rememberMode,
   resetPasswordWithToken,
+  resumeLastMode,
   saveRecoverySecret,
   signIn,
   signOut,
   signUp,
   subscribe,
-  updateAccount,
+  updateName,
   verifyRecoveryAnswer,
 } from "@/store/auth-store";
 import type { Account } from "@/types/auth";
@@ -46,14 +47,15 @@ export function useAuth(): AuthState {
 }
 
 export {
-  completeOnboarding,
   myRecoverySecret,
   recoveryQuestionFor,
+  rememberMode,
   resetPasswordWithToken,
+  resumeLastMode,
   saveRecoverySecret,
   signIn,
   signOut,
   signUp,
-  updateAccount,
+  updateName,
   verifyRecoveryAnswer,
 };

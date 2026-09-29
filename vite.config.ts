@@ -13,38 +13,28 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    server: {
+      allowedHosts: true,
+    },
     build: {
       rollupOptions: {
         output: {
           manualChunks: (id) => {
             // Split vendor chunks for better caching
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
+            if (id.includes("react-dom")) {
+              return "react-dom-vendor";
             }
-            if (id.includes('@tanstack/react-query') || id.includes('@tanstack/react-router') || id.includes('@tanstack/react-start')) {
-              return 'tanstack-vendor';
+            if (id.includes("react") || id.includes("@radix-ui")) {
+              return "react-vendor";
             }
-            if (id.includes('@radix-ui/react-dialog') || id.includes('@radix-ui/react-dropdown-menu') || id.includes('@radix-ui/react-tabs')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('recharts')) {
-              return 'charts-vendor';
+            if (id.includes("@tanstack")) {
+              return "tanstack-vendor";
             }
             return undefined;
           },
         },
       },
       chunkSizeWarningLimit: 1000,
-    },
-    // Optimize dependencies
-    optimizeDeps: {
-      include: [
-        'react',
-        'react-dom',
-        '@tanstack/react-query',
-        '@tanstack/react-router',
-        '@tanstack/react-start',
-      ],
     },
   },
 });

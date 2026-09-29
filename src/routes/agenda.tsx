@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AgendaPage } from "@/components/pages";
+import { AgendaPage } from "@/components/agenda-page";
 
 export const Route = createFileRoute("/agenda")({
   head: () => ({
@@ -8,13 +8,12 @@ export const Route = createFileRoute("/agenda")({
       {
         name: "description",
         content:
-          "Núcleo do sistema: compromissos recorrentes, exceções, disponibilidade, reuniões e histórico permanente.",
+          "Sua rotina recorrente, folgas pontuais e os pedidos de reunião que esperam resposta.",
       },
       { property: "og:title", content: "Agenda — Perfil Vivo" },
       {
         property: "og:description",
-        content:
-          "HOJE, AMANHÃ e a rotina real — mais o histórico que não se reescreve.",
+        content: "Compromissos fixos, exceções e reuniões a aprovar.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

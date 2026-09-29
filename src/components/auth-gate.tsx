@@ -1,10 +1,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthScreen } from "@/components/auth/auth-screen";
-import { StartLifeFlow } from "@/components/start-life-flow";
 import { useAuth } from "@/hooks/use-auth";
 
-/** Porteiro do app: sem conta → entrada; primeiro acesso → criar a história. */
+/** Porteiro do app: sem conta → tela de entrada; com conta → o app. */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { account, ready } = useAuth();
   const queryClient = useQueryClient();
@@ -14,11 +13,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (previousId.current === activeId) return;
     previousId.current = activeId;
-    // Troca de conta: descarta o cache para não misturar histórias.
+    // Troca de conta: descarta o cache para não misturar agendas.
     queryClient.clear();
   }, [activeId, queryClient]);
 
-  // Sessão persistida do Supabase ainda sendo restaurada: evita "piscar" o login.
+  // Sessão persistida ainda sendo restaurada: evita "piscar" a tela de entrada.
   if (!ready) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
@@ -31,6 +30,5 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!account) return <AuthScreen />;
-  if (!account.onboarding_completed) return <StartLifeFlow />;
   return <>{children}</>;
 }

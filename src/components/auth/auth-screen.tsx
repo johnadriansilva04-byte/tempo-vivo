@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   recoveryQuestionFor,
+  rememberMode,
   resetPasswordWithToken,
+  resumeLastMode,
   signIn,
   signUp,
   verifyRecoveryAnswer,
@@ -19,16 +20,17 @@ import type { RecoveryStep } from "@/components/auth/recovery-panel";
 type Mode = "entrar" | "criar" | "recuperar";
 
 /**
- * Porta de entrada do app. Três caminhos — criar, entrar, recuperar — e nenhum
- * outro. A tela só orquestra: o cadastro vive em `useSignupDraft`, o login e a
- * recuperação têm seu próprio componente, e a apresentação é `PitchPanel`.
+ * Porta de entrada do app. Três caminhos — entrar, criar, recuperar — e nenhum
+ * outro.
  *
- * Em telas largas tudo cabe na primeira dobra: apresentação à esquerda, entrada
- * à direita, sem rolagem. As abas ficam sempre no topo do cartão, então entrar e
- * criar conta continuam a um clique mesmo no meio da recuperação.
+ * Quem já entrou alguma vez abre direto no login (`resumeLastMode`); só quem
+ * nunca usou o app vê "criar conta" primeiro. O modo escolhido é lembrado, então
+ * voltar ao app nunca reabre o cadastro por engano. A tela só orquestra: o
+ * cadastro vive em `useSignupDraft`, o login e a recuperação têm seu próprio
+ * componente, e a apresentação é `PitchPanel`.
  */
 export function AuthScreen() {
-  const [mode, setMode] = useState<Mode>("criar");
+  const [mode, setMode] = useState<Mode>(() => resumeLastMode());
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +47,9 @@ export function AuthScreen() {
 
   const switchMode = (next: Mode) => {
     setMode(next);
+    // O app "se lembra" do seu lado: login para quem volta, cadastro para quem
+    // chega. Sem isso o cadastro reabria sozinho a cada retorno.
+    if (next !== "recuperar") rememberMode(next);
     setError(null);
   };
 
@@ -65,6 +70,7 @@ export function AuthScreen() {
         recovery_answer: draft.answer,
       });
       if (!result.ok) setError(result.error);
+      else rememberMode("entrar");
     } finally {
       setPending(false);
     }
@@ -76,6 +82,7 @@ export function AuthScreen() {
     try {
       const result = await signIn({ phone: draft.phone, password });
       if (!result.ok) setError(result.error);
+      else rememberMode("entrar");
     } finally {
       setPending(false);
     }
@@ -89,7 +96,7 @@ export function AuthScreen() {
       const found = await recoveryQuestionFor(recoveryPhone);
       if (!found) {
         setError(
-          "Não achamos essa conta. Confira o número ou crie a sua história.",
+          "Não achamos essa conta. Confira o número ou crie a sua agenda.",
         );
         return;
       }
@@ -162,16 +169,28 @@ export function AuthScreen() {
             <PitchCompact />
           </div>
 
-          <Tabs
-            value={mode === "recuperar" ? "entrar" : mode}
-            onValueChange={(v) => switchMode(v as Mode)}
-            className="mb-5"
-          >
-            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-              <TabsTrigger value="criar">Criar conta</TabsTrigger>
-              <TabsTrigger value="entrar">Entrar</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted p-1">
+            {(
+              [
+                ["entrar", "Entrar"],
+                ["criar", "Criar conta"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => switchMode(value)}
+                aria-pressed={mode === value}
+                className={
+                  mode === value
+                    ? "rounded-md bg-background py-2 text-xs font-semibold text-foreground shadow-sm"
+                    : "rounded-md py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
           {mode === "recuperar" ? (
             <RecoveryPanel

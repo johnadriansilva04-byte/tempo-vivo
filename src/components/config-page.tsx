@@ -1,57 +1,89 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, Eye, ImagePlus, Save, Trash2, Upload } from "lucide-react";
-import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
-import { PageHeader } from "@/components/page-kit";
-import { LifetimeTracker } from "@/components/lifetime-tracker";
-import { PublicSettings } from "@/components/public-settings";
+import { Download, ImagePlus, Link2, Save, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { PageHeader, Section } from "@/components/page-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import { clearLocalDB } from "@/repositories/profile-repository";
+import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
+import {
+  useAvailabilityRules,
+  useUpdateAvailabilityRule,
+} from "@/hooks/use-availability";
+import {
+  clearLocalDB,
+  exportAllData,
+  importAllData,
+} from "@/services/profile-service";
 import { uploadAvatar } from "@/lib/storage";
-import { exportAllData, importAllData } from "@/services/profile-service";
-import { toast } from "sonner";
+import { slugify } from "@/lib/schedule";
+import {
+  playMeetingAlert,
+  setSoundEnabled,
+  soundEnabled,
+} from "@/lib/notification-sound";
+import { WEEKDAY_LABELS } from "@/lib/schedule";
+import type { Profile } from "@/types/profile";
+import type { Weekday } from "@/types/profile";
 
-type Draft = {
-  name: string;
-  role: string;
-  location: string;
-  bio: string;
-  birth_date: string;
-  target_lifespan: number;
-  avatar_url: string;
-  cover_url: string;
-};
+type Draft = Pick<
+  Profile,
+  | "name"
+  | "role"
+  | "location"
+  | "presentation"
+  | "birth_date"
+  | "avatar_url"
+  | "cover_url"
+  | "slug"
+  | "is_public"
+  | "meetings_enabled"
+  | "meeting_duration_min"
+  | "meeting_buffer_min"
+  | "meeting_max_per_day"
+  | "meeting_requires_approval"
+  | "meeting_requirements"
+>;
 
-const empty: Draft = {
+const EMPTY: Draft = {
   name: "",
   role: "",
   location: "",
-  bio: "",
+  presentation: "",
   birth_date: "",
-  target_lifespan: 100,
-  avatar_url: "",
-  cover_url: "",
+  avatar_url: null,
+  cover_url: null,
+  slug: "",
+  is_public: true,
+  meetings_enabled: false,
+  meeting_duration_min: 30,
+  meeting_buffer_min: 15,
+  meeting_max_per_day: 2,
+  meeting_requires_approval: true,
+  meeting_requirements: "",
 };
 
-function initialsOf(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
+/**
+ * Configurações — tudo o que dá forma à agenda: quem você é no seu link, quando
+ * aceita reuniões e por quantas horas, o limite por dia e o aviso sonoro.
+ */
 export function ConfigPage() {
   const { profile } = useProfile();
   const update = useUpdateProfile();
-  const [draft, setDraft] = useState<Draft>(empty);
+  const { rules } = useAvailabilityRules();
+  const updateRule = useUpdateAvailabilityRule();
+
+  const [draft, setDraft] = useState<Draft>(EMPTY);
   const [touched, setTouched] = useState(false);
+  const [sound, setSound] = useState(true);
   const fileAvatarRef = useRef<HTMLInputElement>(null);
   const fileCoverRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setSound(soundEnabled());
+  }, []);
 
   useEffect(() => {
     if (!profile || touched) return;
@@ -59,13 +91,82 @@ export function ConfigPage() {
       name: profile.name,
       role: profile.role,
       location: profile.location,
-      bio: profile.bio,
+      presentation: profile.presentation,
       birth_date: profile.birth_date,
-      target_lifespan: profile.target_lifespan,
-      avatar_url: profile.avatar_url ?? "",
-      cover_url: profile.cover_url ?? "",
+      avatar_url: profile.avatar_url,
+      cover_url: profile.cover_url,
+      slug: profile.slug,
+      is_public: profile.is_public,
+      meetings_enabled: profile.meetings_enabled,
+      meeting_duration_min: profile.meeting_duration_min,
+      meeting_buffer_min: profile.meeting_buffer_min,
+      meeting_max_per_day: profile.meeting_max_per_day,
+      meeting_requires_approval: profile.meeting_requires_approval,
+      meeting_requirements: profile.meeting_requirements,
     });
   }, [profile, touched]);
+
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    setTouched(true);
+    setDraft((d) => ({ ...d, [key]: value }));
+  };
+
+  const save = () => {
+    const payload: Partial<Omit<Profile, "id">> = {
+      name: draft.name.trim(),
+      role: draft.role.trim(),
+      location: draft.location.trim(),
+      presentation: draft.presentation.trim(),
+      birth_date: draft.birth_date,
+      avatar_url: draft.avatar_url,
+      cover_url: draft.cover_url,
+      slug: slugify(draft.slug),
+      is_public: draft.is_public,
+      meetings_enabled: draft.meetings_enabled,
+      meeting_duration_min: draft.meeting_duration_min,
+      meeting_buffer_min: draft.meeting_buffer_min,
+      meeting_max_per_day: draft.meeting_max_per_day,
+      meeting_requires_approval: draft.meeting_requires_approval,
+      meeting_requirements: draft.meeting_requirements.trim(),
+    };
+    update.mutate(payload, {
+      onSuccess: () => {
+        toast.success("Configurações salvas.");
+        setTouched(false);
+      },
+      onError: (e) =>
+        toast.error(
+          e instanceof Error ? e.message : "Não foi possível salvar.",
+        ),
+    });
+  };
+
+  const onPick = async (file: File, field: "avatar_url" | "cover_url") => {
+    try {
+      const url = await uploadAvatar(
+        file,
+        field === "avatar_url" ? "avatar" : "cover",
+      );
+      set(field, url);
+      toast.success(field === "avatar_url" ? "Foto enviada." : "Capa enviada.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha no upload.");
+    }
+  };
+
+  const toggleSound = (next: boolean) => {
+    setSound(next);
+    setSoundEnabled(next);
+    if (next) playMeetingAlert();
+  };
+
+  const ruleFor = (weekday: number) =>
+    rules.find((r) => r.weekday === weekday) ?? {
+      weekday: weekday as Weekday,
+      is_available: false,
+      start_time: "09:00",
+      end_time: "18:00",
+    };
 
   if (!profile) {
     return (
@@ -76,84 +177,18 @@ export function ConfigPage() {
     );
   }
 
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
-    setTouched(true);
-    setDraft((d) => ({ ...d, [key]: value }));
-  };
-
-  const incomplete = profile.name.trim() === "";
-
-  const save = () => {
-    const payload = {
-      name: draft.name.trim() || "",
-      role: draft.role.trim(),
-      location: draft.location.trim(),
-      bio: draft.bio.trim(),
-      birth_date: draft.birth_date || "",
-      target_lifespan: Math.max(40, Math.min(150, draft.target_lifespan)),
-      avatar_url: draft.avatar_url.trim() || null,
-      cover_url: draft.cover_url.trim() || null,
-    };
-    update.mutate(payload, {
-      onSuccess: () => {
-        toast.success(
-          "Perfil salvo. Suas alterações já estão visíveis em todo o app.",
-        );
-        setTouched(false);
-      },
-      onError: (e) =>
-        toast.error(
-          e instanceof Error ? e.message : "Não foi possível salvar.",
-        ),
-    });
-  };
-
-  const clearLocal = () => {
-    clearLocalDB();
-    window.location.reload();
-  };
-
-  const onExport = async () => {
-    // Exporta via camada de serviços: puxa dos SQLs quando Supabase está
-    // configurado, ou do repositório local quando não está.
-    try {
-      const dump = await exportAllData();
-      const blob = new Blob([JSON.stringify(dump, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `perfil-vivo-export-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Exportado — guarde o JSON como backup.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao exportar.");
-    }
-  };
-
-  const onPick = async (file: File, field: "avatar_url" | "cover_url") => {
-    try {
-      const url = await uploadAvatar(
-        file,
-        field === "avatar_url" ? "avatar" : "cover",
-      );
-      set(field, url);
-      toast.success(
-        field === "avatar_url" ? "Foto enviada." : "Banner enviado.",
-      );
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha no upload.");
-    }
-  };
+  const slug = slugify(draft.slug);
+  const previewUrl =
+    slug === ""
+      ? null
+      : `${typeof window !== "undefined" ? window.location.origin : ""}/u/${slug}`;
 
   return (
     <>
       <PageHeader
         eyebrow="Ajustes"
         title="Configurações"
-        description="Defina quem é você no Perfil Vivo. Todos os dados ficam salvos — no seu banco quando Supabase está configurado, ou localmente até lá."
+        description="Seu link, seus horários e as regras das suas reuniões."
         action={
           <Button size="sm" onClick={save} disabled={update.isPending}>
             <Save className="size-3.5" /> Salvar
@@ -161,180 +196,305 @@ export function ConfigPage() {
         }
       />
 
-      {incomplete && (
-        <div className="mb-6 rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
-          <p className="text-sm font-medium text-primary">
-            Complete seu perfil
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Preencha seu nome e demais dados abaixo. O app começa vazio — só o
-            que você escrever vai aparecer.
-          </p>
-        </div>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
-        {/* Formulário */}
-        <div className="space-y-6">
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Identidade
-            </h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <Field label="Nome completo">
+      <div className="space-y-10">
+        <Section
+          title="Seu link público"
+          detail="O que aparece quando alguém abre o seu endereço"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nome de link">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-faint">/u/</span>
                 <Input
-                  value={draft.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  placeholder="Seu nome"
-                  autoComplete="name"
+                  value={draft.slug}
+                  onChange={(e) => set("slug", e.target.value)}
+                  placeholder="seu-nome"
                 />
-              </Field>
-              <Field label="O que você faz">
-                <Input
-                  value={draft.role}
-                  onChange={(e) => set("role", e.target.value)}
-                  placeholder="Ex.: Pesquisadora, engenheiro, artista…"
-                />
-              </Field>
-              <Field label="Onde vive">
-                <Input
-                  value={draft.location}
-                  onChange={(e) => set("location", e.target.value)}
-                  placeholder="Ex.: São Paulo, Brasil"
-                  autoComplete="address-level2"
-                />
-              </Field>
-              <Field label="Data de nascimento">
-                <Input
-                  type="date"
-                  value={draft.birth_date}
-                  onChange={(e) => set("birth_date", e.target.value)}
-                />
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Bio curta">
-                  <Textarea
-                    rows={3}
-                    value={draft.bio}
-                    onChange={(e) => set("bio", e.target.value)}
-                    placeholder="Uma frase que resume sua trajetória…"
-                  />
-                </Field>
               </div>
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Tempo de vida
-            </h2>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Ajusta o horizonte do donut Memento Mori e os 4 ciclos de 25 anos.
-            </p>
-            <div className="mt-5">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold uppercase tracking-wide text-faint">
-                  Horizonte alvo
-                </Label>
-                <span className="font-display text-sm font-bold text-primary">
-                  {draft.target_lifespan} anos
-                </span>
-              </div>
-              <Slider
-                className="mt-3"
-                value={[draft.target_lifespan]}
-                min={40}
-                max={150}
-                step={1}
-                onValueChange={(arr) => set("target_lifespan", arr[0] ?? 100)}
+            </Field>
+            <Field label="Ocupação">
+              <Input
+                value={draft.role}
+                onChange={(e) => set("role", e.target.value)}
+                placeholder="Ex.: Cabeleireira, personal, dentista…"
               />
-              <p className="mt-2 text-[11px] text-faint">
-                40–150 anos. Padrão: 100.
-              </p>
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-border bg-card p-5 sm:p-6">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-[0.12em] text-faint">
-              Visual
-            </h2>
-            <div className="mt-5 grid gap-4">
-              <Field label="Foto do perfil (URL)">
-                <div className="flex gap-2">
-                  <Input
-                    value={draft.avatar_url}
-                    onChange={(e) => set("avatar_url", e.target.value)}
-                    placeholder="https://… ou deixe vazio para usar iniciais"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => fileAvatarRef.current?.click()}
-                  >
-                    <ImagePlus className="size-3.5" /> Arquivo
-                  </Button>
-                  <input
-                    ref={fileAvatarRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) onPick(f, "avatar_url");
-                    }}
-                  />
-                </div>
-              </Field>
-              <Field label="Banner de fundo (URL)">
-                <div className="flex gap-2">
-                  <Input
-                    value={draft.cover_url}
-                    onChange={(e) => set("cover_url", e.target.value)}
-                    placeholder="https://… — aparece no topo do Dashboard"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => fileCoverRef.current?.click()}
-                  >
-                    <ImagePlus className="size-3.5" /> Arquivo
-                  </Button>
-                  <input
-                    ref={fileCoverRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) onPick(f, "cover_url");
-                    }}
-                  />
-                </div>
+            </Field>
+            <Field label="Nome completo">
+              <Input
+                value={draft.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder="Seu nome"
+                autoComplete="name"
+              />
+            </Field>
+            <Field label="Cidade">
+              <Input
+                value={draft.location}
+                onChange={(e) => set("location", e.target.value)}
+                placeholder="Ex.: São Paulo, Brasil"
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Apresentação">
+                <Textarea
+                  rows={3}
+                  value={draft.presentation}
+                  onChange={(e) => set("presentation", e.target.value)}
+                  placeholder="Uma frase curta que aparece acima da sua agenda."
+                />
               </Field>
             </div>
-          </section>
-
-          <div className="space-y-6">
-            <PublicSettings />
           </div>
 
-          <div className="flex flex-wrap gap-2 border-t border-border pt-6">
-            <Button onClick={save} disabled={update.isPending}>
-              <Save className="size-4" /> Salvar alterações
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onExport}
-              className="gap-1.5"
-            >
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <Field label="Foto de perfil">
+              <div className="flex gap-2">
+                <Input
+                  value={draft.avatar_url ?? ""}
+                  onChange={(e) => set("avatar_url", e.target.value || null)}
+                  placeholder="https://… ou envie um arquivo"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => fileAvatarRef.current?.click()}
+                >
+                  <ImagePlus className="size-3.5" /> Arquivo
+                </Button>
+                <input
+                  ref={fileAvatarRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void onPick(f, "avatar_url");
+                  }}
+                />
+              </div>
+            </Field>
+            <Field label="Capa">
+              <div className="flex gap-2">
+                <Input
+                  value={draft.cover_url ?? ""}
+                  onChange={(e) => set("cover_url", e.target.value || null)}
+                  placeholder="https://… ou envie um arquivo"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => fileCoverRef.current?.click()}
+                >
+                  <ImagePlus className="size-3.5" /> Arquivo
+                </Button>
+                <input
+                  ref={fileCoverRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void onPick(f, "cover_url");
+                  }}
+                />
+              </div>
+            </Field>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between rounded-md border border-border bg-background px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Link ativo</p>
+              <p className="text-xs text-muted-foreground">
+                Desligue para tirar sua página pública do ar.
+              </p>
+            </div>
+            <Switch
+              checked={draft.is_public}
+              onCheckedChange={(v) => set("is_public", v)}
+            />
+          </div>
+
+          {previewUrl && (
+            <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <Link2 className="size-3.5" />
+              <a
+                href={`/u/${slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-primary underline underline-offset-2"
+              >
+                {previewUrl.replace(/^https?:\/\//, "")}
+              </a>
+            </p>
+          )}
+        </Section>
+
+        <Section
+          title="Dias e horários de reunião"
+          detail="Escolha em que dias e janelas você aceita pedidos. Fora daqui, ninguém vê horário."
+        >
+          <div className="space-y-2">
+            {WEEKDAY_LABELS.map((label, weekday) => {
+              const rule = ruleFor(weekday);
+              return (
+                <div
+                  key={weekday}
+                  className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-4 py-2.5"
+                >
+                  <Switch
+                    checked={rule.is_available}
+                    onCheckedChange={(v) =>
+                      updateRule.mutate({ ...rule, is_available: v })
+                    }
+                    aria-label={`Abrir ${label}`}
+                  />
+                  <span className="w-24 text-sm font-medium">{label}</span>
+                  {rule.is_available ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        className="w-28"
+                        value={rule.start_time}
+                        onChange={(e) =>
+                          updateRule.mutate({
+                            ...rule,
+                            start_time: e.target.value,
+                          })
+                        }
+                        aria-label={`Início ${label}`}
+                      />
+                      <span className="text-xs text-faint">até</span>
+                      <Input
+                        type="time"
+                        className="w-28"
+                        value={rule.end_time}
+                        onChange={(e) =>
+                          updateRule.mutate({
+                            ...rule,
+                            end_time: e.target.value,
+                          })
+                        }
+                        aria-label={`Fim ${label}`}
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-xs text-faint">
+                      Fechado — sem horários neste dia
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+
+        <Section
+          title="Regras de reunião"
+          detail="Duração, intervalo e limite de pedidos"
+        >
+          <div className="flex items-center justify-between rounded-md border border-border bg-background px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Receber pedidos de reunião</p>
+              <p className="text-xs text-muted-foreground">
+                Com isso desligado, seu link não mostra a opção de agendar.
+              </p>
+            </div>
+            <Switch
+              checked={draft.meetings_enabled}
+              onCheckedChange={(v) => set("meetings_enabled", v)}
+            />
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Field label="Duração (min)">
+              <Input
+                type="number"
+                min={10}
+                max={240}
+                value={draft.meeting_duration_min}
+                onChange={(e) =>
+                  set("meeting_duration_min", Number(e.target.value))
+                }
+              />
+            </Field>
+            <Field label="Intervalo (min)">
+              <Input
+                type="number"
+                min={0}
+                max={120}
+                value={draft.meeting_buffer_min}
+                onChange={(e) =>
+                  set("meeting_buffer_min", Number(e.target.value))
+                }
+              />
+            </Field>
+            <Field label="Máximo por dia">
+              <Input
+                type="number"
+                min={1}
+                max={10}
+                value={draft.meeting_max_per_day}
+                onChange={(e) =>
+                  set("meeting_max_per_day", Number(e.target.value))
+                }
+              />
+            </Field>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between rounded-md border border-border bg-background px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Aprovar antes de confirmar</p>
+              <p className="text-xs text-muted-foreground">
+                O pedido cai para você aprovar ou recusar antes de entrar na
+                agenda.
+              </p>
+            </div>
+            <Switch
+              checked={draft.meeting_requires_approval}
+              onCheckedChange={(v) => set("meeting_requires_approval", v)}
+            />
+          </div>
+
+          <div className="mt-4">
+            <Field label="Observações para quem agenda">
+              <Textarea
+                rows={2}
+                value={draft.meeting_requirements}
+                onChange={(e) => set("meeting_requirements", e.target.value)}
+                placeholder="Ex.: Traga referências; atendo só presencial…"
+              />
+            </Field>
+          </div>
+        </Section>
+
+        <Section
+          title="Aviso de novo pedido"
+          detail="Um pedido de reunião não pode passar despercebido"
+        >
+          <div className="flex items-center justify-between rounded-md border border-border bg-background px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Tocar som</p>
+              <p className="text-xs text-muted-foreground">
+                Quando alguém pedir uma reunião, o app apita e mostra o aviso.
+              </p>
+            </div>
+            <Switch checked={sound} onCheckedChange={toggleSound} />
+          </div>
+        </Section>
+
+        <Section
+          title="Seus dados"
+          detail="Faça backup, restaure ou comece de novo"
+        >
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={onExport}>
               <Download className="size-3.5" /> Exportar JSON
             </Button>
-            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-xs font-medium hover:bg-accent">
               <Upload className="size-3.5" /> Importar JSON
               <input
                 type="file"
@@ -355,77 +515,46 @@ export function ConfigPage() {
               />
             </label>
             <Button
+              size="sm"
               variant="ghost"
-              onClick={clearLocal}
-              className="gap-1.5 text-xs text-faint"
+              className="text-destructive"
+              onClick={() => {
+                if (!window.confirm("Apagar todos os dados locais?")) return;
+                clearLocalDB();
+                window.location.reload();
+              }}
             >
-              <Trash2 className="size-3.5" /> Limpar dados locais e recarregar
+              <Trash2 className="size-3.5" /> Limpar dados locais
             </Button>
           </div>
-        </div>
+        </Section>
 
-        {/* Preview ao vivo */}
-        <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-faint">
-            <Eye className="size-3.5" /> Preview do perfil
-          </div>
-          <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <div className="relative h-28">
-              {draft.cover_url ? (
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${draft.cover_url})` }}
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-card to-muted" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-            </div>
-            <div className="flex gap-4 p-5 pt-0">
-              <div className="-mt-8 grid size-16 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-card bg-primary text-sm font-bold text-primary-foreground shadow-lg">
-                {draft.avatar_url ? (
-                  <img
-                    src={draft.avatar_url}
-                    alt=""
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  initialsOf(draft.name || "?")
-                )}
-              </div>
-              <div className="min-w-0 pt-2">
-                <p className="truncate font-display text-base font-semibold text-foreground">
-                  {draft.name || "Seu nome"}
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {draft.role || "Sua ocupação"}
-                </p>
-                <p className="mt-1 text-xs text-faint">
-                  {draft.location || "Sua cidade"}
-                </p>
-                {draft.bio && (
-                  <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                    {draft.bio}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="border-t border-border p-4">
-              <PreviewLifetime
-                birth_date={draft.birth_date}
-                target_lifespan={draft.target_lifespan}
-              />
-            </div>
-          </div>
-          <p className="text-xs leading-5 text-faint">
-            Suas alterações aparecem em todo o app imediatamente. Quando o
-            Supabase estiver configurado, ficam persistidas no banco para o
-            usuário logado.
-          </p>
+        <div className="flex justify-end border-t border-border pt-6">
+          <Button onClick={save} disabled={update.isPending}>
+            <Save className="size-4" /> Salvar alterações
+          </Button>
         </div>
       </div>
     </>
   );
+}
+
+async function onExport() {
+  try {
+    const dump = await exportAllData();
+    const blob = new Blob([JSON.stringify(dump, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tempo-vivo-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exportado — guarde o JSON como backup.");
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : "Falha ao exportar.");
+  }
 }
 
 function Field({
@@ -441,51 +570,6 @@ function Field({
         {label}
       </Label>
       {children}
-    </div>
-  );
-}
-
-function PreviewLifetime({
-  birth_date,
-  target_lifespan,
-}: {
-  birth_date: string;
-  target_lifespan: number;
-}) {
-  const now = new Date();
-  const birth = new Date(`${birth_date}T00:00:00`);
-  const valid =
-    birth_date !== "" &&
-    !Number.isNaN(birth.getTime()) &&
-    birth.getTime() <= now.getTime();
-  if (!valid) {
-    return (
-      <p className="text-xs text-faint">
-        Informe uma data de nascimento válida para ver o Memento Mori.
-      </p>
-    );
-  }
-  const daysLived = Math.floor(
-    (now.getTime() - birth.getTime()) / (24 * 60 * 60 * 1000),
-  );
-  const age = Math.floor(daysLived / 365.2425);
-  const targetDays = Math.round(target_lifespan * 365.2425);
-  const pct = Math.min(100, (daysLived / targetDays) * 100);
-  const idx = Math.min(Math.floor(age / 25), 3);
-  const names = ["Aprendizado", "Construção", "Consolidação", "Plenitude"];
-  return (
-    <div className="flex items-center gap-4">
-      <div className="size-20 shrink-0 rounded-full border border-border bg-muted p-2">
-        <LifetimeTracker compact />
-      </div>
-      <div className="text-xs">
-        <p className="font-semibold text-foreground">
-          {age} anos · {pct.toFixed(1)}% de {target_lifespan}
-        </p>
-        <p className="text-muted-foreground">
-          Ciclo {idx + 1} · {names[idx]}
-        </p>
-      </div>
     </div>
   );
 }

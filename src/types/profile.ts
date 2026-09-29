@@ -2,91 +2,25 @@
 
 // ---------------------------------------------------------------- persistidos
 
-export type DailyLogStatus = "OPEN" | "VALIDATING" | "LOCKED";
-
-export type DailyLog = {
-  id: string;
-  log_date: string; // ISO date (yyyy-mm-dd)
-  planned_text: string;
-  executed_text: string;
-  summary_text: string;
-  status: DailyLogStatus;
-  locked_at: string | null;
-  created_at: string;
-};
-
-export type WeeklyFocus = {
-  id: string;
-  title: string;
-  description: string;
-  week_number: number;
-  year: number;
-  progress_pct: number;
-};
-
-export type CareerChapter = {
-  id: string;
-  title: string;
-  period: string;
-  document_type: string; // "PROLOGUE" | "RESUME" | "CERTIFICATE" | ...
-  content: string;
-};
-
-export type Project = {
-  name: string;
-  description: string;
-  status: string;
-  progress: number;
-  objective: string;
-  /** Período do projeto — ex.: 2024 — hoje. */
-  period: string;
-  /** Atividades (uma por linha). */
-  activities: string;
-  /** Resultados (um por linha). */
-  results: string;
-  /** Links (uma URL por linha). */
-  links: string;
-};
-export type Milestone = {
-  year: string;
-  title: string;
-  description: string;
-  category: string;
-};
-
-/** Cápsula do tempo: carta selada até unlock_at; content só é legível após abrir. */
-export type TimeCapsule = {
-  id: string;
-  title: string;
-  /** Só preenchido quando a cápsula foi aberta (unlock_at <= hoje). */
-  content: string;
-  unlock_at: string; // ISO date
-  opened_at: string | null;
-  created_at: string;
-};
-
-export type ProfilePrivacy = "PUBLIC" | "FAMILY" | "PRIVATE";
-
 export type Profile = {
   id?: string;
   name: string;
+  /** Ocupação exibida no cabeçalho do link público e da agenda. */
   role: string;
+  /** Cidade — aparece no cabeçalho do link público. */
   location: string;
-  bio: string;
+  /** Texto curto exibido acima da agenda no link público. */
+  presentation: string;
   initials: string;
   birth_date: string; // ISO date
-  target_lifespan: number; // default 100
   avatar_url: string | null;
   cover_url: string | null;
-  // Identidade pública (fase 2)
+  // Identidade pública
   slug: string;
   phone: string;
-  presentation: string;
   is_public: boolean;
   show_schedule: boolean;
-  show_projects: boolean;
-  show_achievements: boolean;
-  show_family: boolean;
+  // Reuniões
   meetings_enabled: boolean;
   meeting_duration_min: number;
   meeting_buffer_min: number;
@@ -94,6 +28,8 @@ export type Profile = {
   meeting_requires_approval: boolean;
   meeting_requirements: string;
 };
+
+export type ProfilePrivacy = "PUBLIC" | "FAMILY" | "PRIVATE";
 
 // ------------------------------------------------------------------ agenda --
 
@@ -161,38 +97,6 @@ export type MeetingRequest = {
   counter_start_time: string | null;
   counter_end_time: string | null;
   counter_note: string;
-  created_at: string;
-};
-
-export type FamilyRelation =
-  | "mae"
-  | "pai"
-  | "filho"
-  | "filha"
-  | "irmao"
-  | "irma"
-  | "avo"
-  | "avo_f"
-  | "tio"
-  | "tia"
-  | "primo"
-  | "prima"
-  | "conjuge"
-  | "outro";
-
-export type FamilyInviteStatus = "PENDING" | "LINKED" | "DECLINED" | "REMOVED";
-
-export type FamilyMember = {
-  id: string;
-  display_name: string;
-  /** Número normalizado (só dígitos) — mecanismo de descoberta/convite. */
-  phone: string;
-  relation: FamilyRelation;
-  /** Conta vinculada quando o número já pertence a outro Perfil Vivo. */
-  member_user_id: string | null;
-  invite_status: FamilyInviteStatus;
-  privacy: ProfilePrivacy;
-  note: string;
   created_at: string;
 };
 

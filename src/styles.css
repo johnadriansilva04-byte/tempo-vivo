@@ -740,10 +740,11 @@
   50% { opacity: 1; }
 }
 @utility auth-cycle-seg {
-  display: grid; place-items: center; height: 2.1rem; border-radius: .35rem;
+  display: flex; align-items: center; justify-content: flex-start; gap: .5rem;
+  height: 2.1rem; padding: 0 .75rem; border-radius: .35rem;
   border: 1px solid color-mix(in oklab, var(--primary) 20%, var(--border));
   background: color-mix(in oklab, var(--primary) 6%, var(--muted));
-  font-size: .6rem; font-weight: 600; letter-spacing: .02em;
+  font-size: .7rem; font-weight: 600; letter-spacing: .02em;
   color: color-mix(in oklab, var(--primary) 60%, var(--muted-foreground));
   cursor: default; transition: border-color .2s ease;
   animation: cycle-breathe 8s ease-in-out infinite;

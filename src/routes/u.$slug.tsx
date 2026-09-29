@@ -8,7 +8,7 @@ export const Route = createFileRoute("/u/$slug")({
       {
         name: "description",
         content:
-          "Janela pública: quem é, o que faz, hoje, amanhã, projetos e disponibilidade.",
+          "Página pública: quem é, seu dia e os horários para marcar uma reunião.",
       },
       { property: "og:type", content: "profile" },
       { name: "twitter:card", content: "summary_large_image" },

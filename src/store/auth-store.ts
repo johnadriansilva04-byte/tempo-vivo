@@ -32,6 +32,41 @@ import type {
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEY = "perfil-vivo:auth:v1";
+// Lembra se a última visita terminou com alguém entrando, para reabrir a tela
+// no modo certo e nunca jogar "criar conta" na cara de quem já tem conta.
+const LAST_MODE_KEY = "perfil-vivo:auth:last-mode";
+
+type AuthMode = "entrar" | "criar";
+
+function readLastMode(): AuthMode {
+  if (typeof window === "undefined") return "entrar";
+  try {
+    const raw = window.localStorage.getItem(LAST_MODE_KEY);
+    if (raw === "entrar" || raw === "criar") return raw;
+    return "entrar";
+  } catch {
+    return "entrar";
+  }
+}
+
+/**
+ * Modo inicial da porta de entrada. O padrão é SEMPRE "entrar": o app abre no
+ * login, e quem nunca usou escolhe "Criar conta" com um toque. Antes abria no
+ * cadastro e quem já tinha conta precisava apertar "voltar" toda vez.
+ */
+export function resumeLastMode(): AuthMode {
+  return readLastMode();
+}
+
+/** Grava o modo escolhido para a próxima abertura já vir no lugar certo. */
+export function rememberMode(mode: AuthMode): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LAST_MODE_KEY, mode);
+  } catch {
+    /* storage indisponível: a próxima abertura cai no padrão */
+  }
+}
 
 type LocalAuthDB = {
   accounts: LocalAccount[];
@@ -150,20 +185,31 @@ type ProfileRow = {
   id: string;
   full_name: string | null;
   phone: string | null;
-  age: number | null;
   birth_date: string | null;
-  onboarding_completed: boolean | null;
   created_at: string | null;
 };
 
+function ageFromBirthDate(iso: string): number {
+  if (!iso) return 0;
+  const born = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(born.getTime())) return 0;
+  const now = new Date();
+  let age = now.getFullYear() - born.getFullYear();
+  const beforeBirthday =
+    now.getMonth() < born.getMonth() ||
+    (now.getMonth() === born.getMonth() && now.getDate() < born.getDate());
+  if (beforeBirthday) age -= 1;
+  return age > 0 && age < 130 ? age : 0;
+}
+
 function accountFromProfile(row: ProfileRow): Account {
+  const birth = (row.birth_date ?? "").slice(0, 10);
   return {
     id: row.id,
     name: row.full_name ?? "",
     phone: row.phone ?? "",
-    age: row.age ?? 0,
-    birth_date: (row.birth_date ?? "").slice(0, 10),
-    onboarding_completed: Boolean(row.onboarding_completed),
+    age: ageFromBirthDate(birth),
+    birth_date: birth,
     created_at: row.created_at ?? new Date().toISOString(),
   };
 }
@@ -205,7 +251,6 @@ async function ensureProfileRow(user: {
         id: user.id,
         full_name: String(meta["full_name"] ?? ""),
         phone: phone || null,
-        age,
         birth_date: age !== null ? birthDateFromAge(age) : null,
       } as never,
       { onConflict: "id", ignoreDuplicates: false },
@@ -427,7 +472,6 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
     birth_date: birthDateFromAge(age),
     password_hash: await hashPassword(input.password, salt),
     password_salt: salt,
-    onboarding_completed: false,
     created_at: new Date().toISOString(),
     ...(input.recovery_question && input.recovery_answer
       ? {
@@ -512,18 +556,18 @@ export async function signOut(): Promise<void> {
 
 // ---------------------------------------------------------------- pós-login
 
-/** Marca a conta logada como "história iniciada". */
-export async function completeOnboarding(): Promise<void> {
+/** Atualiza nome no perfil — mantém conta e perfil coerentes. */
+export async function updateName(name: string): Promise<void> {
   const account = state.account;
   if (!account) return;
 
   if (isSupabaseConfigured && supabase) {
     const { error } = await supabase
       .from("profiles")
-      .update({ onboarding_completed: true } as never)
+      .update({ full_name: name } as never)
       .eq("id", account.id);
     if (error) throw error;
-    emit({ ...state, account: { ...account, onboarding_completed: true } });
+    emit({ ...state, account: { ...account, name } });
     return;
   }
 
@@ -531,61 +575,7 @@ export async function completeOnboarding(): Promise<void> {
   writeLocal({
     ...db,
     accounts: db.accounts.map((a) =>
-      a.id === account.id ? { ...a, onboarding_completed: true } : a,
-    ),
-  });
-  publishLocal();
-}
-
-/** Atualiza nome/idade na conta — mantém perfil e credenciais coerentes. */
-export async function updateAccount(
-  userId: string,
-  patch: Partial<Pick<Account, "name" | "age">>,
-): Promise<void> {
-  const age = patch.age !== undefined ? Math.round(patch.age) : undefined;
-
-  if (isSupabaseConfigured && supabase) {
-    const row: Record<string, unknown> = {};
-    if (patch.name !== undefined) row["full_name"] = patch.name;
-    if (age !== undefined) {
-      row["age"] = age;
-      row["birth_date"] = birthDateFromAge(age);
-    }
-    if (Object.keys(row).length > 0) {
-      const { error } = await supabase
-        .from("profiles")
-        .update(row as never)
-        .eq("id", userId);
-      if (error) throw error;
-    }
-    if (state.account?.id === userId) {
-      emit({
-        ...state,
-        account: {
-          ...state.account,
-          ...(patch.name !== undefined ? { name: patch.name } : {}),
-          ...(age !== undefined
-            ? { age, birth_date: birthDateFromAge(age) }
-            : {}),
-        },
-      });
-    }
-    return;
-  }
-
-  const db = readLocal();
-  writeLocal({
-    ...db,
-    accounts: db.accounts.map((a) =>
-      a.id === userId
-        ? {
-            ...a,
-            ...(patch.name !== undefined ? { name: patch.name } : {}),
-            ...(age !== undefined
-              ? { age, birth_date: birthDateFromAge(age) }
-              : {}),
-          }
-        : a,
+      a.id === account.id ? { ...a, name } : a,
     ),
   });
   publishLocal();

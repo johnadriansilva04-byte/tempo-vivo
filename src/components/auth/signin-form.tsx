@@ -6,7 +6,7 @@ import { ENTRY_COPY, FIELD_HINTS } from "@/components/auth/copy";
 import { formatPhone, normalizePhone } from "@/lib/identity";
 
 // ---------------------------------------------------------------------------
-// Entrar: o caminho de volta de quem já tem história. Só telefone e senha —
+// Entrar: o caminho de volta de quem já tem conta. Só telefone e senha —
 // não existe e-mail para digitar nem para lembrar.
 // ---------------------------------------------------------------------------
 

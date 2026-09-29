@@ -7,7 +7,6 @@ export type Account = {
   age: number;
   /** Derivada da idade informada no cadastro. */
   birth_date: string;
-  onboarding_completed: boolean;
   created_at: string;
 };
 
