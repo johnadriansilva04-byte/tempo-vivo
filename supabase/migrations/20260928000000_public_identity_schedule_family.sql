@@ -93,6 +93,31 @@ create table if not exists public.commitment_exceptions (
 
 create index if not exists commitment_exceptions_date_idx on public.commitment_exceptions (user_id, exception_date);
 
+-- --------------------------------------------------------- reuniões (solicitações)
+-- Criada ANTES de `one_off_events` porque a coluna meeting_request_id abaixo
+-- aponta para ela; fora de ordem, o `create table` falhava com
+-- "relation public.meeting_requests does not exist" e a migration inteira era
+-- abortada — deixando a agenda sem tabela e o app sem os compromissos.
+create table if not exists public.meeting_requests (
+  id          uuid primary key default gen_random_uuid(),
+  owner_id    uuid not null references public.profiles(id) on delete cascade,
+  event_date  date not null,
+  start_time  text not null,
+  end_time    text not null,
+  requester_name  text not null,
+  requester_contact text not null,
+  reason      text not null default '',
+  status      text not null default 'PENDING' check (status in ('PENDING','ACCEPTED','DECLINED','CANCELLED','RESCHEDULED')),
+  counter_start_time text,  -- "propor outro horário"
+  counter_end_time   text,
+  counter_event_date date,
+  counter_note text not null default '',
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz
+);
+
+create index if not exists meeting_requests_owner_idx on public.meeting_requests (owner_id, status);
+
 -- Compromissos eventuais (não recorrentes). Reuniões aceitas também vivem aqui
 -- (source = 'meeting') para entrarem na agenda e sumirem da disponibilidade.
 create table if not exists public.one_off_events (
@@ -125,27 +150,6 @@ create table if not exists public.availability_rules (
 );
 
 create index if not exists availability_rules_user_idx on public.availability_rules (user_id);
-
--- --------------------------------------------------------- reuniões (solicitações)
-create table if not exists public.meeting_requests (
-  id          uuid primary key default gen_random_uuid(),
-  owner_id    uuid not null references public.profiles(id) on delete cascade,
-  event_date  date not null,
-  start_time  text not null,
-  end_time    text not null,
-  requester_name  text not null,
-  requester_contact text not null,
-  reason      text not null default '',
-  status      text not null default 'PENDING' check (status in ('PENDING','ACCEPTED','DECLINED','CANCELLED','RESCHEDULED')),
-  counter_start_time text,  -- "propor outro horário"
-  counter_end_time   text,
-  counter_event_date date,
-  counter_note text not null default '',
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz
-);
-
-create index if not exists meeting_requests_owner_idx on public.meeting_requests (owner_id, status);
 
 -- ==================================================================== família --
 -- A relação é entre CONTAS (user_id + member_user_id quando existir).

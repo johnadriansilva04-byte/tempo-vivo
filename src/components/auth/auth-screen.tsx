@@ -23,9 +23,9 @@ type Mode = "entrar" | "criar" | "recuperar";
  * Porta de entrada do app. Três caminhos — entrar, criar, recuperar — e nenhum
  * outro.
  *
- * Quem já entrou alguma vez abre direto no login (`resumeLastMode`); só quem
- * nunca usou o app vê "criar conta" primeiro. O modo escolhido é lembrado, então
- * voltar ao app nunca reabre o cadastro por engano. A tela só orquestra: o
+ * A porta de entrada abre SEMPRE no login (`resumeLastMode`): quem já tem conta
+ * não precisa mais apertar "voltar" a cada visita. Quem nunca usou escolhe
+ * "Criar conta" com um toque, e o modo escolhido é lembrado. A tela só orquestra: o
  * cadastro vive em `useSignupDraft`, o login e a recuperação têm seu próprio
  * componente, e a apresentação é `PitchPanel`.
  */
