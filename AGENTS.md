@@ -64,3 +64,15 @@ versionamento e registros de conclusão imutáveis.
   (não basta checar `user_id`). A policy permissiva de `projects` da migration
   inicial foi derrubada e substituída por isolamento por usuário.
 
+Sessão de convidado (`is_guest`) e modo de dados:
+
+- `src/store/auth-store.ts` guarda o convidado em `perfil-vivo:auth:guest`
+  (só no navegador) e o restaura antes de qualquer sessão do Supabase.
+- `src/lib/data-mode.ts#isLocalMode()` decide entre armazenamento local e
+  Supabase. Regra: sem Supabase → local; com Supabase e convidado → local
+  (a sessão de convidado não tem identidade no banco, gravar violaria a RLS);
+  com Supabase e conta real → banco. `profile-service` e `project-service`
+  passam por essa função — não voltar a checar `isSupabaseConfigured` direto.
+- O convidado vira conta real pelo diálogo `src/components/auth/save-account-dialog.tsx`
+  (reusa `SignUpForm`); a faixa `src/components/guest-banner.tsx` é o convite.
+
