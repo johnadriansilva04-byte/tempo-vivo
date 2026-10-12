@@ -29,6 +29,10 @@ export const ENTRY_COPY = {
     subtitle: "Entre para continuar de onde parou.",
     submit: "Entrar",
   },
+  guest: {
+    label: "Entrar como convidado",
+    hint: "Conheça o app sem criar conta. Os dados ficam só neste navegador.",
+  },
 } as const;
 
 /** Blocos do cadastro, do que a pessoa é até como ela volta. */

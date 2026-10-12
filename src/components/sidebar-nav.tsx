@@ -34,6 +34,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
   // Fecha o menu ao navegar — no celular o overlay precisa sumir sozinho.
   useEffect(() => setOpen(false), [pathname]);
 
+  const isGuest = account?.is_guest === true;
   const displayName = account?.name?.trim() || "Sua conta";
   const initials =
     displayName === "Sua conta"
@@ -96,12 +97,20 @@ export function SidebarNav({ children }: { children: ReactNode }) {
                 {displayName}
               </p>
               <p className="text-[11px] text-muted-foreground">
-                {pendingCount > 0
-                  ? `${pendingCount} pedido(s) de reunião`
-                  : "Agenda privada"}
+                {isGuest
+                  ? "Sessão de convidado"
+                  : pendingCount > 0
+                    ? `${pendingCount} pedido(s) de reunião`
+                    : "Agenda privada"}
               </p>
             </div>
           </div>
+          {isGuest && (
+            <p className="mt-3 rounded-md border border-border bg-muted/50 px-2.5 py-2 text-[11px] leading-4 text-muted-foreground">
+              Você está como convidado. Os dados ficam só neste navegador — crie
+              uma conta para guardar de verdade.
+            </p>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -109,7 +118,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
             onClick={() => void signOut()}
           >
             <UserRound className="size-3.5" />
-            Sair da conta
+            {isGuest ? "Sair do modo convidado" : "Sair da conta"}
           </Button>
         </div>
       </aside>

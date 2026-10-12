@@ -5,9 +5,13 @@ import {
   resetPasswordWithToken,
   resumeLastMode,
   signIn,
+  signInAsGuest,
   signUp,
   verifyRecoveryAnswer,
 } from "@/hooks/use-auth";
+import { UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ENTRY_COPY } from "@/components/auth/copy";
 import { normalizePhone } from "@/lib/identity";
 import { AuthError } from "@/components/auth/form";
 import { PitchCompact, PitchPanel } from "@/components/auth/pitch-panel";
@@ -86,6 +90,11 @@ export function AuthScreen() {
     } finally {
       setPending(false);
     }
+  };
+
+  const submitGuest = () => {
+    setError(null);
+    signInAsGuest();
   };
 
   // ------------------------------------------------ recuperação, passo 1 de 3
@@ -238,6 +247,27 @@ export function AuthScreen() {
                 }}
               />
               {error && <AuthError message={error} />}
+
+              <div className="my-5 flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-[11px] font-medium uppercase tracking-wide text-faint">
+                  ou
+                </span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={submitGuest}
+              >
+                <UserRound className="size-4" />
+                {ENTRY_COPY.guest.label}
+              </Button>
+              <p className="mt-2 text-center text-[11px] leading-4 text-faint">
+                {ENTRY_COPY.guest.hint}
+              </p>
             </>
           )}
         </div>

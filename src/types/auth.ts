@@ -8,6 +8,12 @@ export type Account = {
   /** Derivada da idade informada no cadastro. */
   birth_date: string;
   created_at: string;
+  /**
+   * Sessão de convidado: entrada rápida e descartável, sem cadastro. Não tem
+   * pergunta secreta nem sincroniza entre dispositivos. Serve para conhecer o
+   * app — o convidado pode criar a própria conta depois.
+   */
+  is_guest?: boolean;
 };
 
 export type SignUpInput = {

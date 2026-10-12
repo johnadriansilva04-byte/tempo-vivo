@@ -35,6 +35,9 @@ const STORAGE_KEY = "perfil-vivo:auth:v1";
 // Lembra se a última visita terminou com alguém entrando, para reabrir a tela
 // no modo certo e nunca jogar "criar conta" na cara de quem já tem conta.
 const LAST_MODE_KEY = "perfil-vivo:auth:last-mode";
+// Sessão de convidado: separada das contas reais porque é descartável e nunca
+// deve ser confundida com um cadastro (sem senha, sem telefone, sem recuperação).
+const GUEST_KEY = "perfil-vivo:auth:guest";
 
 type AuthMode = "entrar" | "criar";
 
@@ -142,6 +145,45 @@ function writeLocal(db: LocalAuthDB): void {
   }
 }
 
+// ------------------------------------------------------------- modo convidado
+
+function readGuest(): Account | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(GUEST_KEY);
+    return raw ? (JSON.parse(raw) as Account) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeGuest(account: Account | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (account)
+      window.localStorage.setItem(GUEST_KEY, JSON.stringify(account));
+    else window.localStorage.removeItem(GUEST_KEY);
+  } catch {
+    /* storage indisponível: mantém apenas em memória */
+  }
+}
+
+function newGuestAccount(): Account {
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? `convidado-${crypto.randomUUID()}`
+      : `convidado-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return {
+    id,
+    name: "Convidado",
+    phone: "",
+    age: 0,
+    birth_date: "",
+    created_at: new Date().toISOString(),
+    is_guest: true,
+  };
+}
+
 function randomSalt(): string {
   if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
     const bytes = new Uint8Array(16);
@@ -172,8 +214,10 @@ function localAccountFrom(db: LocalAuthDB): Account | null {
 }
 
 function publishLocal(): void {
+  // A sessão de convidado tem prioridade sobre as contas locais: se as duas
+  // existirem, o convidado é a sessão ativa mais recente.
   emit({
-    account: localAccountFrom(readLocal()),
+    account: readGuest() ?? localAccountFrom(readLocal()),
     isLoading: false,
     ready: true,
   });
@@ -349,6 +393,14 @@ export function initAuth(): void {
   if (initialized || typeof window === "undefined") return;
   initialized = true;
 
+  // Convidado restaurado primeiro: a sessão é do cliente e não depende de rede,
+  // então nunca deve ficar presa atrás da restauração do Supabase.
+  const guest = readGuest();
+  if (guest) {
+    emit({ account: guest, isLoading: false, ready: true });
+    return;
+  }
+
   if (!isSupabaseConfigured || !supabase) {
     publishLocal();
     window.addEventListener("storage", (event) => {
@@ -440,6 +492,7 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
     }
     try {
       const row = await ensureProfileRow(data.user);
+      writeGuest(null);
       writeLocal({ accounts: [], session: { user_id: data.user.id } });
       const account = accountFromProfile(row);
       emit({ account, isLoading: false, ready: true });
@@ -484,6 +537,7 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
         }
       : {}),
   };
+  writeGuest(null);
   writeLocal({
     accounts: [...db.accounts, account],
     session: { user_id: account.id },
@@ -516,6 +570,7 @@ export async function signIn(input: SignInInput): Promise<AuthResult> {
     }
     try {
       const row = await ensureProfileRow(data.user);
+      writeGuest(null);
       writeLocal({ accounts: [], session: { user_id: data.user.id } });
       const account = accountFromProfile(row);
       emit({ account, isLoading: false, ready: true });
@@ -537,12 +592,15 @@ export async function signIn(input: SignInInput): Promise<AuthResult> {
   if (hash !== account.password_hash)
     return { ok: false, error: "Senha incorreta." };
 
+  writeGuest(null);
   writeLocal({ ...db, session: { user_id: account.id } });
   publishLocal();
   return { ok: true, account };
 }
 
 export async function signOut(): Promise<void> {
+  // Sai de qualquer sessão: convidado, local ou Supabase.
+  writeGuest(null);
   if (isSupabaseConfigured && supabase) {
     await supabase.auth.signOut();
     writeLocal({ accounts: [], session: null });
@@ -554,12 +612,33 @@ export async function signOut(): Promise<void> {
   publishLocal();
 }
 
+/**
+ * Entra como convidado: sessão rápida e descartável, sem cadastro. Serve para
+ * conhecer o app antes de criar uma conta. Fica restrita ao cliente (não toca
+ * o Supabase Auth), então não sincroniza entre dispositivos e não tem
+ * recuperação de senha — sair descarta o convidado.
+ */
+export function signInAsGuest(): AuthResult {
+  const account = readGuest() ?? newGuestAccount();
+  writeGuest(account);
+  emit({ account, isLoading: false, ready: true });
+  return { ok: true, account };
+}
+
 // ---------------------------------------------------------------- pós-login
 
 /** Atualiza nome no perfil — mantém conta e perfil coerentes. */
 export async function updateName(name: string): Promise<void> {
   const account = state.account;
   if (!account) return;
+
+  // Convidado não tem linha em `profiles`: o nome vive só na sessão local.
+  if (account.is_guest) {
+    const updated: Account = { ...account, name };
+    writeGuest(updated);
+    emit({ ...state, account: updated });
+    return;
+  }
 
   if (isSupabaseConfigured && supabase) {
     const { error } = await supabase
