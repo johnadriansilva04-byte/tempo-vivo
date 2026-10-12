@@ -33,10 +33,13 @@ export function SignUpForm({
   draft,
   pending,
   onSubmit,
+  hideHeading = false,
 }: {
   draft: SignupDraftState;
   pending: boolean;
   onSubmit: () => void;
+  /** Esconde título e subtítulo quando quem chama já traz o próprio cabeçalho. */
+  hideHeading?: boolean;
 }) {
   const step = draft.step;
   const position = BLOCK_SEQUENCE.indexOf(step);
@@ -59,20 +62,24 @@ export function SignUpForm({
 
   return (
     <>
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-2xl font-semibold text-foreground">
-          {ENTRY_COPY.signup.title}
-        </h2>
-        <span className="shrink-0 text-xs font-semibold tabular-nums text-faint">
-          {draft.progress.completed} de {draft.progress.total}
-        </span>
-      </div>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {ENTRY_COPY.signup.subtitle}
-      </p>
+      {!hideHeading && (
+        <>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-2xl font-semibold text-foreground">
+              {ENTRY_COPY.signup.title}
+            </h2>
+            <span className="shrink-0 text-xs font-semibold tabular-nums text-faint">
+              {draft.progress.completed} de {draft.progress.total}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {ENTRY_COPY.signup.subtitle}
+          </p>
+        </>
+      )}
 
       <form
-        className="mt-4"
+        className={hideHeading ? "" : "mt-4"}
         onSubmit={(e) => {
           e.preventDefault();
           handleSubmit();

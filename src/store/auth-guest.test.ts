@@ -41,15 +41,18 @@ describe("modo convidado (sem Supabase)", () => {
     const store = await import("@/store/auth-store");
     const result = store.signInAsGuest();
     expect(result.ok).toBe(true);
-    expect(result.account.is_guest).toBe(true);
-    expect(result.account.name).toBe("Convidado");
-    expect(result.account.phone).toBe("");
+    const account = store.getSnapshot().account;
+    expect(account?.is_guest).toBe(true);
+    expect(account?.name).toBe("Convidado");
+    expect(account?.phone).toBe("");
   });
 
   it("reaproveita a mesma sessão ao entrar de novo como convidado", async () => {
     const store = await import("@/store/auth-store");
     const first = store.signInAsGuest();
+    if (!first.ok) throw new Error("convidado deveria entrar");
     const second = store.signInAsGuest();
+    if (!second.ok) throw new Error("convidado deveria entrar");
     expect(second.account.id).toBe(first.account.id);
   });
 

@@ -7,10 +7,12 @@ import {
   Settings,
   Target,
   UserRound,
+  UserRoundPlus,
   X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { SaveAccountDialog } from "@/components/auth/save-account-dialog";
 import { signOut, useAuth } from "@/hooks/use-auth";
 import { useMeetingAlerts } from "@/hooks/use-meeting-alerts";
 
@@ -27,6 +29,7 @@ const links = [
  */
 export function SidebarNav({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const { account } = useAuth();
   const { pendingCount } = useMeetingAlerts();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -106,10 +109,22 @@ export function SidebarNav({ children }: { children: ReactNode }) {
             </div>
           </div>
           {isGuest && (
-            <p className="mt-3 rounded-md border border-border bg-muted/50 px-2.5 py-2 text-[11px] leading-4 text-muted-foreground">
-              Você está como convidado. Os dados ficam só neste navegador — crie
-              uma conta para guardar de verdade.
-            </p>
+            <>
+              <p className="mt-3 rounded-md border border-border bg-muted/50 px-2.5 py-2 text-[11px] leading-4 text-muted-foreground">
+                Você está como convidado. Os dados ficam só neste navegador.
+              </p>
+              <Button
+                size="sm"
+                className="mt-2 w-full justify-start"
+                onClick={() => {
+                  setSaveOpen(true);
+                  setOpen(false);
+                }}
+              >
+                <UserRoundPlus className="size-3.5" />
+                Criar minha conta
+              </Button>
+            </>
           )}
           <Button
             variant="ghost"
@@ -144,6 +159,7 @@ export function SidebarNav({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      <SaveAccountDialog open={saveOpen} onOpenChange={setSaveOpen} />
     </div>
   );
 }

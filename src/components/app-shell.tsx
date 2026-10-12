@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { SidebarNav } from "@/components/sidebar-nav";
+import { GuestBanner } from "@/components/guest-banner";
 import { SupabaseHealthBanner } from "@/components/supabase-health-banner";
 import { useMeetingAlerts } from "@/hooks/use-meeting-alerts";
 import { primeNotificationSound } from "@/lib/notification-sound";
@@ -25,6 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarNav>
       <SupabaseHealthBanner />
+      <GuestBanner />
       {children}
     </SidebarNav>
   );

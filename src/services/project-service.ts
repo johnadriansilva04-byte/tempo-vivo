@@ -1,10 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ApiError, mapUnknownError } from "@/lib/api-errors";
-import {
-  isSupabaseConfigured,
-  requireSupabase,
-  withRetry,
-} from "@/lib/supabase";
+import { isLocalMode } from "@/lib/data-mode";
+import { requireSupabase, withRetry } from "@/lib/supabase";
 import { sanitizeText } from "@/lib/sanitize";
 import * as local from "@/repositories/project-repository";
 import type {
@@ -53,7 +50,7 @@ async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
 }
 
 function isRemote(): boolean {
-  return isSupabaseConfigured;
+  return !isLocalMode();
 }
 
 // ============================================================ leitura

@@ -3,10 +3,10 @@ import type { Database } from "@/lib/database.types";
 import { SINGLETON_USER_ID } from "@/lib/database.types";
 import {
   checkSupabaseHealth,
-  isSupabaseConfigured,
   requireSupabase,
   withRetry,
 } from "@/lib/supabase";
+import { isLocalMode } from "@/lib/data-mode";
 import { clampInt, sanitizeText } from "@/lib/sanitize";
 import {
   availabilityRuleSchema,
@@ -105,7 +105,7 @@ function isFallbackable(code: string): boolean {
 // — Profile
 
 export async function getProfile(): Promise<Profile> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { data, error } = await withRetry(() =>
@@ -153,7 +153,7 @@ export async function updateProfile(
       : {}),
   } as Partial<Omit<Profile, "id">>;
 
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       type ProfilesUpdate = Database["public"]["Tables"]["profiles"]["Update"];
@@ -233,7 +233,7 @@ export async function updateProfile(
 export async function getRecurringCommitments(): Promise<
   RecurringCommitment[]
 > {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { data, error } = await withRetry(() =>
@@ -265,7 +265,7 @@ export async function upsertRecurringCommitment(
       parsed.error.issues[0]?.message ?? "Compromisso inválido",
     );
   const p = parsed.data;
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const payload = {
@@ -304,7 +304,7 @@ export async function upsertRecurringCommitment(
 }
 
 export async function deleteRecurringCommitment(id: string): Promise<void> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { error } = await db
@@ -324,7 +324,7 @@ export async function deleteRecurringCommitment(id: string): Promise<void> {
 export async function getCommitmentExceptions(): Promise<
   CommitmentException[]
 > {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { data, error } = await withRetry(() =>
@@ -355,7 +355,7 @@ export async function upsertCommitmentException(
       "VALIDATION",
       parsed.error.issues[0]?.message ?? "Exceção inválida",
     );
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const p = parsed.data;
@@ -391,7 +391,7 @@ export async function upsertCommitmentException(
 }
 
 export async function deleteCommitmentException(id: string): Promise<void> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { error } = await db
@@ -409,7 +409,7 @@ export async function deleteCommitmentException(id: string): Promise<void> {
 }
 
 export async function getOneOffEvents(): Promise<OneOffEvent[]> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { data, error } = await withRetry(() =>
@@ -444,7 +444,7 @@ export async function upsertOneOffEvent(
       "VALIDATION",
       parsed.error.issues[0]?.message ?? "Evento inválido",
     );
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const p = parsed.data;
@@ -482,7 +482,7 @@ export async function upsertOneOffEvent(
 }
 
 export async function deleteOneOffEvent(id: string): Promise<void> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { error } = await db
@@ -504,7 +504,7 @@ export async function deleteOneOffEvent(id: string): Promise<void> {
 // ============================================================================
 
 export async function getAvailabilityRules(): Promise<AvailabilityRule[]> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { data, error } = await withRetry(() =>
@@ -535,7 +535,7 @@ export async function upsertAvailabilityRule(
       "VALIDATION",
       parsed.error.issues[0]?.message ?? "Regra inválida",
     );
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { error } = await db.from("availability_rules").upsert(
@@ -657,7 +657,7 @@ function meetingRowToDomain(row: MeetingRow): MeetingRequest {
 }
 
 export async function getMeetingRequests(): Promise<MeetingRequest[]> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { data, error } = await withRetry(() =>
@@ -716,7 +716,7 @@ export async function createMeetingRequest(
       "CONFLICT",
       "Este horário acabou de ficar ocupado. Escolha outro.",
     );
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { error } = await db.from("meeting_requests").insert({
@@ -769,7 +769,7 @@ export async function decideMeetingRequest(
       "VALIDATION",
       parsed.error.issues[0]?.message ?? "Decisão inválida",
     );
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { error } = await db
@@ -866,7 +866,7 @@ export async function decideMeetingRequest(
 
 /** Upsert bruto de solicitação de reunião (usado pelo import de backup). */
 export async function upsertMeetingRequest(m: MeetingRequest): Promise<void> {
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { error } = await db.from("meeting_requests").upsert(
@@ -911,7 +911,7 @@ export async function getPublicProfileBySlug(
   const clean = slugify(slug);
   if (clean === "") return null;
 
-  if (isSupabaseConfigured) {
+  if (!isLocalMode()) {
     try {
       const db = requireSupabase();
       const { data, error } = await withRetry(() =>
@@ -967,7 +967,7 @@ export async function exportAllData(): Promise<ExportDump> {
   const { id: _profileId, initials: _initials, ...profileRest } = profile;
   return {
     exported_at: new Date().toISOString(),
-    mode: isSupabaseConfigured ? "supabase" : "local",
+    mode: isLocalMode() ? "local" : "supabase",
     profile: profileRest,
     recurring_commitments,
     commitment_exceptions,
