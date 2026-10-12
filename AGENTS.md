@@ -40,3 +40,27 @@ A agenda é servida por `src/services/profile-service.ts`, que usa
 `SINGLETON_USER_ID` (modo single-user); erros não-transitórios (`UNKNOWN`,
 `FORBIDDEN`) são relançados e NÃO caem no fallback local.
 
+## Projetos por fases (execução sequencial)
+
+Módulo "Execução por fases": projetos com resumo inicial, fases sequenciais
+com bloqueio progressivo, missões adicionais, substituição de missão,
+versionamento e registros de conclusão imutáveis.
+
+- SQL: `supabase/migrations/20261011000000_project_execution_engine.sql`
+  (tabelas, triggers de imutabilidade, RLS, RPCs atômicas
+  `conclude_phase`/`conclude_mission`/`substitute_mission`).
+- TS espelha o SQL: `src/types/projects.ts`, `src/repositories/project-repository.ts`
+  (fallback local em `perfil-vivo:projects:v1`), `src/services/project-service.ts`,
+  `src/hooks/use-projects.ts`, `src/components/projects/*`.
+- Rotas: `/projetos` (layout com `<Outlet/>`) → `src/routes/projetos.index.tsx`
+  (lista) e `src/routes/projetos.$projectId.tsx` (detalhe). Ao criar rota filha
+  de `/projetos`, mantenha o `Outlet` no layout — senão o filho não renderiza.
+- UI: `src/components/projects/phase-timeline.tsx` desenha a linha do tempo
+  (nós conectados, estados distintos, motivo do bloqueio, data de arquivamento).
+- Regras invioláveis: fase/missão concluída não pode ser editada nem apagada;
+  correção vira registro complementar; substituição preserva a original e a
+  vincula (`replaces_mission_id`); versão anterior nunca é sobrescrita.
+- RLS: toda policy de tabela-filha valida `user_id` E posse do `project_id`
+  (não basta checar `user_id`). A policy permissiva de `projects` da migration
+  inicial foi derrubada e substituída por isolamento por usuário.
+

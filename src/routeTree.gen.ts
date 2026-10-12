@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ProjetosRouteImport } from './routes/projetos'
+import { Route as ProjetosIndexRouteImport } from './routes/projetos.index'
+import { Route as ProjetosProjectIdRouteImport } from './routes/projetos.$projectId'
 import { Route as USlugRouteImport } from './routes/u.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +32,21 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjetosRoute = ProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjetosIndexRoute = ProjetosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProjetosRoute,
+} as any)
+const ProjetosProjectIdRoute = ProjetosProjectIdRouteImport.update({
+  id: '/$projectId',
+  path: '/$projectId',
+  getParentRoute: () => ProjetosRoute,
+} as any)
 const USlugRoute = USlugRouteImport.update({
   id: '/u/$slug',
   path: '/u/$slug',
@@ -39,33 +57,63 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/projetos': typeof ProjetosRouteWithChildren
+  '/projetos/$projectId': typeof ProjetosProjectIdRoute
   '/u/$slug': typeof USlugRoute
+  '/projetos/': typeof ProjetosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/projetos/$projectId': typeof ProjetosProjectIdRoute
   '/u/$slug': typeof USlugRoute
+  '/projetos': typeof ProjetosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/projetos': typeof ProjetosRouteWithChildren
+  '/projetos/$projectId': typeof ProjetosProjectIdRoute
   '/u/$slug': typeof USlugRoute
+  '/projetos/': typeof ProjetosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agenda' | '/configuracoes' | '/u/$slug'
+  fullPaths:
+    | '/'
+    | '/agenda'
+    | '/configuracoes'
+    | '/projetos'
+    | '/projetos/$projectId'
+    | '/u/$slug'
+    | '/projetos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agenda' | '/configuracoes' | '/u/$slug'
-  id: '__root__' | '/' | '/agenda' | '/configuracoes' | '/u/$slug'
+  to:
+    | '/'
+    | '/agenda'
+    | '/configuracoes'
+    | '/projetos/$projectId'
+    | '/u/$slug'
+    | '/projetos'
+  id:
+    | '__root__'
+    | '/'
+    | '/agenda'
+    | '/configuracoes'
+    | '/projetos'
+    | '/projetos/$projectId'
+    | '/u/$slug'
+    | '/projetos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendaRoute: typeof AgendaRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ProjetosRoute: typeof ProjetosRouteWithChildren
   USlugRoute: typeof USlugRoute
 }
 
@@ -92,6 +140,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projetos': {
+      id: '/projetos'
+      path: '/projetos'
+      fullPath: '/projetos'
+      preLoaderRoute: typeof ProjetosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projetos/': {
+      id: '/projetos/'
+      path: '/'
+      fullPath: '/projetos/'
+      preLoaderRoute: typeof ProjetosIndexRouteImport
+      parentRoute: typeof ProjetosRoute
+    }
+    '/projetos/$projectId': {
+      id: '/projetos/$projectId'
+      path: '/$projectId'
+      fullPath: '/projetos/$projectId'
+      preLoaderRoute: typeof ProjetosProjectIdRouteImport
+      parentRoute: typeof ProjetosRoute
+    }
     '/u/$slug': {
       id: '/u/$slug'
       path: '/u/$slug'
@@ -102,10 +171,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ProjetosRouteChildren {
+  ProjetosProjectIdRoute: typeof ProjetosProjectIdRoute
+  ProjetosIndexRoute: typeof ProjetosIndexRoute
+}
+
+const ProjetosRouteChildren: ProjetosRouteChildren = {
+  ProjetosProjectIdRoute: ProjetosProjectIdRoute,
+  ProjetosIndexRoute: ProjetosIndexRoute,
+}
+
+const ProjetosRouteWithChildren = ProjetosRoute._addFileChildren(
+  ProjetosRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendaRoute: AgendaRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  ProjetosRoute: ProjetosRouteWithChildren,
   USlugRoute: USlugRoute,
 }
 export const routeTree = rootRouteImport

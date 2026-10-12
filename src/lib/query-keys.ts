@@ -8,4 +8,6 @@ export const qk = {
   availability: () => ["availability-rules"] as const,
   meetingRequests: () => ["meeting-requests"] as const,
   publicProfile: (slug: string) => ["public-profile", slug] as const,
+  projects: () => ["projects"] as const,
+  project: (id: string) => ["project", id] as const,
 } as const;

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Menu,
   Settings,
+  Target,
   UserRound,
   X,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { useMeetingAlerts } from "@/hooks/use-meeting-alerts";
 const links = [
   ["/", "Hoje", LayoutDashboard],
   ["/agenda", "Agenda", CalendarDays],
+  ["/projetos", "Projetos", Target],
   ["/configuracoes", "Configurações", Settings],
 ] as const;
 
